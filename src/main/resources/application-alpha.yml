@@ -1,0 +1,56 @@
+# port
+server:
+  port: 8888
+  domain: http://10.224.81.94:8888
+  servlet:
+    context-path: /sync
+
+# db
+spring:
+  datasource:
+    url: jdbc:sqlserver://10.224.81.70:3000;databaseName=paperless
+    username: 8170sql
+    password: Foxconn123
+    hibernate.dialect: org.hibernate.dialect.SQLServer2008Dialect
+    configuration:
+      connectionTimeout: 30000
+      idleTimeout: 600000
+      maxLifetime: 1800000
+  mvc:
+    view:
+      prefix: /WEB-INF/jsp/
+      suffix: .jsp
+  jmx:
+    enable: false
+    default-domain: sync
+  jackson:
+    time-zone: Asia/Ho_Chi_Minh
+    date-format: yyyy-MM-dd HH:mm:ss
+
+# uploading
+data.patho: E:\tuyen\res\paperless\media\
+data.path: F:\data\paperless\res\media\
+data.thumb: F:\data\paperless\res\thumb\
+
+# logging
+logging:
+  level:
+    com.foxconn.fii: INFO
+    #    org.hibernate.SQL: DEBUG
+    #org.springframework.jdbc.core.JdbcTemplate: DEBUG
+
+#cron
+
+b04sfc:
+  datasource:
+    url: jdbc:oracle:thin:@10.224.81.31:1521:vnap
+    username: GETDATA
+    password: APGETDATA
+    driver-class-name: oracle.jdbc.driver.OracleDriver
+    hibernate.dialect: org.hibernate.dialect.Oracle10gDialect
+    configuration:
+      connectionTimeout: 30000
+      idleTimeout: 600000
+      maxLifetime: 1800000
+      minimumIdle: 3
+      maximumPoolSize: 5
