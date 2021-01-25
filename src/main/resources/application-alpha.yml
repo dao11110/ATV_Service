@@ -54,3 +54,8 @@ b04sfc:
       maxLifetime: 1800000
       minimumIdle: 3
       maximumPoolSize: 5
+
+batch:
+  cron:
+    sync:
+      output-me-b04: 0 0 9 * * *
