@@ -2,7 +2,6 @@ package com.foxconn.fii.data.primary.model;
 
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import javax.persistence.*;
 import java.util.Date;
@@ -46,6 +45,9 @@ public class RSmtFaiConfig {
 
     @Column(name = "material_fill")
     private String materialFill;
+
+    @Column(name = "ecn_no")
+    private String ecnNo;
 
     @CreationTimestamp
     @Column(name = "create_at", updatable = false)

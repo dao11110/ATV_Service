@@ -16,6 +16,7 @@ public class DataStatic {
     public static class ITSFC{
         public static class B04{
             public static String GET_SOLDER = "http://10.224.81.86/GET_API/api/getsolder";
+            public static String GET_ECN_NO = "http://10.224.81.86/get_api/api/getecnno";
             public static String GET_TIME_FAI = "http://10.224.81.86/get_api/api/getdata";
         }
     }

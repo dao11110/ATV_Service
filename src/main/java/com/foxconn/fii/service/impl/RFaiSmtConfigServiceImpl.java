@@ -15,10 +15,8 @@ import com.foxconn.fii.service.RFaiSmtConfigService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.http.*;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClientException;
 
 import java.io.IOException;
 import java.util.*;
@@ -58,6 +56,7 @@ public class RFaiSmtConfigServiceImpl implements RFaiSmtConfigService {
             for(int i = 0; i < mData.size(); i++){
                 RSmtFaiConfig item = new RSmtFaiConfig(mData.get(i));
                 item.setMaterial(dataRoSHByWO(item));
+                item.setEcnNo(dataEcnNo(item));
                 rSmtFaiConfigRepository.save(item);
                 idInsert.add(item.getId());
             }
@@ -73,10 +72,11 @@ public class RFaiSmtConfigServiceImpl implements RFaiSmtConfigService {
             for(int i = 0; i < mWo.size(); i++){
                 WO itemWo = new WO(mWo.get(i));
                 Map<String, Object> itemMaterial = dataRoSHByWO(itemWo);
+                String ecnNo = dataEcnNo(itemWo);
                 String materials = (String) itemMaterial.get("materials");
                 String materialFill = (String) itemMaterial.get("material_fill");
 //                System.out.println("Test - WO: "+itemWo.getWo()+" - M1: "+materials+" - M2: "+materialFill);
-                rSmtFaiConfigRepository.jpqlUpdateDataSolder(mWo.get(i), materials, materialFill);
+                rSmtFaiConfigRepository.jpqlUpdateDataSolder(mWo.get(i), materials, materialFill, ecnNo);
             }
         }else{
 
@@ -103,6 +103,26 @@ public class RFaiSmtConfigServiceImpl implements RFaiSmtConfigService {
         Map<String, Object> result = new HashMap<>();
         result.put("materials", strSolder);
         result.put("material_fill",dataFill);
+        return result;
+    }
+
+    private String dataEcnNo(RSmtFaiConfig mItem){
+        List<Map<String, Object>> mEcn = new ArrayList<>();
+        mEcn.addAll(b04Service.getEcnNoByWo(mItem));
+        String result = "";
+        if(mEcn.size() > 0){
+            result = (String) mEcn.get(0).get("ECN_NO");
+        }
+        return result;
+    }
+
+    private String dataEcnNo(WO mItem){
+        List<Map<String, Object>> mEcn = new ArrayList<>();
+        mEcn.addAll(b04Service.getEcnNoByWo(mItem));
+        String result = "";
+        if(mEcn.size() > 0){
+            result = (String) mEcn.get(0).get("ECN_NO");
+        }
         return result;
     }
 

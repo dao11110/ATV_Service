@@ -30,10 +30,11 @@ public interface RSmtFaiConfigRepository extends JpaRepository<RSmtFaiConfig, In
     @Transactional
     @Query(value = "UPDATE rsfc " +
             "SET rsfc.materials = :materials " +
-            ", rsfc.material_fill = :material_fill " +
+            ", rsfc.material_fill = :material_fill" +
+            ", rsfc.ecn_no = :ecn_no " +
             "FROM r_smt_fai_config AS rsfc " +
             "WHERE rsfc.wo LIKE :wo ", nativeQuery = true)
-    int jpqlUpdateDataSolder(@Param("wo") String wo, @Param("materials") String materials, @Param("material_fill") String materialFill);
+    int jpqlUpdateDataSolder(@Param("wo") String wo, @Param("materials") String materials, @Param("material_fill") String materialFill, @Param("ecn_no") String ecnNo);
 
     @Query(value = "SELECT media, create_at\n" +
             "FROM result_report_step\n" +

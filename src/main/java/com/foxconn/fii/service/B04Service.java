@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Map;
 
 public interface B04Service {
+    List<Map<String, Object>> getEcnNoByWo(WO mData);
+    List<Map<String, Object>> getEcnNoByWo(RSmtFaiConfig mData);
     List<Map<String, Object>> getMaterialSolderByWo(RSmtFaiConfig mData);
     List<Map<String, Object>> getMaterialSolderByWo(WO mData);
 }

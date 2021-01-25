@@ -1,6 +1,5 @@
 package com.foxconn.fii.controller.v1;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.foxconn.fii.DataStatic;
 import com.foxconn.fii.common.TimeSpan;
 import com.foxconn.fii.service.MailService;
@@ -10,25 +9,18 @@ import org.apache.commons.io.FilenameUtils;
 import org.imgscalr.Scalr;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Async;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import javax.imageio.ImageIO;
-import javax.imageio.stream.ImageOutputStream;
 import javax.servlet.ServletContext;
-import java.awt.*;
-import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.CopyOption;
 import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.sql.Time;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -132,17 +124,12 @@ public class ApiControllerV1 {
             ,@RequestParam(name = "input_1") String input1
             ,@RequestParam(name = "input_2") String input2) throws IOException {
         readFile();
-//        mailService.sendMail("", "Test mail "+ DataStatic.deAccent(input1), DataStatic.deAccent(input2));
         return 1;
-//        return rFaiSmtConfig.checkNewDataWo(timeSpan);
-//        return 1;
     }
 
     @PostMapping("/test_2")
     public Object test2(@RequestParam(name = "time_span") TimeSpan timeSpan) throws IOException {
         readFile(rFaiSmtConfig.getListMedia(timeSpan));
-//        resize("C:\\Users\\V0959579\\Desktop\\image\\1910_20200527_223845", "\\2020\\11\\25");
-//        return rFaiSmtConfig.checkDataTest();
         return 1;
     }
 }
