@@ -28,6 +28,7 @@ public class SchedulerConfig {
     }
 
     @Scheduled(cron = "${batch.cron.sync.output-me-b04}")
+    //@Scheduled(cron = "0 19 13 * * *")
     public void getOutput(){
         outputService.getModel();
     }

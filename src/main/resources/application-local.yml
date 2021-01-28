@@ -7,8 +7,8 @@ server:
 # db
 spring:
   datasource:
-    url: jdbc:sqlserver://10.224.81.145:3000;databaseName=paperless
-    username: fii
+    url: jdbc:sqlserver://10.224.81.143:3000;databaseName=paperless
+    username: sa
     password: Foxconn168!!
     hibernate.dialect: org.hibernate.dialect.SQLServer2008Dialect
     configuration:
@@ -63,3 +63,14 @@ batch:
   cron:
     sync:
       output-me-b04: 0 0 9 * * *
+
+b04stencil:
+  datasource:
+    url: jdbc:sqlserver://10.224.83.55:3000;databaseName=Tensioning
+    username: sa
+    password: congcong
+    hibernate.dialect: org.hibernate.dialect.SQLServer2008Dialect
+    configuration:
+      connectionTimeout: 30000
+      idleTimeout: 600000
+      maxLifetime: 1800000
