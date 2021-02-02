@@ -4,7 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.foxconn.fii.DataStatic;
 import com.foxconn.fii.common.TimeSpan;
-import com.foxconn.fii.data.b04sfc.repository.RSmtFaiRepository;
+import com.foxconn.fii.data.b04sfc.repository.B04RSmtFaiRepository;
 import com.foxconn.fii.data.primary.model.RSmtFaiConfig;
 import com.foxconn.fii.data.primary.repository.MaterialRepository;
 import com.foxconn.fii.data.primary.repository.RSmtFaiConfigRepository;
@@ -12,6 +12,7 @@ import com.foxconn.fii.request.b04sfc.WO;
 import com.foxconn.fii.response.Response;
 import com.foxconn.fii.service.B04Service;
 import com.foxconn.fii.service.RFaiSmtConfigService;
+import com.foxconn.fii.service.RWoRequestService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -30,7 +31,10 @@ public class RFaiSmtConfigServiceImpl implements RFaiSmtConfigService {
     private JdbcTemplate jdbcTemplate;
 
     @Autowired
-    private RSmtFaiRepository rSmtFaiRepository;
+    private RWoRequestService rWoRequestService;
+
+    @Autowired
+    private B04RSmtFaiRepository rSmtFaiRepository;
 
     @Autowired
     private B04Service b04Service;
@@ -57,6 +61,7 @@ public class RFaiSmtConfigServiceImpl implements RFaiSmtConfigService {
                 RSmtFaiConfig item = new RSmtFaiConfig(mData.get(i));
                 item.setMaterial(dataRoSHByWO(item));
                 item.setEcnNo(dataEcnNo(item));
+                rWoRequestService.checkPnByWo(item.getWo());
                 rSmtFaiConfigRepository.save(item);
                 idInsert.add(item.getId());
             }

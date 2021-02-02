@@ -1,9 +1,7 @@
 package com.foxconn.fii.service;
 
-import com.foxconn.fii.common.TimeSpan;
 import com.foxconn.fii.data.primary.model.RSmtFaiConfig;
 import com.foxconn.fii.request.b04sfc.WO;
-import com.foxconn.fii.response.Response;
 
 import java.util.List;
 import java.util.Map;

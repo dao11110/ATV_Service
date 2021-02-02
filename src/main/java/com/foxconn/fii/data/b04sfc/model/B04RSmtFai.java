@@ -8,9 +8,9 @@ import java.util.Date;
 
 @Data
 @Entity
-@IdClass(RSmtFai.RSmtFaiId.class)
+@IdClass(B04RSmtFai.RSmtFaiId.class)
 @Table(schema = "MES4", name = "R_SMT_FAI")
-public class RSmtFai {
+public class B04RSmtFai {
     @Column(name = "STATION")
     private String station;
 

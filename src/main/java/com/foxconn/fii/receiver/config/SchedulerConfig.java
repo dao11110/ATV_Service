@@ -8,8 +8,6 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 
-import java.util.Calendar;
-
 @Slf4j
 @Configuration
 @EnableAsync
@@ -21,6 +19,7 @@ public class SchedulerConfig {
 
     @Scheduled(fixedDelay = 300000, initialDelay = 300000)
     public void b04CrawMoFaiSmt(){
+//        log.info("###TEST###");
         rFaiSmtConfig.checkNewDataWo(null);
     }
 }

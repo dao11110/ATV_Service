@@ -2,6 +2,10 @@ package com.foxconn.fii.controller.v1;
 
 import com.foxconn.fii.DataStatic;
 import com.foxconn.fii.common.TimeSpan;
+import com.foxconn.fii.data.b04sfc.model.B04RWoRequest;
+import com.foxconn.fii.data.b04sfc.repository.B04RWoRequestRepository;
+import com.foxconn.fii.data.primary.model.RWoRequest;
+import com.foxconn.fii.data.primary.repository.RWoRequestRepository;
 import com.foxconn.fii.service.MailService;
 import com.foxconn.fii.service.RFaiSmtConfigService;
 import lombok.extern.slf4j.Slf4j;
@@ -21,9 +25,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Slf4j
 @RestController
@@ -38,6 +40,12 @@ public class ApiControllerV1 {
 
     @Value("${data.patho}")
     private String dataPathO;
+
+    @Autowired
+    private B04RWoRequestRepository b04RWoRequestRepository;
+
+    @Autowired
+    private RWoRequestRepository rWoRequestRepository;
 
     @Autowired
     private RFaiSmtConfigService rFaiSmtConfig;
@@ -120,16 +128,21 @@ public class ApiControllerV1 {
     }
 
     @PostMapping("/test")
-    public Object test(@RequestParam(name = "time_span", required = false) TimeSpan timeSpan
-            ,@RequestParam(name = "input_1") String input1
-            ,@RequestParam(name = "input_2") String input2) throws IOException {
-        readFile();
-        return 1;
+    public Object test() throws IOException {
+//        return 1;
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(2019,9,1);
+        List<B04RWoRequest> b04Data = b04RWoRequestRepository.jpqlGetPnsByWo("002151013573", calendar.getTime());
+        for(int i = 0; i < b04Data.size(); i++){
+            RWoRequest item = new RWoRequest(b04Data.get(i));
+            rWoRequestRepository.save(item);
+        }
+        return b04Data;
     }
 
     @PostMapping("/test_2")
     public Object test2(@RequestParam(name = "time_span") TimeSpan timeSpan) throws IOException {
-        readFile(rFaiSmtConfig.getListMedia(timeSpan));
-        return 1;
+
+        return rWoRequestRepository.jpqlCheckTimeDownloadBomByWo("002155001354");
     }
 }
