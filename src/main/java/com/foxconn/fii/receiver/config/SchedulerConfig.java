@@ -17,9 +17,17 @@ public class SchedulerConfig {
     @Autowired
     private RFaiSmtConfigService rFaiSmtConfig;
 
-    @Scheduled(fixedDelay = 300000, initialDelay = 300000)
+    @Autowired
+    private OutputService outputService;
+
+    @Scheduled(fixedDelay = 300000, initialDelay = 300000) //300000
     public void b04CrawMoFaiSmt(){
-//        log.info("###TEST###");
         rFaiSmtConfig.checkNewDataWo(null);
+    }
+
+    @Scheduled(cron = "${batch.cron.sync.output-me-b04}")
+    //@Scheduled(cron = "0 19 13 * * *")
+    public void getOutput(){
+        outputService.getModel();
     }
 }

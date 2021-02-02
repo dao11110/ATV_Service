@@ -2,10 +2,10 @@ package com.foxconn.fii.controller.v1;
 
 import com.foxconn.fii.DataStatic;
 import com.foxconn.fii.common.TimeSpan;
-import com.foxconn.fii.data.b04sfc.model.B04RWoRequest;
-import com.foxconn.fii.data.b04sfc.repository.B04RWoRequestRepository;
-import com.foxconn.fii.data.primary.model.RWoRequest;
-import com.foxconn.fii.data.primary.repository.RWoRequestRepository;
+import com.foxconn.fii.common.response.CommonResponse;
+import com.foxconn.fii.common.response.ResponseCode;
+import com.foxconn.fii.data.b04stencil.model.TTensioning;
+import com.foxconn.fii.data.b04stencil.repository.TTensioningRepository;
 import com.foxconn.fii.service.MailService;
 import com.foxconn.fii.service.RFaiSmtConfigService;
 import lombok.extern.slf4j.Slf4j;
@@ -13,10 +13,8 @@ import org.apache.commons.io.FilenameUtils;
 import org.imgscalr.Scalr;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
 
 import javax.imageio.ImageIO;
 import javax.servlet.ServletContext;
@@ -25,6 +23,10 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.*;
 
 @Slf4j
@@ -55,6 +57,9 @@ public class ApiControllerV1 {
 
     @Autowired
     private ServletContext servletContext;
+
+    @Autowired
+    private TTensioningRepository TTensioningRepository;
 
     private void resize(String path, String subFolder) throws IOException {
         File file = new File(path);
@@ -144,5 +149,79 @@ public class ApiControllerV1 {
     public Object test2(@RequestParam(name = "time_span") TimeSpan timeSpan) throws IOException {
 
         return rWoRequestRepository.jpqlCheckTimeDownloadBomByWo("002155001354");
+    }
+
+
+//    10.224.83.55,3000
+//    sa
+//    congcong
+
+    //PaperlessStencil by VIE
+    @GetMapping("/get_paper_tension_send")
+    public CommonResponse<Map<String, Object>> paperlessStencilList() {
+        Map<String, Object> mData = TTensioningRepository.jpqlGetTopTTensioning();
+        if (mData != null) {
+            if(mData.get("Result").toString().equals("PASS")){
+                Map<String, Object> objectMap = new LinkedHashMap<>();
+                objectMap.put("step_1", "OK");
+                objectMap.put("step_2", "OK");
+                String value = "";
+                for(int i = 1; i<10; i++){
+                    String value_n = mData.get("Value_"+ i).toString().trim();
+                    if(value_n.equals("null") || Float.parseFloat(value_n) < 27.0)
+                        return CommonResponse.of(HttpStatus.OK, ResponseCode.FAILED, "Data Fail!", mData);
+                    else {
+                        if (i == 1)
+                            value += mData.get("Value_" + i).toString();
+                        value += " - " + mData.get("Value_" + i).toString();
+                    }
+                }
+                objectMap.put("step_3", value);
+                Map<String, Object> dataAllPart = dataAllPart(mData.get("Model").toString().trim());
+                if(dataAllPart != null){
+                    objectMap.put("step_4", dataAllPart.get("").toString());
+                    objectMap.put("step_5", dataAllPart.get("").toString());
+                    objectMap.put("step_6", dataAllPart.get("").toString());
+                    objectMap.put("step_7", dataAllPart.get("").toString());
+                    objectMap.put("step_8", dataAllPart.get("").toString());
+                    return CommonResponse.of(HttpStatus.OK, ResponseCode.SUCCESS, "Get Data Successful", objectMap);
+                }else
+                    return CommonResponse.of(HttpStatus.OK, ResponseCode.FAILED, "Get Data IT AllPart Fail", objectMap);
+            }
+            else
+                return CommonResponse.of(HttpStatus.OK, ResponseCode.FAILED, "Result Fail!", mData);
+        } else
+            return CommonResponse.of(HttpStatus.OK, ResponseCode.FAILED, "Get Data Fail", null);
+    }
+
+    @GetMapping("/get_paper_tension_receive")
+    public CommonResponse<Map<String, Object>> getPaperTensionReceive() {
+        Map<String, Object> mData = TTensioningRepository.jpqlGetTopTTensioning();
+        if (mData != null) {
+            if(mData.get("Result").toString().equals("PASS")){
+                Map<String, Object> objectMap = new LinkedHashMap<>();
+                objectMap.put("step_1", "OK");
+                objectMap.put("step_2", "OK");
+                objectMap.put("step_3", "OK");
+                objectMap.put("step_4", "OK");
+                Map<String, Object> dataAllPart = dataAllPart(mData.get("Model").toString().trim());
+                if(dataAllPart != null){
+                    objectMap.put("step_5", dataAllPart.get("").toString());
+                    objectMap.put("step_6", dataAllPart.get("").toString());
+                    objectMap.put("step_7", dataAllPart.get("").toString());
+                    objectMap.put("step_8", dataAllPart.get("").toString());
+                    return CommonResponse.of(HttpStatus.OK, ResponseCode.SUCCESS, "Get Data Successful", objectMap);
+                }else
+                    return CommonResponse.of(HttpStatus.OK, ResponseCode.FAILED, "Get Data IT AllPart Fail", objectMap);
+            }
+            else
+                return CommonResponse.of(HttpStatus.OK, ResponseCode.FAILED, "Result Fail!", mData);
+        } else
+            return CommonResponse.of(HttpStatus.OK, ResponseCode.FAILED, "Get Data Fail", null);
+    }
+
+    public Map<String, Object> dataAllPart(String Model) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        return map;
     }
 }
