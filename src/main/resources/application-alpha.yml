@@ -55,18 +55,22 @@ b04sfc:
       minimumIdle: 3
       maximumPoolSize: 5
 
-batch:
-  cron:
-    sync:
-      output-me-b04: 0 0 9 * * *
-
-b04stencil:
+f12sfc:
   datasource:
-    url: jdbc:sqlserver://10.224.83.55:3000;databaseName=Tensioning
-    username: sa
-    password: congcong
-    hibernate.dialect: org.hibernate.dialect.SQLServer2008Dialect
+    url: jdbc:oracle:thin:@10.220.81.98:1521:vnap
+    username: GETDATA
+    password: APGETDATA
+    driver-class-name: oracle.jdbc.driver.OracleDriver
+    hibernate.dialect: org.hibernate.dialect.Oracle10gDialect
     configuration:
       connectionTimeout: 30000
       idleTimeout: 600000
       maxLifetime: 1800000
+      minimumIdle: 3
+      maximumPoolSize: 5
+
+batch:
+  cron:
+    sync:
+      output-me-b04: 0 0 9 * * *
+      hr-covid-b04: 0 20 13,1 * * *

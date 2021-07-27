@@ -1,6 +1,8 @@
 package com.foxconn.fii.data.primary.model;
 
+import com.foxconn.fii.DataStatic;
 import com.foxconn.fii.data.b04sfc.model.B04RWoRequest;
+import com.foxconn.fii.data.f12sfc.model.F12RWoRequest;
 import lombok.Data;
 
 import javax.persistence.*;
@@ -48,6 +50,9 @@ public class RWoRequest {
     @Column(name = "download_time")
     private Date downloadTime;
 
+    @Column(name = "build")
+    private String build;
+
     public RWoRequest(){ }
 
     public RWoRequest(B04RWoRequest mData){
@@ -62,5 +67,21 @@ public class RWoRequest {
         this.checkoutQty = mData.getCheckoutQty();
         this.returnQty = mData.getReturnQty();
         this.downloadTime = mData.getDownloadTime();
+        this.build = DataStatic.ITSFC.FACTORY.B04;
+    }
+
+    public RWoRequest(F12RWoRequest mData){
+        this.wo = mData.getWo();
+        this.woQty = mData.getWoQty();
+        this.pNo = mData.getPNo();
+        this.pName = mData.getPName();
+        this.custKpNo = mData.getCustKpNo();
+        this.standardQty = mData.getStandardQty();
+        this.woRequest = mData.getWoRequest();
+        this.deliverQty = mData.getDeliverQty();
+        this.checkoutQty = mData.getCheckoutQty();
+        this.returnQty = mData.getReturnQty();
+        this.downloadTime = mData.getDownloadTime();
+        this.build = DataStatic.ITSFC.FACTORY.F12;
     }
 }

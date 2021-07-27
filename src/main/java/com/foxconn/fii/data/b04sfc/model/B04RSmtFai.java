@@ -31,6 +31,15 @@ public class B04RSmtFai {
     @Column(name = "REASON")
     private String reason;
 
+    @Column(name = "QA_EMP")
+    private String qaEmp;
+
+    @Column(name = "PD_EMP")
+    private String pdEmp;
+
+    @Column(name = "STATUS")
+    private String status;
+
     @Data
     public static class RSmtFaiId implements Serializable {
         private String wo;

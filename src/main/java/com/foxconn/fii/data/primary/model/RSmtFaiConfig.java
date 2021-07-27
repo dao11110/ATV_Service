@@ -49,6 +49,12 @@ public class RSmtFaiConfig {
     @Column(name = "ecn_no")
     private String ecnNo;
 
+    @Column(name = "build")
+    private String build;
+
+    @Column(name = "status")
+    private String status;
+
     @CreationTimestamp
     @Column(name = "create_at", updatable = false)
     private Date createAt;

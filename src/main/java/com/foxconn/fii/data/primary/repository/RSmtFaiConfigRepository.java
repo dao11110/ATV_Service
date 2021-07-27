@@ -13,8 +13,17 @@ import java.util.Map;
 
 public interface RSmtFaiConfigRepository extends JpaRepository<RSmtFaiConfig, Integer> {
     @Query("SELECT MAX(rsfc.requestTime) AS max_time " +
-            "FROM RSmtFaiConfig AS rsfc ")
-    List<Map<String, Object>> getMaxTime();
+            "FROM RSmtFaiConfig AS rsfc " +
+            "WHERE rsfc.build IN :builds ")
+    List<Map<String, Object>> getMaxTimeByBuild(List<String> builds);
+
+    @Query("SELECT rsfc " +
+            "FROM RSmtFaiConfig AS rsfc " +
+            "WHERE rsfc.wo LIKE :wo " +
+            "AND rsfc.station LIKE :station " +
+            "AND rsfc.requestTime = :time_request " +
+            "AND rsfc.status LIKE 'PROCESS' ")
+    List<RSmtFaiConfig> jpqlGetDataByWoStationTime(@Param("wo") String wo, @Param("station") String station, @Param("time_request") Date timeRequest);
 
     @Modifying
     @Transactional
@@ -25,6 +34,13 @@ public interface RSmtFaiConfigRepository extends JpaRepository<RSmtFaiConfig, In
             "WHERE rsfc.id IN :ids", nativeQuery = true)
     int jpqlUpdateIdQcBeforeInsertByIds(@Param("ids") List<Integer> id);
 
+    @Modifying
+    @Transactional
+    @Query(value = "UPDATE rsfc " +
+            "SET rsfc.dev = :dev " +
+            "FROM r_smt_fai_config AS rsfc " +
+            "WHERE rsfc.id IN :id", nativeQuery = true)
+    int jpqlUpdateDevById(@Param("id") Integer id, @Param("dev") String dev);
 
     @Modifying
     @Transactional
@@ -50,4 +66,11 @@ public interface RSmtFaiConfigRepository extends JpaRepository<RSmtFaiConfig, In
     @Query(value = "SELECT DISTINCT wo\n" +
             "FROM r_smt_fai_config", nativeQuery = true)
     List<String> jpqlGetListWo();
+
+    @Query("SELECT rsfc AS rSmtFaiConfig " +
+            "FROM RSmtFaiConfig AS rsfc " +
+            "WHERE rsfc.build LIKE :build " +
+            "AND rsfc.status LIKE :status " +
+            "AND DATEDIFF(mi, rsfc.requestTime, GETDATE()) >= :minute")
+    List<RSmtFaiConfig> jpqlCheckDataStatusByTime(@Param("build") String build, @Param("status") String status, @Param("minute") Integer minute);
 }

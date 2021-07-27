@@ -56,7 +56,7 @@ public class OutputServiceImpl implements OutputService {
         System.out.println("TIME SPAN: "+ eDate + " - " + sDate);
 
         //API getModel
-        String uri = "http://10.224.81.70:8888/api/test/sfc/model?factory=b04&"+
+        String uri = "https://10.224.81.70:6443/api/test/sfc/model?factory=b04&"+
                 "time_span= " + eDate + " - " + sDate;
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
@@ -91,7 +91,7 @@ public class OutputServiceImpl implements OutputService {
             }
 
             //API GET OUTPUT
-            String urlAPI_output = "http://10.224.81.70:8888/api/test/group/output?"
+            String urlAPI_output = "https://10.224.81.70:6443/api/test/group/output?"
                     +"factory=b04&modelName=" + s +"&timeSpan=" + eDate + " - " + sDate;
 
             RestTemplate restTemplate_output = new RestTemplate();

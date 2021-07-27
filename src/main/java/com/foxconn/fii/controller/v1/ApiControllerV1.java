@@ -2,31 +2,25 @@ package com.foxconn.fii.controller.v1;
 
 import com.foxconn.fii.DataStatic;
 import com.foxconn.fii.common.TimeSpan;
-import com.foxconn.fii.common.response.CommonResponse;
-import com.foxconn.fii.common.response.ResponseCode;
-import com.foxconn.fii.data.b04stencil.model.TTensioning;
-import com.foxconn.fii.data.b04stencil.repository.TTensioningRepository;
-import com.foxconn.fii.service.MailService;
-import com.foxconn.fii.service.RFaiSmtConfigService;
+import com.foxconn.fii.data.primary.repository.RWoRequestRepository;
+import com.foxconn.fii.request.hr.UserCovid;
+import com.foxconn.fii.response.Response;
+import com.foxconn.fii.service.*;
+import com.foxconn.fii.service.hr.CovidService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FilenameUtils;
 import org.imgscalr.Scalr;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
-import javax.servlet.ServletContext;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.Date;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.*;
 
 @Slf4j
@@ -44,34 +38,36 @@ public class ApiControllerV1 {
     private String dataPathO;
 
     @Autowired
-    private B04RWoRequestRepository b04RWoRequestRepository;
+    private RWoRequestService rWoRequestService;
 
     @Autowired
     private RWoRequestRepository rWoRequestRepository;
 
     @Autowired
-    private RFaiSmtConfigService rFaiSmtConfig;
+    private RFaiSmtConfigService rFaiSmtConfigService;
+
+    @Autowired
+    private RFaiSmtStationService rFaiSmtStationService;
+
+    @Autowired
+    private PaperLogService paperLogService;
+
+    @Autowired
+    private AgileBomService agileBomService;
+
+    @Autowired
+    private AgileEcnService agileEcnService;
+
+    @Autowired
+    private CovidService covidService;
 
     @Autowired
     private MailService mailService;
 
-    @Autowired
-    private ServletContext servletContext;
-
-    @Autowired
-    private TTensioningRepository TTensioningRepository;
-
     private void resize(String path, String subFolder) throws IOException {
         File file = new File(path);
         if(file.exists()){
-//            boolean isImage = checkTypeFileIsImage(file);
             String nameFile = file.getName();
-//            if(!isImage){
-//                nameFile += ".jpg";
-//            }
-//            file = new File(dataPathO+nameFile);
-//            File tmpFile = new File(dataPath+subFolder+nameFile);
-//            Files.copy(file.toPath(), tmpFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
 
             BufferedImage img = ImageIO.read(file);
             BufferedImage thumb = Scalr.resize(img, Scalr.Method.QUALITY, Scalr.Mode.AUTOMATIC, 100, 50, Scalr.OP_ANTIALIAS);
@@ -104,7 +100,6 @@ public class ApiControllerV1 {
             Date time = (Date) mData.get(i).get("time");
             checkSubFolder(DataStatic.FILE.SUB_FOLDER(time));
             String pathUrl = dataPath + (String) mData.get(i).get("url");
-//            System.out.println("URL: "+pathUrl);
             resize(pathUrl, DataStatic.FILE.SUB_FOLDER(time));
         }
     }
@@ -133,95 +128,51 @@ public class ApiControllerV1 {
     }
 
     @PostMapping("/test")
-    public Object test() throws IOException {
-//        return 1;
-        Calendar calendar = Calendar.getInstance();
-        calendar.set(2019,9,1);
-        List<B04RWoRequest> b04Data = b04RWoRequestRepository.jpqlGetPnsByWo("002151013573", calendar.getTime());
-        for(int i = 0; i < b04Data.size(); i++){
-            RWoRequest item = new RWoRequest(b04Data.get(i));
-            rWoRequestRepository.save(item);
+    public Object test(@RequestParam(name = "input") String input) throws Exception {
+//        return agileBomService.downloadBomAgile(modelName);
+//        return agileEcnService.checkAndDownloadEcn();
+        Map<String, Object> mMap = new HashMap<>();
+        mMap.put("V0959579", "Test");
+        mMap.put("v0959579", "test 1");
+        return mMap;
+    }
+
+    @GetMapping("/test_2")
+    public Object test2(TimeSpan timeSpan) throws IOException {
+        Map<String, Object> mData = covidService.checkUserCovid(timeSpan);
+        List<UserCovid> mUser = (List<UserCovid>) mData.get("data_check");
+        if(mUser.size() > 0){
+            Integer oppm = (Integer) mData.get("total_oppm");
+            Integer noData = (Integer) mData.get("total_no_data");
+            String subContent = "<b>Statistic</b><br>" +
+                    "- Total Employee: "+oppm.intValue()+" <br>" +
+                    "- Have temperature in system: "+(oppm.intValue()-noData.intValue())+" <br>" +
+                    "<span style='color:#CA5100'>- Don't Have temperature in system: "+noData.intValue()+"</span>";
+//            mailService.sendMailAndFile(mUser,subContent);
         }
-        return b04Data;
+        return mData;
     }
 
-    @PostMapping("/test_2")
-    public Object test2(@RequestParam(name = "time_span") TimeSpan timeSpan) throws IOException {
-
-        return rWoRequestRepository.jpqlCheckTimeDownloadBomByWo("002155001354");
-    }
-
-
-//    10.224.83.55,3000
-//    sa
-//    congcong
-
-    //PaperlessStencil by VIE
-    @GetMapping("/get_paper_tension_send")
-    public CommonResponse<Map<String, Object>> paperlessStencilList() {
-        Map<String, Object> mData = TTensioningRepository.jpqlGetTopTTensioning();
-        if (mData != null) {
-            if(mData.get("Result").toString().equals("PASS")){
-                Map<String, Object> objectMap = new LinkedHashMap<>();
-                objectMap.put("step_1", "OK");
-                objectMap.put("step_2", "OK");
-                String value = "";
-                for(int i = 1; i<10; i++){
-                    String value_n = mData.get("Value_"+ i).toString().trim();
-                    if(value_n.equals("null") || Float.parseFloat(value_n) < 27.0)
-                        return CommonResponse.of(HttpStatus.OK, ResponseCode.FAILED, "Data Fail!", mData);
-                    else {
-                        if (i == 1)
-                            value += mData.get("Value_" + i).toString();
-                        value += " - " + mData.get("Value_" + i).toString();
-                    }
-                }
-                objectMap.put("step_3", value);
-                Map<String, Object> dataAllPart = dataAllPart(mData.get("Model").toString().trim());
-                if(dataAllPart != null){
-                    objectMap.put("step_4", dataAllPart.get("").toString());
-                    objectMap.put("step_5", dataAllPart.get("").toString());
-                    objectMap.put("step_6", dataAllPart.get("").toString());
-                    objectMap.put("step_7", dataAllPart.get("").toString());
-                    objectMap.put("step_8", dataAllPart.get("").toString());
-                    return CommonResponse.of(HttpStatus.OK, ResponseCode.SUCCESS, "Get Data Successful", objectMap);
-                }else
-                    return CommonResponse.of(HttpStatus.OK, ResponseCode.FAILED, "Get Data IT AllPart Fail", objectMap);
+    @PostMapping("/update_status_fai")
+    public Response updateStatusFai(@RequestBody List<Map<String, String>> data){
+        String log = "";
+        if(data.size() > 0){
+            for(int i = 0; i < data.size(); i++){
+                String station = data.get(i).get("station");
+                String wo = data.get(i).get("wo");
+                boolean check = rFaiSmtConfigService.updateStatusFai(station,wo);
+                log += "{STATION:"+station+", WO:"+wo+", STATUS:"+check+"},";
             }
-            else
-                return CommonResponse.of(HttpStatus.OK, ResponseCode.FAILED, "Result Fail!", mData);
-        } else
-            return CommonResponse.of(HttpStatus.OK, ResponseCode.FAILED, "Get Data Fail", null);
+        }
+
+        paperLogService.addLog("Paperless(C02-Allpart-SMT)", log, "UPDATE DATA", "C02", "QA");
+        return new Response(DataStatic.Status.SUCCESS, "Load data success", new ArrayList<>(), 0);
     }
 
-    @GetMapping("/get_paper_tension_receive")
-    public CommonResponse<Map<String, Object>> getPaperTensionReceive() {
-        Map<String, Object> mData = TTensioningRepository.jpqlGetTopTTensioning();
-        if (mData != null) {
-            if(mData.get("Result").toString().equals("PASS")){
-                Map<String, Object> objectMap = new LinkedHashMap<>();
-                objectMap.put("step_1", "OK");
-                objectMap.put("step_2", "OK");
-                objectMap.put("step_3", "OK");
-                objectMap.put("step_4", "OK");
-                Map<String, Object> dataAllPart = dataAllPart(mData.get("Model").toString().trim());
-                if(dataAllPart != null){
-                    objectMap.put("step_5", dataAllPart.get("").toString());
-                    objectMap.put("step_6", dataAllPart.get("").toString());
-                    objectMap.put("step_7", dataAllPart.get("").toString());
-                    objectMap.put("step_8", dataAllPart.get("").toString());
-                    return CommonResponse.of(HttpStatus.OK, ResponseCode.SUCCESS, "Get Data Successful", objectMap);
-                }else
-                    return CommonResponse.of(HttpStatus.OK, ResponseCode.FAILED, "Get Data IT AllPart Fail", objectMap);
-            }
-            else
-                return CommonResponse.of(HttpStatus.OK, ResponseCode.FAILED, "Result Fail!", mData);
-        } else
-            return CommonResponse.of(HttpStatus.OK, ResponseCode.FAILED, "Get Data Fail", null);
+    @PostMapping("/upfile_bom")
+    public Object upfileBom(@RequestParam MultipartFile file) throws IOException {
+        return rWoRequestService.readBomFileData(file);
     }
 
-    public Map<String, Object> dataAllPart(String Model) {
-        Map<String, Object> map = new LinkedHashMap<>();
-        return map;
-    }
+
 }

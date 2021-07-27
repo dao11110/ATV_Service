@@ -15,16 +15,10 @@ public class WO {
         this.lineName = "";
     }
 
-    public WO(String mWo){
+    public WO(String mWo, String mFactory){
         this.wo = mWo;
-        this.build = "B04";
+        this.build = mFactory;
         this.lineName = "";
-    }
-
-    public WO(RSmtFaiConfig mData){
-        this.wo = mData.getWo();
-        this.lineName = mData.getStation();
-        this.build = "B04";
     }
 
     public WO(RSmtFaiConfig mData, String build){

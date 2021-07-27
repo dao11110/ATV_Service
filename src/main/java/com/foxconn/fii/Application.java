@@ -51,34 +51,6 @@ public class Application extends SpringBootServletInitializer implements Command
 
     @Override
     public void run(String... args) throws Exception {
-//        SimpleDateFormat df = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-//        Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("GMT+7:00"));
-//        Date now = df.parse("2019/05/28 21:15:00");
-//        calendar.setTime(now);
-//        TimeSpan timeSpan = TimeSpan.from(calendar, TimeSpan.Type.DAILY);
-//
-//        CivetArticle article = new CivetArticle();
-//        article.setAuthor("WS - VN FII Team");
-//        article.setTitle(String.format("[%s] %s - %s", "FII", "B04", "LOCKED"));
-//        article.setDescription("detail");
-//        article.setImageMediaID("414e19f9-b898-4511-b512-a96f05162ae9");
-//
-//        UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromHttpUrl("http://localhost:8888" + "/icivet/task/handle")
-//                .queryParam("trackingId", 1);
-//        article.setUrl(uriBuilder.toUriString());
-//
-//        CivetMsgBase data = CivetNewsMsg.Create(Collections.singletonList(article));
-//
-//        CivetMsgBase text = CivetTextMsg.Create("Welcome!");
-//
-//        ObjectMapper mapper = new ObjectMapper();
-//
-//        String json = mapper.writeValueAsString(data);
-//
-//        String message = mapper.writeValueAsString(NotifyMessage.of("test", NotifyMessage.System.CIVET_NEWS, NotifyMessage.Type.USER, "cpegvn", "V0946495", json));
-//        amqpTemplate.convertAndSend("notify", "", message);
-//
-//        String json2 = mapper.writeValueAsString(text);
-//        icivetService.sendMessage("Testing new account icivet!", "V0946495");
+
     }
 }

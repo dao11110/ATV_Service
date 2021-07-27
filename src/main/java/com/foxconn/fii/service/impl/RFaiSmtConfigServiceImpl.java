@@ -4,15 +4,15 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.foxconn.fii.DataStatic;
 import com.foxconn.fii.common.TimeSpan;
+import com.foxconn.fii.data.b04sfc.model.B04RSmtFai;
 import com.foxconn.fii.data.b04sfc.repository.B04RSmtFaiRepository;
+import com.foxconn.fii.data.f12sfc.repository.F12RSmtFaiRepository;
 import com.foxconn.fii.data.primary.model.RSmtFaiConfig;
 import com.foxconn.fii.data.primary.repository.MaterialRepository;
 import com.foxconn.fii.data.primary.repository.RSmtFaiConfigRepository;
-import com.foxconn.fii.request.b04sfc.WO;
+import com.foxconn.fii.data.primary.repository.RSmtFaiStationRepository;
 import com.foxconn.fii.response.Response;
-import com.foxconn.fii.service.B04Service;
-import com.foxconn.fii.service.RFaiSmtConfigService;
-import com.foxconn.fii.service.RWoRequestService;
+import com.foxconn.fii.service.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -31,13 +31,19 @@ public class RFaiSmtConfigServiceImpl implements RFaiSmtConfigService {
     private JdbcTemplate jdbcTemplate;
 
     @Autowired
+    private RSmtFaiStationRepository rSmtFaiStationRepository;
+
+    @Autowired
     private RWoRequestService rWoRequestService;
 
     @Autowired
-    private B04RSmtFaiRepository rSmtFaiRepository;
+    private B04RSmtFaiRepository b04RSmtFaiRepository;
 
     @Autowired
-    private B04Service b04Service;
+    private F12RSmtFaiRepository f12RSmtFaiRepository;
+
+    @Autowired
+    private AllpartService allpartService;
 
     @Autowired
     private RSmtFaiConfigRepository rSmtFaiConfigRepository;
@@ -45,25 +51,40 @@ public class RFaiSmtConfigServiceImpl implements RFaiSmtConfigService {
     @Autowired
     private MaterialRepository materialRepository;
 
+    @Autowired
+    private RFaiSmtStationService rFaiSmtStationService;
+
+    @Autowired
+    private PaperLogService paperLogService;
+
     @Override
-    public Response checkNewDataWo(TimeSpan timeSpan) {
-        List<Map<String, Object>> maxTimes = rSmtFaiConfigRepository.getMaxTime();
+    public Response checkDataWoB04(TimeSpan timeSpan, String mFactory) {
+        List<String> mBuild = new ArrayList<>();
+        mBuild.add(DataStatic.ITSFC.FACTORY.B04);
+        mBuild.add(DataStatic.ITSFC.FACTORY.C02);
+        List<Map<String, Object>> maxTimes = rSmtFaiConfigRepository.getMaxTimeByBuild(mBuild);
         Date timeMax = null;
         if(maxTimes.size() > 0){
             timeMax = (Date) maxTimes.get(0).get("max_time");
         }else{
             return null;
         }
-        List<Map<String, Object>> mData = rSmtFaiRepository.findDataMoByTimeMax(timeMax);
+        List<Map<String, Object>> mData = b04RSmtFaiRepository.findDataMoByTimeMax(timeMax);
         if(mData.size() > 0){
             List<Integer> idInsert = new ArrayList<>();
             for(int i = 0; i < mData.size(); i++){
                 RSmtFaiConfig item = new RSmtFaiConfig(mData.get(i));
-                item.setMaterial(dataRoSHByWO(item));
-                item.setEcnNo(dataEcnNo(item));
-                rWoRequestService.checkPnByWo(item.getWo());
+                item.setMaterial(allpartService.dataRoSHByWO(item, mFactory));
+                item.setEcnNo(allpartService.dataEcnNo(item, mFactory));
+                item.setStatus("PROCESS");
+                if(item.getStation().compareTo(DataStatic.ITSFC.FACTORY.B04) >= 0){
+                    item.setBuild(DataStatic.ITSFC.FACTORY.B04);
+                }else if (item.getStation().compareTo(DataStatic.ITSFC.FACTORY.C02) >= 0){
+                    item.setBuild(DataStatic.ITSFC.FACTORY.C02);
+                }
                 rSmtFaiConfigRepository.save(item);
                 idInsert.add(item.getId());
+                rFaiSmtStationService.getStationInformationByWo(mFactory, item.getWo(), item.getId(), item.getStation());
             }
             rSmtFaiConfigRepository.jpqlUpdateIdQcBeforeInsertByIds(idInsert);
         }
@@ -71,87 +92,53 @@ public class RFaiSmtConfigServiceImpl implements RFaiSmtConfigService {
     }
 
     @Override
-    public Object checkDataTest() {
-        List<String> mWo = rSmtFaiConfigRepository.jpqlGetListWo();
-        if(mWo.size() > 0){
-            for(int i = 0; i < mWo.size(); i++){
-                WO itemWo = new WO(mWo.get(i));
-                Map<String, Object> itemMaterial = dataRoSHByWO(itemWo);
-                String ecnNo = dataEcnNo(itemWo);
-                String materials = (String) itemMaterial.get("materials");
-                String materialFill = (String) itemMaterial.get("material_fill");
-//                System.out.println("Test - WO: "+itemWo.getWo()+" - M1: "+materials+" - M2: "+materialFill);
-                rSmtFaiConfigRepository.jpqlUpdateDataSolder(mWo.get(i), materials, materialFill, ecnNo);
-            }
+    public Response checkDataWoF12(TimeSpan timeSpan, String mFactory) {
+        List<String> mBuild = new ArrayList<>();
+        mBuild.add(DataStatic.ITSFC.FACTORY.F12);
+        List<Map<String, Object>> maxTimes = rSmtFaiConfigRepository.getMaxTimeByBuild(mBuild);
+        Date timeMax = null;
+        if(maxTimes.size() > 0){
+            timeMax = (Date) maxTimes.get(0).get("max_time");
         }else{
-
+            return null;
         }
-        return 1;
-    }
-
-    private Map<String, Object> dataRoSHByWO(RSmtFaiConfig mItem){
-        List<Map<String, Object>> mSolder = new ArrayList<>();
-        mSolder.addAll(b04Service.getMaterialSolderByWo(mItem));
-        String strSolder = "";
-        String dataFill = "";
-        if(mSolder.size() > 0){
-            for(int i = 0; i < mSolder.size(); i++){
-                strSolder += (String) mSolder.get(i).get("KP_NO") + ", ";
-                List<Map<String, Object>> mType = materialRepository.jpqlGetListMaterialRoHS((String) mSolder.get(i).get("KP_NO"));
-                if(mType.size() > 0){
-                    dataFill = "Non-ROHS[有鉛 Có chì]";
-                }else{
-                    dataFill = "ROHS[無鉛 Không chì]";
-                }
+        List<Map<String, Object>> mData = f12RSmtFaiRepository.findDataMoByTimeMax(timeMax);
+        if(mData.size() > 0){
+            List<Integer> idInsert = new ArrayList<>();
+            for(int i = 0; i < mData.size(); i++){
+                RSmtFaiConfig item = new RSmtFaiConfig(mData.get(i));
+                item.setMaterial(allpartService.dataRoSHByWO(item, DataStatic.ITSFC.FACTORY.F12));
+                item.setEcnNo(allpartService.dataEcnNo(item, DataStatic.ITSFC.FACTORY.F12));
+                item.setStatus("PROCESS");
+                item.setBuild(DataStatic.ITSFC.FACTORY.F12);
+                rSmtFaiConfigRepository.save(item);
+                idInsert.add(item.getId());
+                rFaiSmtStationService.getStationInformationByWo(mFactory, item.getWo(), item.getId(), item.getStation());
             }
+            rSmtFaiConfigRepository.jpqlUpdateIdQcBeforeInsertByIds(idInsert);
         }
-        Map<String, Object> result = new HashMap<>();
-        result.put("materials", strSolder);
-        result.put("material_fill",dataFill);
-        return result;
+        return new Response(DataStatic.Status.SUCCESS, "Load data success", mData, mData.size());
     }
 
-    private String dataEcnNo(RSmtFaiConfig mItem){
-        List<Map<String, Object>> mEcn = new ArrayList<>();
-        mEcn.addAll(b04Service.getEcnNoByWo(mItem));
-        String result = "";
-        if(mEcn.size() > 0){
-            result = (String) mEcn.get(0).get("ECN_NO");
-        }
-        return result;
-    }
-
-    private String dataEcnNo(WO mItem){
-        List<Map<String, Object>> mEcn = new ArrayList<>();
-        mEcn.addAll(b04Service.getEcnNoByWo(mItem));
-        String result = "";
-        if(mEcn.size() > 0){
-            result = (String) mEcn.get(0).get("ECN_NO");
-        }
-        return result;
-    }
-
-    private Map<String, Object> dataRoSHByWO(WO mItem){
-        List<Map<String, Object>> mSolder = new ArrayList<>();
-        mSolder.addAll(b04Service.getMaterialSolderByWo(mItem));
-        String strSolder = "";
-        String dataFill = "";
-        if(mSolder.size() > 0){
-            for(int i = 0; i < mSolder.size(); i++){
-                strSolder += (String) mSolder.get(i).get("KP_NO") + ", ";
-                List<Map<String, Object>> mType = materialRepository.jpqlGetListMaterialRoHS((String) mSolder.get(i).get("KP_NO"));
-                if(mType.size() > 0){
-                    dataFill = "Non-ROHS[有鉛 Có chì]";
-                }else{
-                    dataFill = "ROHS[無鉛 Không chì]";
-                }
+    @Override
+    public boolean updateStatusFai(String station, String wo) {
+        List<Map<String, Object>> mData = b04RSmtFaiRepository.jpqlFindMaxRowByStationAndWo(station, wo);
+        if(mData.size() > 0){
+            Date requestTime = (Date) mData.get(0).get("REQUEST_TIME");
+            List<B04RSmtFai> itemB4 = b04RSmtFaiRepository.jpqlGetDataSmtFai(wo, station);
+            List<RSmtFaiConfig> itemDef = rSmtFaiConfigRepository.jpqlGetDataByWoStationTime(wo, station, requestTime);
+            if(itemB4.size() > 0) {
+                itemB4.get(itemB4.size()-1).setStatus("PASS");
+                b04RSmtFaiRepository.save(itemB4.get(itemB4.size()-1));
             }
+            if(itemDef.size() > 0){
+                itemDef.get(itemDef.size()-1).setStatus("PASS");
+                rSmtFaiConfigRepository.save(itemDef.get(itemDef.size()-1));
+            }
+            return true;
+        }else {
+            return false;
         }
-
-        Map<String, Object> result = new HashMap<>();
-        result.put("materials", strSolder);
-        result.put("material_fill",dataFill);
-        return result;
     }
 
     @Override
@@ -161,8 +148,6 @@ public class RFaiSmtConfigServiceImpl implements RFaiSmtConfigService {
 
         List<String> urls = new ArrayList<>();
         ObjectMapper objectMapper = new ObjectMapper();
-
-
         for(int i = 0; i < tmpMedia.size(); i++){
             try {
                 urls.addAll(objectMapper.readValue((String) tmpMedia.get(i).get("media"), new TypeReference<List<String>>(){}));
@@ -178,14 +163,12 @@ public class RFaiSmtConfigServiceImpl implements RFaiSmtConfigService {
                 }
             }
             urls.clear();
-
         }
         return tmpData;
     }
 
     @Override
-    public Object testFunc() {
-        RSmtFaiConfig mData = rSmtFaiConfigRepository.findById(1001).get();
-        return b04Service.getMaterialSolderByWo(mData);
+    public Object test(String wo) {
+        return null;
     }
 }

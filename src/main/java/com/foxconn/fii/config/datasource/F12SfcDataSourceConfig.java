@@ -1,5 +1,6 @@
 package com.foxconn.fii.config.datasource;
 
+
 import com.zaxxer.hikari.HikariDataSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -7,7 +8,6 @@ import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
 import org.springframework.core.env.Environment;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -24,62 +24,62 @@ import java.util.Map;
 
 @Configuration
 @EnableJpaRepositories(
-        entityManagerFactoryRef = "b04stencilEntityManagerFactory",
-        transactionManagerRef = "b04stencilTransactionManager",
-        basePackages = "com.foxconn.fii.data.b04stencil"
+        entityManagerFactoryRef = "f12sfcEntityManagerFactory",
+        transactionManagerRef = "f12sfcTransactionManager",
+        basePackages = "com.foxconn.fii.data.f12sfc"
 )
 @EnableTransactionManagement
-public class B04StencilDataSourceConfig {
+public class F12SfcDataSourceConfig {
+
     @Autowired
     private Environment env;
 
-    @Bean(name = "b04stencilDSProperties")
-    @ConfigurationProperties("b04stencil.datasource")
-    public DataSourceProperties b04stencilDataSourceProperties() {
+    @Bean(name = "f12sfcDSProperties")
+    @ConfigurationProperties("f12sfc.datasource")
+    public DataSourceProperties b04sfcDataSourceProperties() {
         return new DataSourceProperties();
     }
 
-    @Bean(name = "b04stencilDS")
-    @ConfigurationProperties("b04stencil.datasource.configuration")
-    public DataSource b04stencilDataSource(DataSourceProperties properties) {
+    @Bean(name = "f12sfcDS")
+    @ConfigurationProperties("f12sfc.datasource.configuration")
+    public DataSource b04sfcDataSource(DataSourceProperties properties) {
         return properties.initializeDataSourceBuilder().type(HikariDataSource.class)
                 .build();
     }
 
-    @Bean(name = "b04stencilEntityManagerFactory")
-    public LocalContainerEntityManagerFactoryBean b04stencilEntityManagerFactory() {
+    @Bean(name = "f12sfcEntityManagerFactory")
+    public LocalContainerEntityManagerFactoryBean b04sfcEntityManagerFactory() {
 
         LocalContainerEntityManagerFactoryBean em = new LocalContainerEntityManagerFactoryBean();
-        em.setDataSource(b04stencilDataSource(b04stencilDataSourceProperties()));
-        em.setPackagesToScan("com.foxconn.fii.data.b04stencil");
+        em.setDataSource(b04sfcDataSource(b04sfcDataSourceProperties()));
+        em.setPackagesToScan("com.foxconn.fii.data.f12sfc");
 
         HibernateJpaVendorAdapter vendorAdapter = new HibernateJpaVendorAdapter();
         em.setJpaVendorAdapter(vendorAdapter);
 
         Map<String, Object> properties = new HashMap<>();
         properties.put("hibernate.hbm2ddl.auto", env.getProperty("spring.jpa.properties.hibernate.hbm2ddl.auto"));
-        properties.put("hibernate.dialect", env.getProperty("b04stencil.datasource.hibernate.dialect"));
-        //properties.put("hibernate.jdbc.fetch_size", 1000);
+        properties.put("hibernate.dialect", env.getProperty("b04sfc.datasource.hibernate.dialect"));
+        properties.put("hibernate.jdbc.fetch_size", 1000);
         em.setJpaPropertyMap(properties);
 
         return em;
     }
 
-    @Bean(name = "b04stencilTransactionManager")
-    public PlatformTransactionManager b04stencilTransactionManager() {
+    @Bean(name = "f12sfcTransactionManager")
+    public PlatformTransactionManager f12sfcTransactionManager() {
         JpaTransactionManager transactionManager = new JpaTransactionManager();
-        transactionManager.setEntityManagerFactory(b04stencilEntityManagerFactory().getObject());
+        transactionManager.setEntityManagerFactory(b04sfcEntityManagerFactory().getObject());
         return transactionManager;
     }
 
-    @Bean(name = "b04stencilJdbcTemplate")
-    public JdbcTemplate b04stencilJdbcTemplate(@Qualifier("b04stencilDS") DataSource dataSource) {
+    @Bean(name = "f12sfcJdbcTemplate")
+    public JdbcTemplate f12sfcJdbcTemplate(@Qualifier("f12sfcDS") DataSource dataSource) {
         return new JdbcTemplate(dataSource);
     }
 
-    @Primary
-    @Bean(name = "b04stencilNamedJdbcTemplate")
-    public NamedParameterJdbcTemplate b04stencilNamedJdbcTemplate(@Qualifier("b04stencilDS") DataSource dataSource) {
+    @Bean(name = "f12sfcNamedJdbcTemplate")
+    public NamedParameterJdbcTemplate f12sfcNamedJdbcTemplate(@Qualifier("f12sfcDS") DataSource dataSource) {
         return new NamedParameterJdbcTemplate(dataSource);
     }
 }
