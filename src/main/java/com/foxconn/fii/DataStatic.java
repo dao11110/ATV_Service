@@ -21,7 +21,7 @@ public class DataStatic {
     }
 
     public static class AGILE{
-        public static String URL_DOMAIN = "https://10.167.5.46:10001/";
+        public static String URL_DOMAIN = " https://vnpdmap.cnsbg.efoxconn.com:10001/";
         public static String URL_DOWNLOAD_BOM = URL_DOMAIN+"exportbomlatest";
         public static String URL_DOWNLOAD_ECN = URL_DOMAIN+"getchange";
         public static String USERNAME = "V0959579";

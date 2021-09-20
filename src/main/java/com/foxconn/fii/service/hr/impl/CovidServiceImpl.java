@@ -74,12 +74,12 @@ public class CovidServiceImpl implements CovidService {
                 for(String empId : userHr.keySet()){
                     if(mapData.get(empId) == null){
                         dataUncheck.add(userHr.get(empId));
+                        System.out.println(empId+" - Data NULL");
                     }else{
-                        System.out.println(empId);
+                        System.out.println(empId+" - Data OK");
                     }
                 }
             }
-
         }
 
         Map<String, Object> result = new LinkedHashMap<>();
@@ -98,7 +98,7 @@ public class CovidServiceImpl implements CovidService {
         String month = "";
 
         if (cal.get(Calendar.DAY_OF_MONTH) < 10) day = "0"+cal.get(Calendar.DAY_OF_MONTH); else day = ""+cal.get(Calendar.DAY_OF_MONTH);
-        if(cal.get(Calendar.MONTH)+1 < 10) month = "0"+cal.get(Calendar.MONTH); else month = ""+cal.get(Calendar.MONTH);
+        if(cal.get(Calendar.MONTH)+1 < 10) month = "0"+(cal.get(Calendar.MONTH)+1); else month = ""+(cal.get(Calendar.MONTH)+1);
 
         return year+month+day;
     }
