@@ -13,4 +13,10 @@ public interface AgileEcnRepository extends JpaRepository<AgileEcn, Integer> {
             "WHERE ae.id IS NULL " +
             "AND abp.ecnNo IS NOT NULL ")
     List<String> jpqlGetListEcnRequest();
+
+    @Query("SELECT DISTINCT rfc.ecnNo " +
+            "FROM RSmtFaiConfig AS rfc " +
+            "LEFT JOIN AgileEcn AS ae ON rfc.ecnNo = ae.ecnNo " +
+            "WHERE rfc.ecnNo IS NOT NULL ")
+    List<String>jpqGetListEcnNoNotSyn();
 }

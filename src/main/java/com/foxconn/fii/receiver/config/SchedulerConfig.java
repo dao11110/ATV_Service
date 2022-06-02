@@ -42,9 +42,10 @@ public class SchedulerConfig {
     @Scheduled(fixedDelay = 300000, initialDelay = 300000) //300000
     public void b04CrawMoFaiSmt(){
         rFaiSmtConfig.checkDataWoB04(null, DataStatic.ITSFC.FACTORY.B04);
-        rFaiSmtConfig.checkDataWoF12(null, DataStatic.ITSFC.FACTORY.F12);
         rWoRequestService.checkRWoRequestNew(DataStatic.ITSFC.FACTORY.B04);
+        rFaiSmtConfig.checkDataWoF12(null, DataStatic.ITSFC.FACTORY.F12);
         rWoRequestService.checkRWoRequestNew(DataStatic.ITSFC.FACTORY.F12);
+
     }
 
 

@@ -21,11 +21,11 @@ public class DataStatic {
     }
 
     public static class AGILE{
-        public static String URL_DOMAIN = " https://vnpdmap.cnsbg.efoxconn.com:10001/";
+        public static String URL_DOMAIN = "https://vnpdmap.cnsbg.efoxconn.com:10001/";
         public static String URL_DOWNLOAD_BOM = URL_DOMAIN+"exportbomlatest";
         public static String URL_DOWNLOAD_ECN = URL_DOMAIN+"getchange";
-        public static String USERNAME = "V0959579";
-        public static String PASSWORD = "722crlhUZ~j!";
+        public static String USERNAME = "V0957005";
+        public static String PASSWORD = "Foxconn168@@";
     }
 
     public static class ITSFC{

@@ -59,9 +59,10 @@ public class RSmtFaiConfig {
     @Column(name = "create_at", updatable = false)
     private Date createAt;
 
-    public RSmtFaiConfig(){}
+    public RSmtFaiConfig() {
+    }
 
-    public RSmtFaiConfig(Map<String, Object> mData){
+    public RSmtFaiConfig(Map<String, Object> mData) {
         this.station = (String) mData.get("STATION");
         this.wo = (String) mData.get("WO");
         this.modelName = (String) mData.get("MODEL_NAME");
@@ -71,18 +72,22 @@ public class RSmtFaiConfig {
         this.reasonFill = REASON.getDataFill(this.reason);
     }
 
-    public void setMaterial(Map<String, Object> mData){
+    public void setMaterial(Map<String, Object> mData) {
         this.materials = (String) mData.get("materials");
         this.materialFill = (String) mData.get("material_fill");
     }
 
-    public static class REASON{
+    public static class REASON {
         public static String CHANGE_WO = "Change WO";
         public static String CHANGE_SHIFT = "Change Shift";
-        public static String getDataFill(String mReason){
-            if(mReason.equals(CHANGE_WO)){
+
+        public static String getDataFill(String mReason) {
+
+            if (mReason == null) {
+                return "復線Mở chuyền";
+            } else if (mReason.equals(CHANGE_WO)) {
                 return "產品更換诀Đổi sản phẩm";
-            }else{
+            } else {
                 return "復線Mở chuyền";
             }
         }

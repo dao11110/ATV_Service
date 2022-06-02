@@ -32,13 +32,15 @@ public class AgileEcnServiceImpl implements AgileEcnService {
     @Override
     public AgileEcn requestToAgile(String mEcnNo) {
         HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-        headers.setContentType(MediaType.APPLICATION_JSON);
+//        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+//        headers.setContentType(MediaType.APPLICATION_JSON);
         ObjectMapper objectMapper = new ObjectMapper();
         Ecn ecn = new Ecn(mEcnNo);
         String body = ecn.toString();
-        HttpEntity<String> entity = new HttpEntity<>(body, headers);
 
+
+        HttpEntity<String> entity = new HttpEntity<>(body, headers);
+        System.out.println("abccc-----"+entity);
         ResponseEntity<String> responseEntity = null;
         try {
             responseEntity = restTemplate.exchange(DataStatic.AGILE.URL_DOWNLOAD_ECN, HttpMethod.POST, entity, String.class);
@@ -61,11 +63,16 @@ public class AgileEcnServiceImpl implements AgileEcnService {
 
     @Override
     public Object checkAndDownloadEcn() {
-        List<String> listEcnNo = agileEcnRepository.jpqlGetListEcnRequest();
+        List<String> listEcnNo = agileEcnRepository.jpqGetListEcnNoNotSyn();
         List<AgileEcn> result = new ArrayList<>();
         if(listEcnNo.size() > 0){
             for(int i = 0; i < listEcnNo.size(); i++){
-                AgileEcn item = requestToAgile(listEcnNo.get(i));
+                System.out.println(listEcnNo.get(i)+"___________");
+                String ecnNo=listEcnNo.get(i);
+                if (!ecnNo.contains("ECN")&&!ecnNo.contains("NA")){
+                    ecnNo="ECN"+ecnNo;
+                }
+                AgileEcn item = requestToAgile(ecnNo);
                 agileEcnRepository.save(item);
                 result.add(item);
             }

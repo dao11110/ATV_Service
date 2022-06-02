@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Date;
 import java.util.List;
 
 @Slf4j
@@ -35,7 +36,7 @@ public class LockLineServiceImpl implements LockLineService {
         if(mFai.size() > 0){
             String mLog = "";
             for(int i = 0; i < mFai.size(); i++){
-                List<B04RSmtFai> itemB4 = b04RSmtFaiRepository.jpqlGetDataSmtFai(mFai.get(i).getWo(), mFai.get(i).getStation());
+                List<B04RSmtFai> itemB4 = b04RSmtFaiRepository.jpqlGetDataSmtFai(mFai.get(i).getWo(), mFai.get(i).getStation(),new Date());
                 if(itemB4.size() > 0){
                     mLog += "Data FAIL: "+mFai.get(i).getId();
                     itemB4.get(0).setStatus("FAIL");

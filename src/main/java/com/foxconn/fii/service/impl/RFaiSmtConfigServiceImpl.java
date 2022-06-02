@@ -122,10 +122,11 @@ public class RFaiSmtConfigServiceImpl implements RFaiSmtConfigService {
 
     @Override
     public boolean updateStatusFai(String station, String wo) {
+        wo="%"+wo+"%";
         List<Map<String, Object>> mData = b04RSmtFaiRepository.jpqlFindMaxRowByStationAndWo(station, wo);
         if(mData.size() > 0){
             Date requestTime = (Date) mData.get(0).get("REQUEST_TIME");
-            List<B04RSmtFai> itemB4 = b04RSmtFaiRepository.jpqlGetDataSmtFai(wo, station);
+            List<B04RSmtFai> itemB4 = b04RSmtFaiRepository.jpqlGetDataSmtFai(wo, station,requestTime);
             List<RSmtFaiConfig> itemDef = rSmtFaiConfigRepository.jpqlGetDataByWoStationTime(wo, station, requestTime);
             if(itemB4.size() > 0) {
                 itemB4.get(itemB4.size()-1).setStatus("PASS");

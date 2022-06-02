@@ -2,6 +2,7 @@ package com.foxconn.fii.controller.v1;
 
 import com.foxconn.fii.DataStatic;
 import com.foxconn.fii.common.TimeSpan;
+import com.foxconn.fii.data.b04tensioning.repository.TTensioningRepository;
 import com.foxconn.fii.data.primary.repository.RWoRequestRepository;
 import com.foxconn.fii.request.hr.UserCovid;
 import com.foxconn.fii.response.Response;
@@ -63,6 +64,9 @@ public class ApiControllerV1 {
 
     @Autowired
     private MailService mailService;
+
+    @Autowired
+    TTensioningRepository tTensioningReportsitory;
 
     private void resize(String path, String subFolder) throws IOException {
         File file = new File(path);
@@ -127,14 +131,25 @@ public class ApiControllerV1 {
         }
     }
 
-    @PostMapping("/test")
-    public Object test(@RequestParam(name = "input") String input) throws Exception {
+    @GetMapping("/test")
+    public Object test() throws Exception {
 //        return agileBomService.downloadBomAgile(modelName);
 //        return agileEcnService.checkAndDownloadEcn();
-        Map<String, Object> mMap = new HashMap<>();
-        mMap.put("V0959579", "Test");
-        mMap.put("v0959579", "test 1");
-        return mMap;
+        return tTensioningReportsitory.jpqlGetTTensioning(1);
+//        Map<String, Object> mMap = new HashMap<>();
+//        mMap.put("V0959579", "Test");
+//        mMap.put("v0959579", "test 1");
+//        return mMap;
+    }
+
+    @GetMapping("/get_data_tension_in_out")
+    public  Object getDataTensionInOut(@RequestParam("flagType") Integer flagType){
+        List<Map<String,Object>>mData= tTensioningReportsitory.jpqlGetTTensioning(flagType);
+        if (mData.size()>0){
+            return new Response(DataStatic.Status.SUCCESS, "Load data success", mData, mData.size());
+        }else {
+            return new Response(DataStatic.Status.FAIL, "Load data fail", 0, 0);
+        }
     }
 
     @GetMapping("/test_2")

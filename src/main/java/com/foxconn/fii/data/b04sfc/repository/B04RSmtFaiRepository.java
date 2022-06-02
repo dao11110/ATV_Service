@@ -29,6 +29,6 @@ public interface B04RSmtFaiRepository extends JpaRepository<B04RSmtFai, Integer>
             "FROM B04RSmtFai AS rsf " +
             "WHERE rsf.wo LIKE :wo " +
             "AND rsf.station LIKE :station " +
-            "AND rsf.status IN ('PROCESS', 'FAIL')")
-    List<B04RSmtFai> jpqlGetDataSmtFai(@Param("wo") String wo, @Param("station") String station);
+            "AND rsf.requestTime = :request_time ")
+    List<B04RSmtFai> jpqlGetDataSmtFai(@Param("wo") String wo, @Param("station") String station,@Param("request_time") Date requestTime);
 }

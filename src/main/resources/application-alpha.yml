@@ -36,8 +36,8 @@ data.thumb: F:\data\paperless\res\thumb\
 logging:
   level:
     com.foxconn.fii: INFO
-    #    org.hibernate.SQL: DEBUG
-    #org.springframework.jdbc.core.JdbcTemplate: DEBUG
+#        org.hibernate.SQL: DEBUG
+#    org.springframework.jdbc.core.JdbcTemplate: DEBUG
 
 #cron
 
@@ -68,6 +68,17 @@ f12sfc:
       maxLifetime: 1800000
       minimumIdle: 3
       maximumPoolSize: 5
+
+b04tensioning:
+  datasource:
+    url: jdbc:sqlserver://10.224.83.33:3000;databaseName=Tensioning
+    username: sa
+    password: congcong
+    hibernate.dialect: org.hibernate.dialect.SQLServer2008Dialect
+    configuration:
+      connectionTimeout: 30000
+      idleTimeout: 600000
+      maxLifetime: 1800000
 
 batch:
   cron:
