@@ -1,15 +1,15 @@
 # port
 server:
-  port: 8883
-  domain: http://10.224.56.66:8883
+  port: 8088
+  domain: http://localhost:8088
   servlet:
-    context-path: /sync
+    context-path: /atv
 # db
 spring:
   datasource:
-    url: jdbc:sqlserver://10.224.81.143:3000;databaseName=paperless
-    username: sa
-    password: Foxconn168!!
+    url: jdbc:sqlserver://10.141.12.105:50150;databaseName=ATKNET
+    username: atknetadm
+    password: _8R{EWMB1$m1y@F
     hibernate.dialect: org.hibernate.dialect.SQLServer2008Dialect
     configuration:
       connectionTimeout: 30000
@@ -45,44 +45,6 @@ logging:
 
 #cron
 
-b04sfc:
-  datasource:
-    url: jdbc:oracle:thin:@10.224.81.31:1521:vnap
-    username: GETDATA
-    password: APGETDATA
-    driver-class-name: oracle.jdbc.driver.OracleDriver
-    hibernate.dialect: org.hibernate.dialect.Oracle10gDialect
-    configuration:
-      connectionTimeout: 30000
-      idleTimeout: 600000
-      maxLifetime: 1800000
-      minimumIdle: 3
-      maximumPoolSize: 5
-
-f12sfc:
-  datasource:
-    url: jdbc:oracle:thin:@10.220.81.98:1521:vnap
-    username: GETDATA
-    password: APGETDATA
-    driver-class-name: oracle.jdbc.driver.OracleDriver
-    hibernate.dialect: org.hibernate.dialect.Oracle10gDialect
-    configuration:
-      connectionTimeout: 30000
-      idleTimeout: 600000
-      maxLifetime: 1800000
-      minimumIdle: 3
-      maximumPoolSize: 5
-
-b04tensioning:
-  datasource:
-    url: jdbc:sqlserver://10.224.83.33:3000;databaseName=Tensioning
-    username: sa
-    password: congcong
-    hibernate.dialect: org.hibernate.dialect.SQLServer2008Dialect
-    configuration:
-      connectionTimeout: 30000
-      idleTimeout: 600000
-      maxLifetime: 1800000
 
 batch:
   cron:
