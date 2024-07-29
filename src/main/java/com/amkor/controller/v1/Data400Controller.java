@@ -1,9 +1,7 @@
 package com.amkor.controller.v1;
 
 
-import com.amkor.models.CustProductionInfoFgJsonModel;
-import com.amkor.models.LotInformationModel;
-import com.amkor.models.WindowTimeHoldModel;
+import com.amkor.models.*;
 import com.amkor.service.ATVService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.hssf.usermodel.*;
@@ -42,7 +40,7 @@ public class Data400Controller {
                 result = "jdbc:as400://10.101.6.12";
                 break;
             case "ATV":
-                result = "jdbc:as400://10.201.6.11";
+                result = "jdbc:as400://10.201.6.21";
                 break;
         }
         return result;
@@ -113,6 +111,20 @@ public class Data400Controller {
                 break;
             case "ATV":
                 result = "80";
+                break;
+        }
+        return result;
+    }
+
+    public String getSiteID(String site) {
+        String result = "";
+
+        switch (site) {
+            case "ATK":
+                result = "1";
+                break;
+            case "ATV":
+                result = "1";
                 break;
         }
         return result;
@@ -293,10 +305,10 @@ public class Data400Controller {
                     "  WHERE SMFCID=80 AND SMASID=1 AND SMPLNT='V1'  AND SMACDT<>0 AND SMISLF='Y' AND SMSTS1<>'CLOSE' AND SMSTN ='SHIPMENT'  AND SMSTS2 IN " + Status;
 
 
-            if (Status.trim().equals("('ACTIVE')")){
-                query+="AND SMACDT = " + dateStart ;
-            }else {
-                query+="AND     CINWVL LIKE '" + currentDate() + "%'";
+            if (Status.trim().equals("('ACTIVE')")) {
+                query += "AND SMACDT = " + dateStart;
+            } else {
+                query += "AND     CINWVL LIKE '" + currentDate() + "%'";
             }
             m_psmt = m_conn.prepareStatement(query);
 
@@ -415,13 +427,13 @@ public class Data400Controller {
             mapData = listData.stream().collect(Collectors.groupingBy(e -> String.valueOf(e.getCusCode())));
 
             // List<WindowTimeHoldModel>listESI=new ArrayList<>();
-            if (mapData.get("78")!=null){
+            if (mapData.get("78") != null) {
                 listDataKioxia.addAll(mapData.get("78"));
             }
-            if (mapData.get("220")!=null){
+            if (mapData.get("220") != null) {
                 listESI.addAll(mapData.get("220"));
             }
-            if (mapData.get("2277")!=null){
+            if (mapData.get("2277") != null) {
                 listESI.addAll(mapData.get("2277"));
             }
 
@@ -920,10 +932,164 @@ public class Data400Controller {
         }
         return nRec;
     }
+
     public long get400CurrentDate() {
         String current = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
         long result = Long.parseLong(current) - 19000000000000L;
         return result;
+    }
+
+    @RequestMapping(method = RequestMethod.POST, value = "/data400/{site}/createProcessNote")
+    @CrossOrigin(origins = "*")
+    public HashMap<String, String> createProcessNote(@PathVariable("site") String site,
+                                                     @RequestBody ProcessNoteModel[] model) {
+        HashMap<String, String> result = new HashMap<>();
+        PreparedStatement m_pstmt;
+        String msg = "";
+        int[] results;
+        ApiLoggingModel logging = new ApiLoggingModel();
+        try {
+            Class.forName(DRIVER);
+            Connection conn = DriverManager.getConnection(getURL(site), getUserID(site), getPasswd(site));
+
+            long currentDateTime = this.get400CurrentDate();
+
+            String sQuery = "insert into EPLIB.EPENOTP values (?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+            m_pstmt = conn.prepareStatement(sQuery);
+
+            for (ProcessNoteModel processNoteModel : model) {
+                int i = 1;
+                m_pstmt.setInt(i++, processNoteModel.getFactoryId());
+                m_pstmt.setString(i++, processNoteModel.getClassify().trim());
+                m_pstmt.setInt(i++, processNoteModel.getCustomerId());
+                m_pstmt.setString(i++, processNoteModel.getPkg().trim());
+                m_pstmt.setString(i++, processNoteModel.getDim().trim());
+                m_pstmt.setString(i++, processNoteModel.getLead().trim());
+                m_pstmt.setString(i++, processNoteModel.getTargetDevice().trim());
+                m_pstmt.setString(i++, processNoteModel.getOptionId().trim());
+                m_pstmt.setInt(i++, processNoteModel.getOperation());
+                m_pstmt.setInt(i++, processNoteModel.getSeq());
+                m_pstmt.setString(i++, processNoteModel.getEngNote());
+                m_pstmt.setLong(i++, currentDateTime);
+                m_pstmt.setLong(i++, 0);
+                m_pstmt.setString(i, processNoteModel.getUserBadge());
+
+                m_pstmt.addBatch();
+
+                // logging
+                logging.setCifcid(processNoteModel.getFactoryId());
+                logging.setCiasid(Integer.parseInt(this.getSiteID(site)));
+                logging.setCichdt(currentDateTime);
+                this.addApiLogging(logging, site);
+            }
+
+
+            results = m_pstmt.executeBatch();
+            for (int i = 0; i < results.length; i++) {
+                if (results[i] == 0) {
+                    msg = "FAILED TO ADD SEQ #"+i;
+                } else {
+                    msg = "SUCCESS";
+                }
+            }
+            result.put("msg", msg);
+            conn.close();
+
+        } catch (Exception ex) {
+            result.put("msg", ex.getMessage());
+        }
+        return result;
+    }
+
+    @RequestMapping(method = RequestMethod.POST, value = "/data400/{site}/createAutoLabelMaintenance")
+    @CrossOrigin(origins = "*")
+    public HashMap<String, String> createAutoLabelMaintenance(@PathVariable("site") String site,
+                                                              @RequestBody AutoLabelModel model) {
+        HashMap<String, String> result = new HashMap<>();
+        PreparedStatement m_pstmt;
+        String msg;
+        int record;
+        ApiLoggingModel logging = new ApiLoggingModel();
+        try {
+            Class.forName(DRIVER);
+            Connection conn = DriverManager.getConnection(getURL(site), getUserID(site), getPasswd(site));
+
+            long currentDateTime = this.get400CurrentDate();
+            String sQuery = "insert into EMLIB.EAUTOLBLVP values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+            m_pstmt = conn.prepareStatement(sQuery);
+            int i = 0;
+            m_pstmt.setInt(++i, model.getFactoryId());
+			m_pstmt.setInt(++i,model.getSiteId());
+			m_pstmt.setString(++i,model.getBusinessType());
+			m_pstmt.setInt(++i,model.getCustomerId());
+			m_pstmt.setString(++i,model.getPkg());
+			m_pstmt.setString(++i,model.getDim());
+			m_pstmt.setString(++i,model.getLead());
+			m_pstmt.setString(++i,model.getTargetDevice());
+			m_pstmt.setString(++i,model.getKeyField1());
+			m_pstmt.setString(++i,model.getKeyField2());
+			m_pstmt.setString(++i,model.getFieldName());
+			m_pstmt.setString(++i,model.getFieldValue());
+			m_pstmt.setLong(++i,currentDateTime);
+			m_pstmt.setInt(++i,model.getUserBadge());
+			m_pstmt.setLong(++i,0);
+			m_pstmt.setInt(++i,0);
+            record = m_pstmt.executeUpdate();
+            if (record == 0) {
+                msg = "FAILED TO ADD";
+            } else {
+                msg = "SUCCESS";
+            }
+            // logging
+            logging.setCifcid(model.getFactoryId());
+            logging.setCiasid(model.getSiteId());
+            logging.setCichdt(currentDateTime);
+            this.addApiLogging(logging, site);
+            result.put("msg", msg);
+
+        } catch (Exception ex) {
+            result.put("msg", ex.getMessage());
+        }
+        return result;
+    }
+
+    public void addApiLogging(ApiLoggingModel model, String site) {
+        PreparedStatement m_pstmt;
+        try {
+            Class.forName(DRIVER);
+            Connection conn = DriverManager.getConnection(getURL(site), getUserID(site), getPasswd(site));
+
+            String sQuery = "insert into EMLIB.EMESLP04 values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+            m_pstmt = conn.prepareStatement(sQuery);
+            int i=1;
+
+			m_pstmt.setInt(i++, model.getCifcid());
+			m_pstmt.setInt(i++,model.getCiasid());
+			m_pstmt.setString(i++,model.getCistn());
+			m_pstmt.setLong(i++,model.getCiamkr());
+			m_pstmt.setInt(i++,model.getCisub());
+			m_pstmt.setString(i++,model.getCibztp());
+			m_pstmt.setString(i++,model.getCists());
+			m_pstmt.setFloat(i++,model.getCiseq());
+			m_pstmt.setInt(i++,model.getCiopr());
+			m_pstmt.setString(i++,model.getCichfd());
+			m_pstmt.setString(i++,model.getCiogvl());
+			m_pstmt.setString(i++,model.getCinwvl());
+			m_pstmt.setString(i++,model.getCirsn());
+			m_pstmt.setInt(i++,model.getCichbg());
+			m_pstmt.setLong(i++,model.getCichdt());
+			m_pstmt.setLong(i++,model.getCirqdt());
+			m_pstmt.setString(i++,model.getCirqpg());
+			m_pstmt.setInt(i++,model.getCirqbg());
+			m_pstmt.setLong(i++,model.getCiacdt());
+			m_pstmt.setString(i++, model.getCiacpg());
+			m_pstmt.setInt(i,model.getCiacbg());
+
+			m_pstmt.executeUpdate();
+
+        } catch (Exception ex) {
+            System.out.println(ex.getMessage());
+        }
     }
 
 }
