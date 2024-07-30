@@ -8,7 +8,6 @@ import lombok.Setter;
 @Getter
 @Setter
 @AllArgsConstructor
-@NoArgsConstructor
 public class ApiLoggingModel {
     private int cifcid;  // factory id
     private int ciasid;  // site id
@@ -31,4 +30,28 @@ public class ApiLoggingModel {
     private long ciacdt;  // accept date time
     private String ciacpg;  // accept pgm
     private int ciacbg;  // accept badge
+
+    public ApiLoggingModel() {
+        cifcid = 0; // factory id
+        ciasid = 0;// site id
+        cistn = ""; // station
+        ciamkr = 0;// amkor id
+        cisub = 0;// amkor sub id
+        cibztp = ""; // business type
+        cists = ""; // status
+        ciseq = 0;// sequence
+        ciopr = 0;// operation
+        cichfd = ""; // change field
+        ciogvl = ""; // orignal value
+        cinwvl = "";// new value
+        cirsn = "";// reason code
+        cichbg = 0;// badge
+        cichdt = 0;// change date
+        cirqdt = 0;// request date time
+        cirqpg = "";// request pgm
+        cirqbg = 0;// request badge
+        ciacdt = 0;// accept date time
+        ciacpg = "";// accept pgm
+        ciacbg = 0;// accept badge
+    }
 }

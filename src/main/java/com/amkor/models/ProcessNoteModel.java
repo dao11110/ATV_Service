@@ -18,4 +18,22 @@ public class ProcessNoteModel {
     private String engNote;
     private int seq;
     private String userBadge;
+
+    @Override
+    public String toString() {
+        return "{" +
+                "factoryId=" + factoryId +
+                ", customerId=" + customerId +
+                ", classify='" + classify + '\'' +
+                ", pkg='" + pkg + '\'' +
+                ", dim='" + dim + '\'' +
+                ", lead='" + lead + '\'' +
+                ", targetDevice='" + targetDevice + '\'' +
+                ", operation=" + operation +
+                ", optionId='" + optionId + '\'' +
+                ", engNote='" + engNote + '\'' +
+                ", seq=" + seq +
+                ", userBadge='" + userBadge + '\'' +
+                '}';
+    }
 }

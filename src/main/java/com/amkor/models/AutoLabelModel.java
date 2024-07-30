@@ -20,4 +20,22 @@ public class AutoLabelModel {
     private String fieldValue;
     private int userBadge;
 
+    @Override
+    public String toString() {
+        return "{" +
+                "factoryId=" + factoryId +
+                ", siteId=" + siteId +
+                ", businessType='" + businessType + '\'' +
+                ", customerId=" + customerId +
+                ", pkg='" + pkg + '\'' +
+                ", dim='" + dim + '\'' +
+                ", lead='" + lead + '\'' +
+                ", targetDevice='" + targetDevice + '\'' +
+                ", keyField1='" + keyField1 + '\'' +
+                ", keyField2='" + keyField2 + '\'' +
+                ", fieldName='" + fieldName + '\'' +
+                ", fieldValue='" + fieldValue + '\'' +
+                ", userBadge=" + userBadge +
+                '}';
+    }
 }

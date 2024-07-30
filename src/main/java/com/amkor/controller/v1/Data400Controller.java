@@ -977,10 +977,13 @@ public class Data400Controller {
                 m_pstmt.addBatch();
 
                 // logging
-//                logging.setCifcid(processNoteModel.getFactoryId());
-//                logging.setCiasid(Integer.parseInt(this.getSiteID(site)));
-//                logging.setCichdt(currentDateTime);
-//                this.addApiLogging(logging, site);
+                logging.setCifcid(processNoteModel.getFactoryId());
+                logging.setCiasid(Integer.parseInt(this.getSiteID(site)));
+                logging.setCichdt(currentDateTime);
+                logging.setCichbg(Integer.parseInt(processNoteModel.getUserBadge()));
+                logging.setCiogvl("API_createProcessNote");
+                logging.setCinwvl(Compressor.compress(processNoteModel.toString()).toString());
+                this.addApiLogging(logging, site);
             }
 
 
@@ -1042,10 +1045,13 @@ public class Data400Controller {
                 msg = "SUCCESS";
             }
             // logging
-//            logging.setCifcid(model.getFactoryId());
-//            logging.setCiasid(model.getSiteId());
-//            logging.setCichdt(currentDateTime);
-//            this.addApiLogging(logging, site);
+            logging.setCifcid(model.getFactoryId());
+            logging.setCiasid(model.getSiteId());
+            logging.setCichdt(currentDateTime);
+            logging.setCichbg(model.getUserBadge());
+            logging.setCiogvl("API_createAutoLabelMaintenance");
+            logging.setCinwvl(Compressor.compress(model.toString()).toString());
+            this.addApiLogging(logging, site);
             result.put("msg", msg);
 
         } catch (Exception ex) {
