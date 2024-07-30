@@ -40,7 +40,7 @@ public class Data400Controller {
                 result = "jdbc:as400://10.101.6.12";
                 break;
             case "ATV":
-                result = "jdbc:as400://10.201.6.21";
+                result = "jdbc:as400://10.201.6.11";
                 break;
         }
         return result;
