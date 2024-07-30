@@ -945,7 +945,7 @@ public class Data400Controller {
                                                      @RequestBody ProcessNoteModel[] model) {
         HashMap<String, String> result = new HashMap<>();
         PreparedStatement m_pstmt;
-        String msg = "";
+        StringBuilder msg = new StringBuilder();
         int[] results;
         ApiLoggingModel logging = new ApiLoggingModel();
         try {
@@ -977,22 +977,23 @@ public class Data400Controller {
                 m_pstmt.addBatch();
 
                 // logging
-                logging.setCifcid(processNoteModel.getFactoryId());
-                logging.setCiasid(Integer.parseInt(this.getSiteID(site)));
-                logging.setCichdt(currentDateTime);
-                this.addApiLogging(logging, site);
+//                logging.setCifcid(processNoteModel.getFactoryId());
+//                logging.setCiasid(Integer.parseInt(this.getSiteID(site)));
+//                logging.setCichdt(currentDateTime);
+//                this.addApiLogging(logging, site);
             }
 
 
             results = m_pstmt.executeBatch();
             for (int i = 0; i < results.length; i++) {
                 if (results[i] == 0) {
-                    msg = "FAILED TO ADD SEQ #"+i;
-                } else {
-                    msg = "SUCCESS";
+                    msg.append("FAILED TO ADD ELEMENT #").append(i).append("; ");
                 }
             }
-            result.put("msg", msg);
+            if (msg.length() == 0) {
+                msg.append("SUCCESS");
+            }
+            result.put("msg", msg.toString());
             conn.close();
 
         } catch (Exception ex) {
@@ -1041,10 +1042,10 @@ public class Data400Controller {
                 msg = "SUCCESS";
             }
             // logging
-            logging.setCifcid(model.getFactoryId());
-            logging.setCiasid(model.getSiteId());
-            logging.setCichdt(currentDateTime);
-            this.addApiLogging(logging, site);
+//            logging.setCifcid(model.getFactoryId());
+//            logging.setCiasid(model.getSiteId());
+//            logging.setCichdt(currentDateTime);
+//            this.addApiLogging(logging, site);
             result.put("msg", msg);
 
         } catch (Exception ex) {
