@@ -738,6 +738,7 @@ public class Data400Controller {
                                                                   @RequestBody Map<String, Object> jsonObject) {
         HashMap<String, String> result = new HashMap<>();
         String msg = "";
+        ApiLoggingModel logging = new ApiLoggingModel();
         try {
             Map<String, Object> jFgChar = (Map<String, Object>) jsonObject.get("fg_char");
             Class.forName(DRIVER);
@@ -773,6 +774,16 @@ public class Data400Controller {
                     break;
                 }
                 msg = "SUCCESS";
+
+                // logging
+                logging.setCifcid(Integer.parseInt(getFactoryID(site)));
+                logging.setCiasid(Integer.parseInt(this.getSiteID(site)));
+                logging.setCichdt(get400CurrentDate());
+                logging.setCichbg(Integer.parseInt(user));
+                logging.setCiogvl("API_custProductionInfoFgJson");
+                logging.setCinwvl("FG CHAR Change");
+                logging.setCirsn("API Label Buyoff");
+                this.addApiLogging(logging, site);
             }
 
             conn.close();
@@ -982,7 +993,8 @@ public class Data400Controller {
                 logging.setCichdt(currentDateTime);
                 logging.setCichbg(Integer.parseInt(processNoteModel.getUserBadge()));
                 logging.setCiogvl("API_createProcessNote");
-                logging.setCinwvl(Compressor.compress(processNoteModel.toString()).toString());
+                logging.setCinwvl("Process Note create");
+                logging.setCirsn("API create Process Note");
                 this.addApiLogging(logging, site);
             }
 
@@ -1050,7 +1062,8 @@ public class Data400Controller {
             logging.setCichdt(currentDateTime);
             logging.setCichbg(model.getUserBadge());
             logging.setCiogvl("API_createAutoLabelMaintenance");
-            logging.setCinwvl(Compressor.compress(model.toString()).toString());
+            logging.setCinwvl("Auto Label Maintenance create");
+            logging.setCirsn("API create Auto Label Maintenance");
             this.addApiLogging(logging, site);
             result.put("msg", msg);
 
