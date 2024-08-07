@@ -284,7 +284,7 @@ public class Data400Controller {
         CallableStatement m_cs = null;
         ResultSet m_rs = null;
         Long dateStart = Long.parseLong(currentDate());
-//        Long dateStart = Long.parseLong("20240611");
+//        Long dateStart = Long.parseLong("20240806");
 
         String result = "Fail";
         String query = "";
@@ -333,6 +333,7 @@ public class Data400Controller {
 
 
             }
+            listData=getFPO(listData,"TEST");
 
 
             m_psmt.close();
@@ -340,6 +341,7 @@ public class Data400Controller {
 
 
             m_conn.close();
+            listData=getFPO(listData,"TEST");
             if (listData.size() > 0) {
                 List<LotInformationModel> listLotByLocation = new ArrayList<>();
 
@@ -1111,5 +1113,44 @@ public class Data400Controller {
             System.out.println(ex.getMessage());
         }
     }
+    public ArrayList<LotInformationModel> getFPO(ArrayList<LotInformationModel> listLot,String bizType){
+        for (LotInformationModel lotInformationModel : listLot) {
+            String 	sValue="";
+            ResultSet m_rs = null;
+            PreparedStatement m_pstmt;
+            try
+            {
+                Class.forName(DRIVER);
+                Connection m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
 
+
+                String sQuery="  select CVFLDV from EMLIB.EMESTP02 "
+                        + "	 where CVFCID=? and CVBZTP=? and CVASID=? and CVAMKR=? and CVSUB#=?  and CVFLDN=? ORDER BY CVCRDT DESC";
+                m_pstmt = m_conn.prepareStatement(sQuery);
+
+                m_pstmt.setInt(1,80);
+                m_pstmt.setString(2, bizType);
+                m_pstmt.setInt(3,1 );
+                m_pstmt.setLong(4,lotInformationModel.getWipAmkorID());
+                m_pstmt.setInt(5, lotInformationModel.getWipAmkorSubID());
+                m_pstmt.setString(6, "FPO#");
+                m_rs=m_pstmt.executeQuery();
+
+                if (m_rs.next())
+                {
+                    sValue = m_rs.getString("CVFLDV").trim();
+                    if(sValue!="") {
+                        System.out.println("aa1"+sValue);
+                        lotInformationModel.setTraceCode(sValue);
+                    }
+                }
+            }catch (Exception e)
+            {
+                System.out.println(e.getMessage());
+            }
+
+        }
+
+        return listLot;
+    }
 }
