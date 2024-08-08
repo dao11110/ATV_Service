@@ -25,6 +25,10 @@ public class ATVThanhService {
     private static final String DRIVER = "com.ibm.as400.access.AS400JDBCDriver";
     private static final Logger log = LoggerFactory.getLogger(ATVThanhService.class);
 
+    public String getDriver() {
+        return DRIVER;
+    }
+
     public String getURL(String site) {
         String result = "";
 
@@ -33,7 +37,7 @@ public class ATVThanhService {
                 result = "jdbc:as400://10.101.6.12";
                 break;
             case "ATV":
-                result = "jdbc:as400://10.201.6.11";
+                result = "jdbc:as400://10.201.6.21";
                 break;
         }
         return result;
@@ -250,6 +254,12 @@ public class ATVThanhService {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
         String strDate = sdf.format(d);
         return Long.parseLong(strDate);
+    }
+
+    public long get400CurrentDate() {
+        String current = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
+        long result = Long.parseLong(current) - 19000000000000L;
+        return result;
     }
 
     public List<String> getAlertForFGNotScheduledFor30Days(String factoryId, String plant) {
