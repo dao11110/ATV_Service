@@ -965,7 +965,7 @@ public class Data400Controller {
             Class.forName(DRIVER);
             Connection conn = DriverManager.getConnection(getURL(site), getUserID(site), getPasswd(site));
 
-            long currentDateTime = this.get400CurrentDate();
+            long currentDateTime = Long.parseLong(new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()));
 
             String sQuery = "insert into EPLIB.EPENOTP values (?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
             m_pstmt = conn.prepareStatement(sQuery);
@@ -1032,7 +1032,7 @@ public class Data400Controller {
             Class.forName(DRIVER);
             Connection conn = DriverManager.getConnection(getURL(site), getUserID(site), getPasswd(site));
 
-            long currentDateTime = this.get400CurrentDate();
+            long currentDateTime = Long.parseLong(new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()));
             String sQuery = "insert into EMLIB.EAUTOLBLVP values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
             m_pstmt = conn.prepareStatement(sQuery);
             int i = 0;
