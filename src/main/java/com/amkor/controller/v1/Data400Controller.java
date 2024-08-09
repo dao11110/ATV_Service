@@ -378,9 +378,10 @@ public class Data400Controller {
         try {
             Class.forName(DRIVER);
             m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
-            query = "SELECT * FROM EMLIB.ANGSTP01 AS A "+
+            query = "SELECT A.FACTORY_ID,A.SITE_ID,A.CUSTOMER_NO,A.LOT_NO,A.LOT_DCC, A.AMKOR_ID, A.SUB_ID,A.EOH_QTY,A.OPERATION_NO,A.DEVICE,A.STATUS2,B.CHANGE_BADGE,C.LOG_REMARK FROM EMLIB.ANGSTP01 AS A "+
             " JOIN  EMLIB.EMESLP30 AS B ON A.FACTORY_ID = B.FACTORY_ID AND A.SITE_ID = B.SITE_ID AND A.AMKOR_ID = B.AMKOR_ID AND A.SUB_ID =B.SUB_ID AND A.OPERATION_NO = B.SEQUENCE_NO " +
-           " WHERE B.FACTORY_ID =80 AND B.SITE_ID =1 AND FR_PLANT = 'V1'  AND TRNX_MODE ='INVENTORY' AND LOG_REMARK='CHECKED' AND CHANGE_DATETIME BETWEEN " +dateStart+ " AND " +dateEnd ;
+           "LEFT JOIN  EMLIB.EMESLP30 AS C ON A.FACTORY_ID = C.FACTORY_ID AND A.SITE_ID = C.SITE_ID AND A.AMKOR_ID = C.AMKOR_ID AND A.SUB_ID =C.SUB_ID AND A.OPERATION_NO = C.SEQUENCE_NO AND C.TRNX_MODE = 'BOXID'"+
+           " WHERE B.FACTORY_ID =80 AND B.SITE_ID =1 AND FR_PLANT = 'V1'  AND B.TRNX_MODE ='INVENTORY' AND B.LOG_REMARK='CHECKED' AND B.CHANGE_DATETIME BETWEEN " +dateStart+ " AND " +dateEnd ;
 
 
 
@@ -401,6 +402,7 @@ public class Data400Controller {
                 lotInformationModel.setTargetDevice(m_rs.getString("DEVICE").trim());
                 lotInformationModel.setStatus2(m_rs.getString("STATUS2").trim());
                 lotInformationModel.setBadge(Integer.parseInt(m_rs.getString("CHANGE_BADGE").trim()));
+                lotInformationModel.setStripMark(m_rs.getString("LOG_REMARK").trim());
 
 
                 listData.add(lotInformationModel);
@@ -836,9 +838,10 @@ public class Data400Controller {
             row.createCell(5).setCellValue("OPR");
             row.createCell(6).setCellValue("EOH");
             row.createCell(7).setCellValue("TargetDevice");
-            row.createCell(8).setCellValue("CheckedUser");
+            row.createCell(8).setCellValue("FGS No");
+            row.createCell(9).setCellValue("CheckedUser");
 
-            for (int i = 0; i < 9; i++) {
+            for (int i = 0; i < 10; i++) {
                 row.getCell(i).setCellStyle(style);
                 sheet.autoSizeColumn(i);
             }
@@ -858,10 +861,11 @@ public class Data400Controller {
                 lotRow.createCell(5).setCellValue(lot.getOperationNo());
                 lotRow.createCell(6).setCellValue(lot.getEohQty());
                 lotRow.createCell(7).setCellValue(lot.getTargetDevice());
-                lotRow.createCell(8).setCellValue(lot.getBadge());
+                lotRow.createCell(8).setCellValue(lot.getStripMark());
+                lotRow.createCell(9).setCellValue(lot.getBadge());
 
 
-                for (int i = 0; i < 9; i++) {
+                for (int i = 0; i < 10; i++) {
                     lotRow.getCell(i).setCellStyle(style);
                     sheet.autoSizeColumn(i);
                 }
