@@ -381,7 +381,7 @@ public class Data400Controller {
             query = "SELECT A.FACTORY_ID,A.SITE_ID,A.CUSTOMER_NO,A.LOT_NO,A.LOT_DCC, A.AMKOR_ID, A.SUB_ID,A.EOH_QTY,A.OPERATION_NO,A.DEVICE,A.STATUS2,B.CHANGE_BADGE,C.LOG_REMARK FROM EMLIB.ANGSTP01 AS A "+
             " JOIN  EMLIB.EMESLP30 AS B ON A.FACTORY_ID = B.FACTORY_ID AND A.SITE_ID = B.SITE_ID AND A.AMKOR_ID = B.AMKOR_ID AND A.SUB_ID =B.SUB_ID AND A.OPERATION_NO = B.SEQUENCE_NO " +
            "LEFT JOIN  EMLIB.EMESLP30 AS C ON A.FACTORY_ID = C.FACTORY_ID AND A.SITE_ID = C.SITE_ID AND A.AMKOR_ID = C.AMKOR_ID AND A.SUB_ID =C.SUB_ID AND A.OPERATION_NO = C.SEQUENCE_NO AND C.TRNX_MODE = 'BOXID'"+
-           " WHERE B.FACTORY_ID =80 AND B.SITE_ID =1 AND FR_PLANT = 'V1'  AND B.TRNX_MODE ='INVENTORY' AND B.LOG_REMARK='CHECKED' AND B.CHANGE_DATETIME BETWEEN " +dateStart+ " AND " +dateEnd ;
+           " WHERE B.FACTORY_ID =80 AND B.SITE_ID =1 AND FR_PLANT = 'V1'  AND B.TRNX_MODE ='INVENTORY' AND B.LOG_REMARK='CHECKED' AND B.CHANGE_DATETIME BETWEEN " +dateStart+ " AND " +dateEnd +"  ORDER BY A.CUSTOMER_NO " ;
 
 
 
@@ -824,21 +824,22 @@ public class Data400Controller {
             style.setTopBorderColor(IndexedColors.BLACK.getIndex());
 //            style.setWrapText(true);
             style.setVerticalAlignment(VerticalAlignment.CENTER);
-            if (lotList.size() > 1) {
-                sheet.addMergedRegion(new CellRangeAddress(3, lotList.size() + 2, 0, 0));
-            }
+//            if (lotList.size() > 1) {
+//                sheet.addMergedRegion(new CellRangeAddress(3, lotList.size() + 2, 0, 0));
+//            }
 
 
             Row row = sheet.createRow(2);
-            row.createCell(0).setCellValue("CheckedDate");
-            row.createCell(1).setCellValue("No");
+
+            row.createCell(0).setCellValue("No");
+            row.createCell(1).setCellValue("FGS");
             row.createCell(2).setCellValue("Cust");
             row.createCell(3).setCellValue("Lot#");
             row.createCell(4).setCellValue("DCC");
             row.createCell(5).setCellValue("OPR");
             row.createCell(6).setCellValue("EOH");
             row.createCell(7).setCellValue("TargetDevice");
-            row.createCell(8).setCellValue("FGS No");
+            row.createCell(8).setCellValue("Status");
             row.createCell(9).setCellValue("CheckedUser");
 
             for (int i = 0; i < 10; i++) {
@@ -853,15 +854,16 @@ public class Data400Controller {
 
                 Row lotRow = sheet.createRow(rowCount);
 
-                lotRow.createCell(0).setCellValue(currentDate());
-                lotRow.createCell(1).setCellValue(rowCount - 2);
+
+                lotRow.createCell(0).setCellValue(rowCount - 2);
+                lotRow.createCell(1).setCellValue(lot.getStripMark());
                 lotRow.createCell(2).setCellValue(lot.getCustCode());
                 lotRow.createCell(3).setCellValue(lot.getWipLot());
                 lotRow.createCell(4).setCellValue(lot.getWipDcc());
                 lotRow.createCell(5).setCellValue(lot.getOperationNo());
                 lotRow.createCell(6).setCellValue(lot.getEohQty());
                 lotRow.createCell(7).setCellValue(lot.getTargetDevice());
-                lotRow.createCell(8).setCellValue(lot.getStripMark());
+                lotRow.createCell(8).setCellValue(lot.getStatus2());
                 lotRow.createCell(9).setCellValue(lot.getBadge());
 
 
