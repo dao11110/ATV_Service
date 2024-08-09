@@ -1,5 +1,6 @@
 package com.amkor.controller.v1;
 
+import com.amkor.common.utils.SharedConstValue;
 import com.amkor.models.*;
 import com.amkor.service.ATVThanhService;
 import lombok.extern.slf4j.Slf4j;
@@ -290,6 +291,7 @@ public class Data400ThanhController {
             }
             result.put("msg", msg.toString());
             conn.close();
+            m_pstmt.close();
 
         } catch (Exception ex) {
             result.put("msg", ex.getMessage());
@@ -347,9 +349,13 @@ public class Data400ThanhController {
             this.addApiLogging(logging, site);
             result.put("msg", msg);
 
+            m_pstmt.close();
+            conn.close();
+
         } catch (Exception ex) {
             result.put("msg", ex.getMessage());
         }
+
         return result;
     }
 
@@ -385,21 +391,28 @@ public class Data400ThanhController {
         m_pstmt.setInt(i,model.getCiacbg());
 
         m_pstmt.executeUpdate();
+
+        m_pstmt.close();
+        conn.close();
     }
 
     @RequestMapping(method = RequestMethod.GET, value = "/temptemptemp")
     public void alertFGExceed30Days() {
         try {
             log.info("start sending email to alert fg...");
-            List<String> listFG = thanhService.getAlertForFGNotScheduledFor30Days("80", "V1");
+            List<AlertForFGModel> listFG = thanhService.getAlertForFGNotScheduledFor30Days(SharedConstValue.FACTORY_ID, SharedConstValue.PLANT);
             if (listFG != null && !listFG.isEmpty()) {
                 StringBuilder contentBuilder = new StringBuilder();
                 String title = "ATV_FGs not scheduled for more than 30 days";
                 List<String> toPeople = Arrays.asList("Thanh.Truongcong@amkor.com");
-                contentBuilder.append("<h1>List of FGs below have not been scheduled for more than 30 days. Please review it!</h1>");
-                for (String fg: listFG) {
-                    contentBuilder.append("<p> + ").append(fg).append("</p>");
+                contentBuilder.append("<h2>List of FGs below have not been scheduled for more than 30 days. Please review it!</h2>");
+                contentBuilder.append("<table style='border: 1px solid black'>");
+                contentBuilder.append("<tr style='border: 1px solid black'><th style='border: 1px solid black'>FG</th><th style='border: 1px solid black'>PV</th></tr>");
+                for (AlertForFGModel alert: listFG) {
+                    String rowContent = String.format("<tr style='border: 1px solid black'><td style='border: 1px solid black'>%s</td><td style='border: 1px solid black'>%s</td></tr>", alert.getFgCode(), alert.getPv());
+                    contentBuilder.append(rowContent);
                 }
+                contentBuilder.append("</table>");
 
                 thanhService.sendMailProcess(title, contentBuilder.toString(), toPeople, new ArrayList<>(), new ArrayList<>());
             }

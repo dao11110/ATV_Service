@@ -1,5 +1,6 @@
 package com.amkor.service;
 
+import com.amkor.models.AlertForFGModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -238,7 +239,7 @@ public class ATVThanhService {
         return Long.parseLong(strDate);
     }
 
-     public long getDate(Date d) {
+    public long getDate(Date d) {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
         String strDate = sdf.format(d);
         return Long.parseLong(strDate);
@@ -250,6 +251,7 @@ public class ATVThanhService {
         String strDate = sdf.format(now);
         return Long.parseLong(strDate);
     }
+
     public long getDateTime(Date d) {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
         String strDate = sdf.format(d);
@@ -262,35 +264,40 @@ public class ATVThanhService {
         return result;
     }
 
-    public List<String> getAlertForFGNotScheduledFor30Days(String factoryId, String plant) {
+    public List<AlertForFGModel> getAlertForFGNotScheduledFor30Days(int factoryId, String plant) {
         Connection m_conn;
         PreparedStatement m_psmt;
         ResultSet m_rs;
-        List<String> result = null;
-        HashSet<String> setString = new HashSet<>();
+        List<AlertForFGModel> result = new ArrayList<>();
         try {
-            long today = this.getDate();
-            Date dateThreeMonthsAgo = Date.from(Instant.now().minus(Duration.ofDays(90)));
-            long threeMonthsAgo = this.getDate(dateThreeMonthsAgo);
-            long dateTimeThreeMonthsAgo = this.getDateTime(dateThreeMonthsAgo);
-            String sQuery = "SELECT DISTINCT XMTLNO " +
+            long lToday = this.getDate();
+            Date releasedDate = Date.from(Instant.now().minus(Duration.ofDays(90)));  // released date 3 months ago
+            long lReleasedDate = this.getDate(releasedDate);
+            Date scheduledDate = Date.from(Instant.now().minus(Duration.ofDays(30)));  // scheduled date 1 month ago
+            long lScheduledDate = this.getDateTime(scheduledDate);
+            String sQuery = "SELECT DISTINCT XMTLNO, XPV " +
                     "FROM EMLIB.ASCHMP03 " +
                     "JOIN EMLIB.EMESTP02 ON SSFCID = CVFCID AND SSASID = CVASID AND CVAMKR = SSWAMK AND SSSUB# = CVSUB# " +
                     "JOIN EMLIB.XREFPOP ON SSFCID = XFCID AND SSASID =XASID AND SSWAMK =XAMKID AND SSSUB# = XSUBID " +
                     "JOIN EPLIB.EPXPINP ON XMTLNO = MTLNO " +
                     "WHERE SSFCID = " + factoryId + " AND XPLNT = '" + plant + "' " +
-                    "AND XMTLNO in (SELECT DISTINCT IMTLNO FROM EMLIB.INPOP i WHERE i.IRLSDT >= " + threeMonthsAgo + " AND i.IRLSDT <= " + today + " AND i.IF_STATUS = 'DON') " +
+                    "AND XMTLNO in (SELECT DISTINCT IMTLNO FROM EMLIB.INPOP i WHERE i.IRLSDT >= " + lReleasedDate + " AND i.IRLSDT <= " + lToday + " AND i.IF_STATUS = 'DON') " +
                     "AND SSLTCD = '' " +
                     "AND CVMDUL='SCHEDULE' AND CVFLDN = 'NPIFLAG' AND CVFLDV = '' AND CVOPR# = 0 " +
-                    "AND (SSSCHD <= " + dateTimeThreeMonthsAgo + " or SSWIDT <= " + dateTimeThreeMonthsAgo + ")";
+                    "AND ((BIZTYP = 'A' AND SSSCHD < " + lScheduledDate + ") OR (BIZTYP = 'T' AND SSWIDT < " + lScheduledDate + ")) ";
             Class.forName(DRIVER);
             m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
             m_psmt = m_conn.prepareStatement(sQuery);
             m_rs = m_psmt.executeQuery();
             while (m_rs.next()) {
-                setString.add(m_rs.getString("XMTLNO").trim());
+                AlertForFGModel alert = new AlertForFGModel();
+                alert.setFgCode(m_rs.getString("XMTLNO").trim());
+                alert.setPv(m_rs.getString("XPV").trim());
+                result.add(alert);
             }
-            result = new ArrayList<>(setString);
+            m_rs.close();
+            m_psmt.close();
+            m_conn.close();
 
         } catch (Exception ex) {
             log.error(ex.getMessage());
