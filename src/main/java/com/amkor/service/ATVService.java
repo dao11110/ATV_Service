@@ -39,7 +39,10 @@ public class ATVService {
                 listTo.add("V1BANK@amkor.com");
                 listTo.add("V1EFT0064@amkor.com");
                 listTo.add("V1EFT0066@amkor.com");
-            }else {
+            }else if (title.equals("NG Store Inventory Daily")){
+//                listTo.add("V1NG@amkor.com");
+            }
+            else {
                 listTo.add("V1SHIP@amkor.com");
             }
 

@@ -361,6 +361,80 @@ public class Data400Controller {
 
         return result;
     }
+    @RequestMapping(method = RequestMethod.GET, value = "/sendMailNGInventory")
+    public String sendMailNGInventory() {
+        ArrayList<LotInformationModel> listData = new ArrayList<>();
+        LotInformationModel lotInformationModel = new LotInformationModel();
+        Connection m_conn = null;
+        PreparedStatement m_psmt = null;
+        CallableStatement m_cs = null;
+        ResultSet m_rs = null;
+        Long dateStart = Long.parseLong(currentDate()+"000000");
+         Long dateEnd = Long.parseLong(currentDate()+"235959");
+
+        String result = "Fail";
+        String query = "";
+
+        try {
+            Class.forName(DRIVER);
+            m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
+            query = "SELECT * FROM EMLIB.ANGSTP01 AS A "+
+            " JOIN  EMLIB.EMESLP30 AS B ON A.FACTORY_ID = B.FACTORY_ID AND A.SITE_ID = B.SITE_ID AND A.AMKOR_ID = B.AMKOR_ID AND A.SUB_ID =B.SUB_ID AND A.OPERATION_NO = B.SEQUENCE_NO " +
+           " WHERE B.FACTORY_ID =80 AND B.SITE_ID =1 AND FR_PLANT = 'V1'  AND TRNX_MODE ='INVENTORY' AND LOG_REMARK='CHECKED' AND CHANGE_DATETIME BETWEEN " +dateStart+ " AND " +dateEnd ;
+
+
+
+            m_psmt = m_conn.prepareStatement(query);
+
+            m_rs = m_psmt.executeQuery();
+            while (m_rs != null && m_rs.next()) {
+                lotInformationModel = new LotInformationModel();
+                lotInformationModel.setFactoryID(m_rs.getInt("FACTORY_ID"));
+                lotInformationModel.setSiteID(m_rs.getInt("SITE_ID"));
+                lotInformationModel.setCustCode(m_rs.getInt("CUSTOMER_NO"));
+                lotInformationModel.setWipLot(m_rs.getString("LOT_NO").trim());
+                lotInformationModel.setWipDcc(m_rs.getString("LOT_DCC").trim());
+                lotInformationModel.setWipAmkorID(m_rs.getInt("AMKOR_ID"));
+                lotInformationModel.setWipAmkorSubID(m_rs.getInt("SUB_ID"));
+                lotInformationModel.setEohQty(m_rs.getInt("EOH_QTY"));
+                lotInformationModel.setOperationNo(m_rs.getInt("OPERATION_NO"));
+                lotInformationModel.setTargetDevice(m_rs.getString("DEVICE").trim());
+                lotInformationModel.setStatus2(m_rs.getString("STATUS2").trim());
+                lotInformationModel.setBadge(Integer.parseInt(m_rs.getString("CHANGE_BADGE").trim()));
+
+
+                listData.add(lotInformationModel);
+
+
+            }
+
+
+
+            m_psmt.close();
+            m_rs.close();
+
+
+            m_conn.close();
+
+            if (listData.size() > 0) {
+                List<LotInformationModel> listLotByLocation = new ArrayList<>();
+
+                result = "Send Email Success";
+                String fileName = "C:\\Dao\\SendMail\\";
+
+                String fileNameString ="NGStoreInventory" + currentDate() + ".xls";
+                fileName = fileName + fileNameString;
+                createWorkbookNGStoreInventory(new File(fileName), listData, fileNameString);
+            } else {
+                result = "There is no data Shipment ";
+            }
+
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+
+        return result;
+    }
 
 
     @RequestMapping(method = RequestMethod.GET, value = "/sync/checkWindowTimeHold")
@@ -724,6 +798,94 @@ public class Data400Controller {
             throw new RuntimeException(e);
         }
     }
+    private void createWorkbookNGStoreInventory(File fileName, ArrayList<LotInformationModel> lotList, String fileNameString){
+        try {
+
+
+            if (fileName.exists()) {
+                fileName.delete();
+            }
+
+
+            FileOutputStream fos = new FileOutputStream(fileName);
+            Workbook workbook = new HSSFWorkbook();
+
+            Sheet sheet = workbook.createSheet("Shipping");
+            CellStyle style = workbook.createCellStyle();
+            style.setBorderBottom(BorderStyle.THIN);
+            style.setBottomBorderColor(IndexedColors.BLACK.getIndex());
+            style.setBorderLeft(BorderStyle.THIN);
+            style.setLeftBorderColor(IndexedColors.GREEN.getIndex());
+            style.setBorderRight(BorderStyle.THIN);
+            style.setRightBorderColor(IndexedColors.BLUE.getIndex());
+            style.setBorderTop(BorderStyle.MEDIUM);
+            style.setTopBorderColor(IndexedColors.BLACK.getIndex());
+//            style.setWrapText(true);
+            style.setVerticalAlignment(VerticalAlignment.CENTER);
+            if (lotList.size() > 1) {
+                sheet.addMergedRegion(new CellRangeAddress(3, lotList.size() + 2, 0, 0));
+            }
+
+
+            Row row = sheet.createRow(2);
+            row.createCell(0).setCellValue("CheckedDate");
+            row.createCell(1).setCellValue("No");
+            row.createCell(2).setCellValue("Cust");
+            row.createCell(3).setCellValue("Lot#");
+            row.createCell(4).setCellValue("DCC");
+            row.createCell(5).setCellValue("OPR");
+            row.createCell(6).setCellValue("EOH");
+            row.createCell(7).setCellValue("TargetDevice");
+            row.createCell(8).setCellValue("CheckedUser");
+
+            for (int i = 0; i < 9; i++) {
+                row.getCell(i).setCellStyle(style);
+                sheet.autoSizeColumn(i);
+            }
+
+            int rowCount = 3;
+
+
+            for (LotInformationModel lot : lotList) {
+
+                Row lotRow = sheet.createRow(rowCount);
+
+                lotRow.createCell(0).setCellValue(currentDate());
+                lotRow.createCell(1).setCellValue(rowCount - 2);
+                lotRow.createCell(2).setCellValue(lot.getCustCode());
+                lotRow.createCell(3).setCellValue(lot.getWipLot());
+                lotRow.createCell(4).setCellValue(lot.getWipDcc());
+                lotRow.createCell(5).setCellValue(lot.getOperationNo());
+                lotRow.createCell(6).setCellValue(lot.getEohQty());
+                lotRow.createCell(7).setCellValue(lot.getTargetDevice());
+                lotRow.createCell(8).setCellValue(lot.getBadge());
+
+
+                for (int i = 0; i < 9; i++) {
+                    lotRow.getCell(i).setCellStyle(style);
+                    sheet.autoSizeColumn(i);
+                }
+
+                rowCount++;
+            }
+
+
+
+            workbook.write(fos);
+            fos.flush();
+            fos.close();
+            atvService.sendMailDaily(fileName.getPath(), fileNameString, "NG Store Inventory Daily");
+
+
+
+        } catch (FileNotFoundException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 
     private String currentDate() {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
