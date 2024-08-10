@@ -283,8 +283,17 @@ public class ATVThanhService {
                     "WHERE SSFCID = " + factoryId + " AND XPLNT = '" + plant + "' " +
                     "AND XMTLNO in (SELECT DISTINCT IMTLNO FROM EMLIB.INPOP i WHERE i.IRLSDT >= " + lReleasedDate + " AND i.IRLSDT <= " + lToday + " AND i.IF_STATUS = 'DON') " +
                     "AND SSLTCD = '' " +
-                    "AND CVMDUL='SCHEDULE' AND CVFLDN = 'NPIFLAG' AND CVFLDV = '' AND CVOPR# = 0 " +
-                    "AND ((BIZTYP = 'A' AND SSSCHD < " + lScheduledDate + ") OR (BIZTYP = 'T' AND SSWIDT < " + lScheduledDate + ")) ";
+                    "AND CVMDUL='SCHEDULE' AND CVFLDN = 'NPIFLAG' AND CVFLDV = ''  " +
+                    "AND XMTLNO not in (SELECT DISTINCT XMTLNO " +
+                    "                   FROM EMLIB.ASCHMP03 " +
+                    "                   JOIN EMLIB.EMESTP02 ON SSFCID = CVFCID AND SSASID = CVASID AND CVAMKR = SSWAMK AND SSSUB# = CVSUB# " +
+                    "                   JOIN EMLIB.XREFPOP ON SSFCID = XFCID AND SSASID =XASID AND SSWAMK =XAMKID AND SSSUB# = XSUBID " +
+                    "                   JOIN EPLIB.EPXPINP ON XMTLNO = MTLNO " +
+                    "                   WHERE SSFCID = " + factoryId + " AND XPLNT = '" + plant + "' " +
+                    "                   AND XMTLNO in (SELECT DISTINCT IMTLNO FROM EMLIB.INPOP i WHERE i.IRLSDT >= " + lReleasedDate + " AND i.IRLSDT <= " + lToday + " AND i.IF_STATUS = 'DON') " +
+                    "                   AND SSLTCD = '' " +
+                    "                   AND CVMDUL='SCHEDULE' AND CVFLDN = 'NPIFLAG' AND CVFLDV = ''  " +
+                    "                   AND ((BIZTYP = 'A' AND SSSCHD > " + lScheduledDate + ") OR (BIZTYP = 'T' AND SSWIDT > " + lScheduledDate + ")))";
             Class.forName(DRIVER);
             m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
             m_psmt = m_conn.prepareStatement(sQuery);
