@@ -19,6 +19,9 @@ public class Data400ThanhController {
     @Autowired
     private ATVThanhService thanhService;
 
+    private static final String UPDATE_FAIL_MESSAGE = "FAILED TO UPDATE";
+    private static final String SUCCESS_MESSAGE = "SUCCESS";
+
     @RequestMapping(method = RequestMethod.POST, value = "/data400/{site}/custProductionInfoFgJson")
     @CrossOrigin(origins = "*")
     public HashMap<String, String> uploadCustProductionInfoFgJson(@PathVariable("site") String site,
@@ -60,7 +63,7 @@ public class Data400ThanhController {
                     msg = "Save failed !!";
                     break;
                 }
-                msg = "SUCCESS";
+                msg = SUCCESS_MESSAGE;
 
                 // logging
                 logging.setCifcid(Integer.parseInt(thanhService.getFactoryID(site)));
@@ -250,6 +253,24 @@ public class Data400ThanhController {
             m_pstmt = conn.prepareStatement(sQuery);
 
             for (ProcessNoteModel processNoteModel : model) {
+
+                if (thanhService.checkExistProcessNote(processNoteModel)) {
+                    int record = thanhService.updateProcessNote(processNoteModel);
+                    if (record == 0) {
+                        result.put("msg", UPDATE_FAIL_MESSAGE);
+                        return result;
+                    }
+                    // logging
+                    logging.setCifcid(processNoteModel.getFactoryId());
+                    logging.setCiasid(Integer.parseInt(thanhService.getSiteID(site)));
+                    logging.setCichdt(thanhService.getDateTime());
+                    logging.setCichbg(Integer.parseInt(processNoteModel.getUserBadge()));
+                    logging.setCiogvl("API_createProcessNote");
+                    logging.setCinwvl("Process Note update");
+                    logging.setCirsn("logForAPI");
+                    this.addApiLogging(logging, site);
+                    continue;
+                }
                 int i = 1;
                 m_pstmt.setInt(i++, processNoteModel.getFactoryId());
                 m_pstmt.setString(i++, processNoteModel.getClassify().trim());
@@ -287,7 +308,7 @@ public class Data400ThanhController {
                 }
             }
             if (msg.length() == 0) {
-                msg.append("SUCCESS");
+                msg.append(SUCCESS_MESSAGE);
             }
             result.put("msg", msg.toString());
             conn.close();
@@ -307,12 +328,34 @@ public class Data400ThanhController {
         PreparedStatement m_pstmt;
         String msg;
         int record;
+        long currentDateTime = thanhService.getDateTime();
         ApiLoggingModel logging = new ApiLoggingModel();
         try {
             Class.forName(thanhService.getDriver());
             Connection conn = DriverManager.getConnection(thanhService.getURL(site), thanhService.getUserID(site), thanhService.getPasswd(site));
 
-            long currentDateTime = thanhService.getDateTime();
+            if (thanhService.checkExistAutoLabel(model)) {
+                int rec = thanhService.updateAutoLabel(model);
+                if (rec == 0) {
+                    result.put("msg", UPDATE_FAIL_MESSAGE);
+                    return result;
+                }
+
+                // logging
+                logging.setCifcid(model.getFactoryId());
+                logging.setCiasid(model.getSiteId());
+                logging.setCichdt(currentDateTime);
+                logging.setCichbg(model.getUserBadge());
+                logging.setCiogvl("API_createAutoLabelMaintenance");
+                logging.setCinwvl("Auto Label Maintenance update");
+                logging.setCirsn("logForAPI");
+                this.addApiLogging(logging, site);
+                result.put("msg", SUCCESS_MESSAGE);
+
+                conn.close();
+                return result;
+            }
+
             String sQuery = "insert into EMLIB.EAUTOLBLVP values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
             m_pstmt = conn.prepareStatement(sQuery);
             int i = 0;
@@ -336,7 +379,7 @@ public class Data400ThanhController {
             if (record == 0) {
                 msg = "FAILED TO ADD";
             } else {
-                msg = "SUCCESS";
+                msg = SUCCESS_MESSAGE;
             }
             // logging
             logging.setCifcid(model.getFactoryId());
@@ -404,7 +447,8 @@ public class Data400ThanhController {
             if (listFG != null && !listFG.isEmpty()) {
                 StringBuilder contentBuilder = new StringBuilder();
                 String title = "ATV_FGs not scheduled for more than 30 days";
-                List<String> toPeople = Arrays.asList("Thanh.Truongcong@amkor.com");
+                List<String> toPeople = Arrays.asList();
+                List<String> ccPeople = Arrays.asList("Thanh.Truongcong@amkor.com");
                 contentBuilder.append("<h2>List of FGs below have not been scheduled for more than 30 days. Please review it!</h2>");
                 contentBuilder.append("<table style='border: 1px solid black'>");
                 contentBuilder.append("<tr style='border: 1px solid black'><th style='border: 1px solid black'>FG</th><th style='border: 1px solid black'>PV</th></tr>");
@@ -414,7 +458,7 @@ public class Data400ThanhController {
                 }
                 contentBuilder.append("</table>");
 
-                thanhService.sendMailProcess(title, contentBuilder.toString(), toPeople, new ArrayList<>(), new ArrayList<>());
+                thanhService.sendMailProcess(title, contentBuilder.toString(), toPeople, ccPeople, new ArrayList<>());
             }
             log.info("end sending email to alert fg...");
         } catch (Exception ex) {

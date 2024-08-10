@@ -1,6 +1,8 @@
 package com.amkor.service;
 
 import com.amkor.models.AlertForFGModel;
+import com.amkor.models.AutoLabelModel;
+import com.amkor.models.ProcessNoteModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -264,6 +266,127 @@ public class ATVThanhService {
         return result;
     }
 
+    public boolean checkExistProcessNote(ProcessNoteModel model) throws Exception {
+        boolean result = false;
+        Connection m_conn;
+        PreparedStatement m_psmt;
+        ResultSet m_rs;
+        String sQuery = "select * from EPLIB.EPENOTP where ENFCID = ? AND ENCLAS = ? AND ENCUST = ? AND ENPKGE = ? " +
+                "AND ENDMSN = ? AND ENLEAD = ? AND ENDEVC = ? AND ENOPID = ? AND ENOPER = ? AND ENSEQ# = ?";
+        Class.forName(DRIVER);
+        m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
+        m_psmt = m_conn.prepareStatement(sQuery);
+        int i = 1;
+        m_psmt.setInt(i++, model.getFactoryId());
+        m_psmt.setString(i++, model.getClassify());
+        m_psmt.setInt(i++, model.getCustomerId());
+        m_psmt.setString(i++, model.getPkg());
+        m_psmt.setString(i++, model.getDim());
+        m_psmt.setString(i++, model.getLead());
+        m_psmt.setString(i++, model.getTargetDevice());
+        m_psmt.setString(i++, model.getOptionId());
+        m_psmt.setInt(i++, model.getOperation());
+        m_psmt.setInt(i++, model.getSeq());
+        m_rs = m_psmt.executeQuery();
+        while (m_rs.next()) {
+            result = true;
+            break;
+        }
+        return result;
+    }
+
+    public int updateProcessNote(ProcessNoteModel model) throws Exception {
+        int result;
+        Connection m_conn;
+        PreparedStatement m_psmt;
+        long currentDateTime = this.get400CurrentDate();
+        String sQuery = "update EPLIB.EPENOTP set ENNOTE = ?, ENMNDT = ?, ENTUSR = ? where ENFCID = ? AND ENCLAS = ? AND ENCUST = ? AND ENPKGE = ? " +
+                "AND ENDMSN = ? AND ENLEAD = ? AND ENDEVC = ? AND ENOPID = ? AND ENOPER = ? AND ENSEQ# = ?";
+        Class.forName(DRIVER);
+        m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
+        m_psmt = m_conn.prepareStatement(sQuery);
+        int i = 1;
+        m_psmt.setString(i++, model.getEngNote());
+        m_psmt.setLong(i++, currentDateTime);
+        m_psmt.setString(i++, model.getUserBadge());
+        m_psmt.setInt(i++, model.getFactoryId());
+        m_psmt.setString(i++, model.getClassify());
+        m_psmt.setInt(i++, model.getCustomerId());
+        m_psmt.setString(i++, model.getPkg());
+        m_psmt.setString(i++, model.getDim());
+        m_psmt.setString(i++, model.getLead());
+        m_psmt.setString(i++, model.getTargetDevice());
+        m_psmt.setString(i++, model.getOptionId());
+        m_psmt.setInt(i++, model.getOperation());
+        m_psmt.setInt(i, model.getSeq());
+        result = m_psmt.executeUpdate();
+        return result;
+    }
+
+    public boolean checkExistAutoLabel(AutoLabelModel model) throws Exception {
+        boolean result = false;
+        Connection m_conn;
+        PreparedStatement m_psmt;
+        ResultSet m_rs;
+        String sQuery = "select * from EMLIB.EAUTOLBLVP where FACTORY_ID = ? AND SITE_ID = ? AND BUSINESS_TYPE = ? " +
+                "AND CUSTOMER = ? AND PACKAGE = ? AND DIMENSION = ? AND LEAD = ? AND TARGET_DEVICE = ? " +
+                "AND KEY_FIELD1 = ? AND KEY_FIELD2 = ? AND FIELD_NAME = ?";
+        Class.forName(DRIVER);
+        m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
+        m_psmt = m_conn.prepareStatement(sQuery);
+        int i = 1;
+        m_psmt.setInt(i++, model.getFactoryId());
+        m_psmt.setInt(i++, model.getSiteId());
+        m_psmt.setString(i++, model.getBusinessType());
+        m_psmt.setInt(i++, model.getCustomerId());
+        m_psmt.setString(i++, model.getPkg());
+        m_psmt.setString(i++, model.getDim());
+        m_psmt.setString(i++, model.getLead());
+        m_psmt.setString(i++, model.getTargetDevice());
+        m_psmt.setString(i++, model.getKeyField1());
+        m_psmt.setString(i++, model.getKeyField2());
+        m_psmt.setString(i++, model.getFieldName());
+        m_rs = m_psmt.executeQuery();
+        while (m_rs.next()) {
+            result = true;
+            break;
+        }
+        return result;
+    }
+
+    public int updateAutoLabel(AutoLabelModel model) throws Exception {
+        int result;
+        if (!model.getFieldName().trim().equalsIgnoreCase("lblq") && !model.getFieldName().trim().equalsIgnoreCase("unitq")) {
+            return 0;
+        }
+        Connection m_conn;
+        PreparedStatement m_psmt;
+        long currentDateTime = this.getDateTime();
+        String sQuery = "update EMLIB.EAUTOLBLVP set FIELD_VALUE = ?, CHANGE_TIMESTAMO = ?, CHANGE_USER = ? where FACTORY_ID = ? AND SITE_ID = ? AND BUSINESS_TYPE = ? " +
+                "AND CUSTOMER = ? AND PACKAGE = ? AND DIMENSION = ? AND LEAD = ? AND TARGET_DEVICE = ? " +
+                "AND KEY_FIELD1 = ? AND KEY_FIELD2 = ? AND FIELD_NAME = ?";
+        Class.forName(DRIVER);
+        m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
+        m_psmt = m_conn.prepareStatement(sQuery);
+        int i = 1;
+        m_psmt.setString(i++, model.getFieldValue());
+        m_psmt.setLong(i++, currentDateTime);
+        m_psmt.setInt(i++, model.getUserBadge());
+        m_psmt.setInt(i++, model.getFactoryId());
+        m_psmt.setInt(i++, model.getSiteId());
+        m_psmt.setString(i++, model.getBusinessType());
+        m_psmt.setInt(i++, model.getCustomerId());
+        m_psmt.setString(i++, model.getPkg());
+        m_psmt.setString(i++, model.getDim());
+        m_psmt.setString(i++, model.getLead());
+        m_psmt.setString(i++, model.getTargetDevice());
+        m_psmt.setString(i++, model.getKeyField1());
+        m_psmt.setString(i++, model.getKeyField2());
+        m_psmt.setString(i++, model.getFieldName());
+        result = m_psmt.executeUpdate();
+        return result;
+    }
+
     public List<AlertForFGModel> getAlertForFGNotScheduledFor30Days(int factoryId, String plant) {
         Connection m_conn;
         PreparedStatement m_psmt;
@@ -277,14 +400,21 @@ public class ATVThanhService {
             long lScheduledDate = this.getDateTime(scheduledDate);
             String sQuery = "SELECT DISTINCT XMTLNO, XPV " +
                     "FROM EMLIB.ASCHMP03 " +
-                    "JOIN EMLIB.EMESTP02 ON SSFCID = CVFCID AND SSASID = CVASID AND CVAMKR = SSWAMK AND SSSUB# = CVSUB# " +
-                    "JOIN EMLIB.XREFPOP ON SSFCID = XFCID AND SSASID =XASID AND SSWAMK =XAMKID AND SSSUB# = XSUBID " +
-                    "JOIN EPLIB.EPXPINP ON XMTLNO = MTLNO " +
+                    "JOIN EMLIB.EMESTP02 ON SSFCID = CVFCID AND SSASID = CVASID AND CVAMKR = SSWAMK AND SSSUB# = CVSUB# AND CVBZTP = SSBZTP " +
+                    "JOIN EMLIB.XREFPOP ON SSFCID = XFCID AND SSASID =XASID AND SSWAMK =XAMKID AND SSSUB# = XSUBID AND XBZTYP = SSBZTP " +
                     "WHERE SSFCID = " + factoryId + " AND XPLNT = '" + plant + "' " +
                     "AND XMTLNO in (SELECT DISTINCT IMTLNO FROM EMLIB.INPOP i WHERE i.IRLSDT >= " + lReleasedDate + " AND i.IRLSDT <= " + lToday + " AND i.IF_STATUS = 'DON') " +
                     "AND SSLTCD = '' " +
-                    "AND CVMDUL='SCHEDULE' AND CVFLDN = 'NPIFLAG' AND CVFLDV = '' AND CVOPR# = 0 " +
-                    "AND ((BIZTYP = 'A' AND SSSCHD < " + lScheduledDate + ") OR (BIZTYP = 'T' AND SSWIDT < " + lScheduledDate + ")) ";
+                    "AND CVMDUL='SCHEDULE' AND (CVFLDN = 'NPIFLAG' OR CVFLDN = 'TNPIFLAG') AND CVFLDV = ''  " +
+                    "AND XMTLNO not in (SELECT DISTINCT XMTLNO " +
+                    "                   FROM EMLIB.ASCHMP03 " +
+                    "                   JOIN EMLIB.EMESTP02 ON SSFCID = CVFCID AND SSASID = CVASID AND CVAMKR = SSWAMK AND SSSUB# = CVSUB# AND CVBZTP = SSBZTP" +
+                    "                   JOIN EMLIB.XREFPOP ON SSFCID = XFCID AND SSASID =XASID AND SSWAMK =XAMKID AND SSSUB# = XSUBID AND XBZTYP = SSBZTP " +
+                    "                   WHERE SSFCID = " + factoryId + " AND XPLNT = '" + plant + "' " +
+                    "                   AND XMTLNO in (SELECT DISTINCT IMTLNO FROM EMLIB.INPOP i WHERE i.IRLSDT >= " + lReleasedDate + " AND i.IRLSDT <= " + lToday + " AND i.IF_STATUS = 'DON') " +
+                    "                   AND SSLTCD = '' " +
+                    "                   AND CVMDUL='SCHEDULE' AND (CVFLDN = 'NPIFLAG' OR CVFLDN = 'TNPIFLAG') AND CVFLDV = ''  " +
+                    "                   AND ((SSBZTP = 'A' AND SSSCHD > " + lScheduledDate + ") OR (SSBZTP = 'T' AND SSWIDT > " + lScheduledDate + ")))";
             Class.forName(DRIVER);
             m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
             m_psmt = m_conn.prepareStatement(sQuery);
