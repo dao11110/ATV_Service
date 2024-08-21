@@ -936,6 +936,10 @@ public class Data400Controller {
                         lotInformationModel.setTraceCode(sValue);
                     }
                 }
+
+                m_rs.close();
+                m_pstmt.close();
+                m_conn.close();
             }catch (Exception e)
             {
                 System.out.println(e.getMessage());
