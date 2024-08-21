@@ -292,6 +292,10 @@ public class ATVThanhService {
             result = true;
             break;
         }
+
+        m_rs.close();
+        m_psmt.close();
+        m_conn.close();
         return result;
     }
 
@@ -320,6 +324,9 @@ public class ATVThanhService {
         m_psmt.setInt(i++, model.getOperation());
         m_psmt.setInt(i, model.getSeq());
         result = m_psmt.executeUpdate();
+
+        m_psmt.close();
+        m_conn.close();
         return result;
     }
 
@@ -351,6 +358,10 @@ public class ATVThanhService {
             result = true;
             break;
         }
+
+        m_conn.close();
+        m_psmt.close();
+        m_rs.close();
         return result;
     }
 
@@ -384,6 +395,9 @@ public class ATVThanhService {
         m_psmt.setString(i++, model.getKeyField2());
         m_psmt.setString(i++, model.getFieldName());
         result = m_psmt.executeUpdate();
+
+        m_conn.close();
+        m_psmt.close();
         return result;
     }
 

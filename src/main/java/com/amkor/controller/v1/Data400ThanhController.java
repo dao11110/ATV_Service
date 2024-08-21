@@ -127,6 +127,9 @@ public class Data400ThanhController {
                         flowCode = m_rs.getString("CCVALU").trim();
                     }
                 }
+
+                m_rs.close();
+                m_pstmt.close();
             }
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -161,6 +164,9 @@ public class Data400ThanhController {
             if (m_rs.next()) {
                 if_timeext = m_rs.getString("if_timeext");
             }
+
+            m_rs.close();
+            m_pstmt.close();
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -226,6 +232,9 @@ public class Data400ThanhController {
                 m_pstmt.setString(i++, user.trim());
 
                 nRec = m_pstmt.executeUpdate();
+
+                m_pstmt.close();
+                m_rs.close();
             }
 
         } catch (Exception e) {
