@@ -266,138 +266,159 @@ public class ATVThanhService {
         return result;
     }
 
-    public boolean checkExistProcessNote(ProcessNoteModel model) throws Exception {
+    public boolean checkExistProcessNote(ProcessNoteModel model) {
+
         boolean result = false;
         Connection m_conn;
         PreparedStatement m_psmt;
         ResultSet m_rs;
-        String sQuery = "select * from EPLIB.EPENOTP where ENFCID = ? AND ENCLAS = ? AND ENCUST = ? AND ENPKGE = ? " +
-                "AND ENDMSN = ? AND ENLEAD = ? AND ENDEVC = ? AND ENOPID = ? AND ENOPER = ? AND ENSEQ# = ?";
-        Class.forName(DRIVER);
-        m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
-        m_psmt = m_conn.prepareStatement(sQuery);
-        int i = 1;
-        m_psmt.setInt(i++, model.getFactoryId());
-        m_psmt.setString(i++, model.getClassify());
-        m_psmt.setInt(i++, model.getCustomerId());
-        m_psmt.setString(i++, model.getPkg());
-        m_psmt.setString(i++, model.getDim());
-        m_psmt.setString(i++, model.getLead());
-        m_psmt.setString(i++, model.getTargetDevice());
-        m_psmt.setString(i++, model.getOptionId());
-        m_psmt.setInt(i++, model.getOperation());
-        m_psmt.setInt(i++, model.getSeq());
-        m_rs = m_psmt.executeQuery();
-        while (m_rs.next()) {
-            result = true;
-            break;
+        try {
+            String sQuery = "select * from EPLIB.EPENOTP where ENFCID = ? AND ENCLAS = ? AND ENCUST = ? AND ENPKGE = ? " +
+                    "AND ENDMSN = ? AND ENLEAD = ? AND ENDEVC = ? AND ENOPID = ? AND ENOPER = ? AND ENSEQ# = ?";
+            Class.forName(DRIVER);
+            m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
+            m_psmt = m_conn.prepareStatement(sQuery);
+            int i = 1;
+            m_psmt.setInt(i++, model.getFactoryId());
+            m_psmt.setString(i++, model.getClassify());
+            m_psmt.setInt(i++, model.getCustomerId());
+            m_psmt.setString(i++, model.getPkg());
+            m_psmt.setString(i++, model.getDim());
+            m_psmt.setString(i++, model.getLead());
+            m_psmt.setString(i++, model.getTargetDevice());
+            m_psmt.setString(i++, model.getOptionId());
+            m_psmt.setInt(i++, model.getOperation());
+            m_psmt.setInt(i, model.getSeq());
+            m_rs = m_psmt.executeQuery();
+            if (m_rs.next()) {
+                result = true;
+            }
+
+            m_rs.close();
+            m_psmt.close();
+            m_conn.close();
+        } catch (Exception ex) {
+            log.error(ex.getMessage(), ex);
         }
 
-        m_rs.close();
-        m_psmt.close();
-        m_conn.close();
         return result;
     }
 
-    public int updateProcessNote(ProcessNoteModel model) throws Exception {
-        int result;
+    public int updateProcessNote(ProcessNoteModel model) {
+        int result = 0;
         Connection m_conn;
         PreparedStatement m_psmt;
         long currentDateTime = this.get400CurrentDate();
-        String sQuery = "update EPLIB.EPENOTP set ENNOTE = ?, ENMNDT = ?, ENTUSR = ? where ENFCID = ? AND ENCLAS = ? AND ENCUST = ? AND ENPKGE = ? " +
-                "AND ENDMSN = ? AND ENLEAD = ? AND ENDEVC = ? AND ENOPID = ? AND ENOPER = ? AND ENSEQ# = ?";
-        Class.forName(DRIVER);
-        m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
-        m_psmt = m_conn.prepareStatement(sQuery);
-        int i = 1;
-        m_psmt.setString(i++, model.getEngNote());
-        m_psmt.setLong(i++, currentDateTime);
-        m_psmt.setString(i++, model.getUserBadge());
-        m_psmt.setInt(i++, model.getFactoryId());
-        m_psmt.setString(i++, model.getClassify());
-        m_psmt.setInt(i++, model.getCustomerId());
-        m_psmt.setString(i++, model.getPkg());
-        m_psmt.setString(i++, model.getDim());
-        m_psmt.setString(i++, model.getLead());
-        m_psmt.setString(i++, model.getTargetDevice());
-        m_psmt.setString(i++, model.getOptionId());
-        m_psmt.setInt(i++, model.getOperation());
-        m_psmt.setInt(i, model.getSeq());
-        result = m_psmt.executeUpdate();
+        try {
+            String sQuery = "update EPLIB.EPENOTP set ENNOTE = ?, ENMNDT = ?, ENTUSR = ? where ENFCID = ? AND ENCLAS = ? AND ENCUST = ? AND ENPKGE = ? " +
+                    "AND ENDMSN = ? AND ENLEAD = ? AND ENDEVC = ? AND ENOPID = ? AND ENOPER = ? AND ENSEQ# = ?";
+            Class.forName(DRIVER);
+            m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
+            m_psmt = m_conn.prepareStatement(sQuery);
+            int i = 1;
+            m_psmt.setString(i++, model.getEngNote());
+            m_psmt.setLong(i++, currentDateTime);
+            m_psmt.setString(i++, model.getUserBadge());
+            m_psmt.setInt(i++, model.getFactoryId());
+            m_psmt.setString(i++, model.getClassify());
+            m_psmt.setInt(i++, model.getCustomerId());
+            m_psmt.setString(i++, model.getPkg());
+            m_psmt.setString(i++, model.getDim());
+            m_psmt.setString(i++, model.getLead());
+            m_psmt.setString(i++, model.getTargetDevice());
+            m_psmt.setString(i++, model.getOptionId());
+            m_psmt.setInt(i++, model.getOperation());
+            m_psmt.setInt(i, model.getSeq());
+            result = m_psmt.executeUpdate();
 
-        m_psmt.close();
-        m_conn.close();
+            m_psmt.close();
+            m_conn.close();
+        } catch (Exception ex) {
+            log.error(ex.getMessage(), ex);
+        }
+
         return result;
     }
 
-    public boolean checkExistAutoLabel(AutoLabelModel model) throws Exception {
+    public boolean checkExistAutoLabel(AutoLabelModel model) {
         boolean result = false;
         Connection m_conn;
         PreparedStatement m_psmt;
         ResultSet m_rs;
-        String sQuery = "select * from EMLIB.EAUTOLBLVP where FACTORY_ID = ? AND SITE_ID = ? AND BUSINESS_TYPE = ? " +
-                "AND CUSTOMER = ? AND PACKAGE = ? AND DIMENSION = ? AND LEAD = ? AND TARGET_DEVICE = ? " +
-                "AND KEY_FIELD1 = ? AND KEY_FIELD2 = ? AND FIELD_NAME = ?";
-        Class.forName(DRIVER);
-        m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
-        m_psmt = m_conn.prepareStatement(sQuery);
-        int i = 1;
-        m_psmt.setInt(i++, model.getFactoryId());
-        m_psmt.setInt(i++, model.getSiteId());
-        m_psmt.setString(i++, model.getBusinessType());
-        m_psmt.setInt(i++, model.getCustomerId());
-        m_psmt.setString(i++, model.getPkg());
-        m_psmt.setString(i++, model.getDim());
-        m_psmt.setString(i++, model.getLead());
-        m_psmt.setString(i++, model.getTargetDevice());
-        m_psmt.setString(i++, model.getKeyField1());
-        m_psmt.setString(i++, model.getKeyField2());
-        m_psmt.setString(i++, model.getFieldName());
-        m_rs = m_psmt.executeQuery();
-        while (m_rs.next()) {
-            result = true;
-            break;
+        try {
+            String sQuery = "select * from EMLIB.EAUTOLBLVP where FACTORY_ID = ? AND SITE_ID = ? AND BUSINESS_TYPE = ? " +
+                    "AND CUSTOMER = ? AND PACKAGE = ? AND DIMENSION = ? AND LEAD = ? AND TARGET_DEVICE = ? " +
+                    "AND KEY_FIELD1 = ? AND KEY_FIELD2 = ? AND FIELD_NAME = ?";
+            Class.forName(DRIVER);
+            m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
+            m_psmt = m_conn.prepareStatement(sQuery);
+            int i = 1;
+            m_psmt.setInt(i++, model.getFactoryId());
+            m_psmt.setInt(i++, model.getSiteId());
+            m_psmt.setString(i++, model.getBusinessType());
+            m_psmt.setInt(i++, model.getCustomerId());
+            m_psmt.setString(i++, model.getPkg());
+            m_psmt.setString(i++, model.getDim());
+            m_psmt.setString(i++, model.getLead());
+            m_psmt.setString(i++, model.getTargetDevice());
+            m_psmt.setString(i++, model.getKeyField1());
+            m_psmt.setString(i++, model.getKeyField2());
+            m_psmt.setString(i++, model.getFieldName());
+            m_rs = m_psmt.executeQuery();
+            if (m_rs.next()) {
+                result = true;
+            }
+
+            m_conn.close();
+            m_psmt.close();
+            m_rs.close();
+
+        } catch (Exception ex) {
+            log.error(ex.getMessage(), ex);
         }
 
-        m_conn.close();
-        m_psmt.close();
-        m_rs.close();
+
         return result;
     }
 
-    public int updateAutoLabel(AutoLabelModel model) throws Exception {
-        int result;
+    public int updateAutoLabel(AutoLabelModel model) {
+        int result = 0;
         if (!model.getFieldName().trim().equalsIgnoreCase("lblq") && !model.getFieldName().trim().equalsIgnoreCase("unitq")) {
             return 0;
         }
         Connection m_conn;
         PreparedStatement m_psmt;
         long currentDateTime = this.getDateTime();
-        String sQuery = "update EMLIB.EAUTOLBLVP set FIELD_VALUE = ?, CHANGE_TIMESTAMO = ?, CHANGE_USER = ? where FACTORY_ID = ? AND SITE_ID = ? AND BUSINESS_TYPE = ? " +
-                "AND CUSTOMER = ? AND PACKAGE = ? AND DIMENSION = ? AND LEAD = ? AND TARGET_DEVICE = ? " +
-                "AND KEY_FIELD1 = ? AND KEY_FIELD2 = ? AND FIELD_NAME = ?";
-        Class.forName(DRIVER);
-        m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
-        m_psmt = m_conn.prepareStatement(sQuery);
-        int i = 1;
-        m_psmt.setString(i++, model.getFieldValue());
-        m_psmt.setLong(i++, currentDateTime);
-        m_psmt.setInt(i++, model.getUserBadge());
-        m_psmt.setInt(i++, model.getFactoryId());
-        m_psmt.setInt(i++, model.getSiteId());
-        m_psmt.setString(i++, model.getBusinessType());
-        m_psmt.setInt(i++, model.getCustomerId());
-        m_psmt.setString(i++, model.getPkg());
-        m_psmt.setString(i++, model.getDim());
-        m_psmt.setString(i++, model.getLead());
-        m_psmt.setString(i++, model.getTargetDevice());
-        m_psmt.setString(i++, model.getKeyField1());
-        m_psmt.setString(i++, model.getKeyField2());
-        m_psmt.setString(i++, model.getFieldName());
-        result = m_psmt.executeUpdate();
+        try {
+            String sQuery = "update EMLIB.EAUTOLBLVP set FIELD_VALUE = ?, CHANGE_TIMESTAMO = ?, CHANGE_USER = ? where FACTORY_ID = ? AND SITE_ID = ? AND BUSINESS_TYPE = ? " +
+                    "AND CUSTOMER = ? AND PACKAGE = ? AND DIMENSION = ? AND LEAD = ? AND TARGET_DEVICE = ? " +
+                    "AND KEY_FIELD1 = ? AND KEY_FIELD2 = ? AND FIELD_NAME = ?";
+            Class.forName(DRIVER);
+            m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
+            m_psmt = m_conn.prepareStatement(sQuery);
+            int i = 1;
+            m_psmt.setString(i++, model.getFieldValue());
+            m_psmt.setLong(i++, currentDateTime);
+            m_psmt.setInt(i++, model.getUserBadge());
+            m_psmt.setInt(i++, model.getFactoryId());
+            m_psmt.setInt(i++, model.getSiteId());
+            m_psmt.setString(i++, model.getBusinessType());
+            m_psmt.setInt(i++, model.getCustomerId());
+            m_psmt.setString(i++, model.getPkg());
+            m_psmt.setString(i++, model.getDim());
+            m_psmt.setString(i++, model.getLead());
+            m_psmt.setString(i++, model.getTargetDevice());
+            m_psmt.setString(i++, model.getKeyField1());
+            m_psmt.setString(i++, model.getKeyField2());
+            m_psmt.setString(i++, model.getFieldName());
+            result = m_psmt.executeUpdate();
 
-        m_conn.close();
-        m_psmt.close();
+            m_conn.close();
+            m_psmt.close();
+        } catch (Exception ex) {
+            log.error(ex.getMessage(), ex);
+        }
+
         return result;
     }
 
@@ -444,7 +465,7 @@ public class ATVThanhService {
             m_conn.close();
 
         } catch (Exception ex) {
-            log.error(ex.getMessage());
+            log.error(ex.getMessage(), ex);
         }
         return result;
     }
