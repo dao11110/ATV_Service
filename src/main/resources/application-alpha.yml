@@ -35,7 +35,7 @@ data.thumb: C:\Dao\paperless\res\thumb\
 # logging
 logging:
   level:
-    com.foxconn.fii: INFO
+    com.amkor: INFO
 #        org.hibernate.SQL: DEBUG
 #    org.springframework.jdbc.core.JdbcTemplate: DEBUG
 

@@ -2,15 +2,14 @@ package com.amkor.controller.v1;
 
 import com.amkor.common.utils.SharedConstValue;
 import com.amkor.models.*;
+import com.amkor.service.APILoggingService;
 import com.amkor.service.ATVThanhService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.sql.*;
-import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.Date;
 
 @Slf4j
 @RestController
@@ -18,6 +17,9 @@ public class Data400ThanhController {
 
     @Autowired
     private ATVThanhService thanhService;
+
+    @Autowired
+    private APILoggingService apiLoggingService;
 
     private static final String UPDATE_FAIL_MESSAGE = "FAILED TO UPDATE";
     private static final String SUCCESS_MESSAGE = "SUCCESS";
@@ -29,6 +31,8 @@ public class Data400ThanhController {
         HashMap<String, String> result = new HashMap<>();
         String msg = "";
         ApiLoggingModel logging = new ApiLoggingModel();
+        StringBuilder logContent = new StringBuilder("{");
+        long currentDateTime = this.thanhService.getDateTime();
         try {
             Map<String, Object> jFgChar = (Map<String, Object>) jsonObject.get("fg_char");
             Class.forName(thanhService.getDriver());
@@ -46,9 +50,11 @@ public class Data400ThanhController {
             Iterator<String> keys = jFgChar.keySet().iterator();
             String if_timeext = this.getMaxIf_Timeext(conn, cust, jFg, jPv);
             while (keys.hasNext()) {
+
                 charValue = new CustProductionInfoFgJsonModel();
                 String key = keys.next().trim();
                 String value = (String) jFgChar.get(key);
+                logContent.append(key).append("=").append(value).append(", ");
 
                 charValue.setFgName(key);
                 charValue.setNewValue(value.trim());
@@ -66,15 +72,23 @@ public class Data400ThanhController {
                 msg = SUCCESS_MESSAGE;
             }
 
+            logContent.append("}");
+
             // logging
             logging.setCifcid(Integer.parseInt(thanhService.getFactoryID(site)));
             logging.setCiasid(Integer.parseInt(thanhService.getSiteID(site)));
-            logging.setCichdt(thanhService.getDateTime());
+            logging.setCichdt(currentDateTime);
             logging.setCichbg(Integer.parseInt(user));
             logging.setCiogvl("API_custProductionInfoFgJson");
             logging.setCinwvl("FG CHAR Change");
             logging.setCirsn("logForAPI");
             this.addApiLogging(logging, site);
+            this.apiLoggingService.insertLog(new ATVNetAPILoggingModel(
+                    user,
+                    currentDateTime,
+                    logContent.toString(),
+                    "FG CHAR Change"
+            ));
 
             conn.close();
             stmt.close();
@@ -272,15 +286,6 @@ public class Data400ThanhController {
                         result.put("msg", UPDATE_FAIL_MESSAGE);
                         return result;
                     }
-                    // logging
-                    logging.setCifcid(processNoteModel.getFactoryId());
-                    logging.setCiasid(Integer.parseInt(thanhService.getSiteID(site)));
-                    logging.setCichdt(current++);
-                    logging.setCichbg(Integer.parseInt(processNoteModel.getUserBadge()));
-                    logging.setCiogvl("API_createProcessNote");
-                    logging.setCinwvl("Process Note update");
-                    logging.setCirsn("logForAPI");
-                    this.addApiLogging(logging, site);
 
                 } else {
                     int i = 1;
@@ -300,17 +305,23 @@ public class Data400ThanhController {
                     m_pstmt.setString(i, processNoteModel.getUserBadge());
 
                     m_pstmt.addBatch();
-
-                    // logging
-                    logging.setCifcid(processNoteModel.getFactoryId());
-                    logging.setCiasid(Integer.parseInt(thanhService.getSiteID(site)));
-                    logging.setCichdt(current++);
-                    logging.setCichbg(Integer.parseInt(processNoteModel.getUserBadge()));
-                    logging.setCiogvl("API_createProcessNote");
-                    logging.setCinwvl("Process Note create");
-                    logging.setCirsn("logForAPI");
-                    this.addApiLogging(logging, site);
                 }
+
+                // logging
+                logging.setCifcid(processNoteModel.getFactoryId());
+                logging.setCiasid(Integer.parseInt(thanhService.getSiteID(site)));
+                logging.setCichdt(current++);
+                logging.setCichbg(Integer.parseInt(processNoteModel.getUserBadge()));
+                logging.setCiogvl("API_createProcessNote");
+                logging.setCinwvl("Process Note create");
+                logging.setCirsn("logForAPI");
+                this.addApiLogging(logging, site);
+                this.apiLoggingService.insertLog(new ATVNetAPILoggingModel(
+                        String.valueOf(processNoteModel.getUserBadge()),
+                        currentDateTime,
+                        processNoteModel.toString(),
+                        "Process Note cre/upd"
+                ));
             }
 
             results = m_pstmt.executeBatch();
@@ -388,9 +399,15 @@ public class Data400ThanhController {
             logging.setCichdt(currentDateTime);
             logging.setCichbg(model.getUserBadge());
             logging.setCiogvl("API_createAutoLabelMaintenance");
-            logging.setCinwvl("Auto Label Maintenance create");
+            logging.setCinwvl("Auto Label create");
             logging.setCirsn("logForAPI");
             this.addApiLogging(logging, site);
+            this.apiLoggingService.insertLog(new ATVNetAPILoggingModel(
+                    String.valueOf(model.getUserBadge()),
+                    currentDateTime,
+                    model.toString(),
+                    "Auto Label Maintenance create"
+            ));
             result.put("msg", msg);
             conn.close();
         } catch (Exception ex) {

@@ -35,7 +35,7 @@ data.thumb: C:\Users\V0959579\Desktop\image\res\thumb\
 logging:
   level:
     #    root: DEBUG
-    com.foxconn.fii: DEBUG
+    com.amkor: DEBUG
     #    org.springframework.web: DEBUG
     org.hibernate.SQL: DEBUG
     #    org.hibernate: DEBUG
