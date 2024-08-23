@@ -262,6 +262,7 @@ public class Data400ThanhController {
 
             String sQuery = "insert into EPLIB.EPENOTP values (?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
             m_pstmt = conn.prepareStatement(sQuery);
+            long current = thanhService.getDateTime();
 
             for (ProcessNoteModel processNoteModel : model) {
 
@@ -274,7 +275,7 @@ public class Data400ThanhController {
                     // logging
                     logging.setCifcid(processNoteModel.getFactoryId());
                     logging.setCiasid(Integer.parseInt(thanhService.getSiteID(site)));
-                    logging.setCichdt(thanhService.getDateTime());
+                    logging.setCichdt(current++);
                     logging.setCichbg(Integer.parseInt(processNoteModel.getUserBadge()));
                     logging.setCiogvl("API_createProcessNote");
                     logging.setCinwvl("Process Note update");
@@ -303,7 +304,7 @@ public class Data400ThanhController {
                     // logging
                     logging.setCifcid(processNoteModel.getFactoryId());
                     logging.setCiasid(Integer.parseInt(thanhService.getSiteID(site)));
-                    logging.setCichdt(thanhService.getDateTime());
+                    logging.setCichdt(current++);
                     logging.setCichbg(Integer.parseInt(processNoteModel.getUserBadge()));
                     logging.setCiogvl("API_createProcessNote");
                     logging.setCinwvl("Process Note create");
@@ -351,16 +352,6 @@ public class Data400ThanhController {
                     result.put("msg", UPDATE_FAIL_MESSAGE);
                     return result;
                 }
-
-                // logging
-                logging.setCifcid(model.getFactoryId());
-                logging.setCiasid(model.getSiteId());
-                logging.setCichdt(currentDateTime);
-                logging.setCichbg(model.getUserBadge());
-                logging.setCiogvl("API_createAutoLabelMaintenance");
-                logging.setCinwvl("Auto Label Maintenance update");
-                logging.setCirsn("logForAPI");
-                this.addApiLogging(logging, site);
                 msg = SUCCESS_MESSAGE;
             } else {
                 String sQuery = "insert into EMLIB.EAUTOLBLVP values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
