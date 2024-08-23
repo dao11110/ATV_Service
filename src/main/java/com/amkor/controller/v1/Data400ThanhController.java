@@ -280,37 +280,37 @@ public class Data400ThanhController {
                     logging.setCinwvl("Process Note update");
                     logging.setCirsn("logForAPI");
                     this.addApiLogging(logging, site);
-                    continue;
+
+                } else {
+                    int i = 1;
+                    m_pstmt.setInt(i++, processNoteModel.getFactoryId());
+                    m_pstmt.setString(i++, processNoteModel.getClassify().trim());
+                    m_pstmt.setInt(i++, processNoteModel.getCustomerId());
+                    m_pstmt.setString(i++, processNoteModel.getPkg().trim());
+                    m_pstmt.setString(i++, processNoteModel.getDim().trim());
+                    m_pstmt.setString(i++, processNoteModel.getLead().trim());
+                    m_pstmt.setString(i++, processNoteModel.getTargetDevice().trim());
+                    m_pstmt.setString(i++, processNoteModel.getOptionId().trim());
+                    m_pstmt.setInt(i++, processNoteModel.getOperation());
+                    m_pstmt.setInt(i++, processNoteModel.getSeq());
+                    m_pstmt.setString(i++, processNoteModel.getEngNote());
+                    m_pstmt.setLong(i++, currentDateTime);
+                    m_pstmt.setLong(i++, 0);
+                    m_pstmt.setString(i, processNoteModel.getUserBadge());
+
+                    m_pstmt.addBatch();
+
+                    // logging
+                    logging.setCifcid(processNoteModel.getFactoryId());
+                    logging.setCiasid(Integer.parseInt(thanhService.getSiteID(site)));
+                    logging.setCichdt(thanhService.getDateTime());
+                    logging.setCichbg(Integer.parseInt(processNoteModel.getUserBadge()));
+                    logging.setCiogvl("API_createProcessNote");
+                    logging.setCinwvl("Process Note create");
+                    logging.setCirsn("logForAPI");
+                    this.addApiLogging(logging, site);
                 }
-                int i = 1;
-                m_pstmt.setInt(i++, processNoteModel.getFactoryId());
-                m_pstmt.setString(i++, processNoteModel.getClassify().trim());
-                m_pstmt.setInt(i++, processNoteModel.getCustomerId());
-                m_pstmt.setString(i++, processNoteModel.getPkg().trim());
-                m_pstmt.setString(i++, processNoteModel.getDim().trim());
-                m_pstmt.setString(i++, processNoteModel.getLead().trim());
-                m_pstmt.setString(i++, processNoteModel.getTargetDevice().trim());
-                m_pstmt.setString(i++, processNoteModel.getOptionId().trim());
-                m_pstmt.setInt(i++, processNoteModel.getOperation());
-                m_pstmt.setInt(i++, processNoteModel.getSeq());
-                m_pstmt.setString(i++, processNoteModel.getEngNote());
-                m_pstmt.setLong(i++, currentDateTime);
-                m_pstmt.setLong(i++, 0);
-                m_pstmt.setString(i, processNoteModel.getUserBadge());
-
-                m_pstmt.addBatch();
-
-                // logging
-                logging.setCifcid(processNoteModel.getFactoryId());
-                logging.setCiasid(Integer.parseInt(thanhService.getSiteID(site)));
-                logging.setCichdt(thanhService.getDateTime());
-                logging.setCichbg(Integer.parseInt(processNoteModel.getUserBadge()));
-                logging.setCiogvl("API_createProcessNote");
-                logging.setCinwvl("Process Note create");
-                logging.setCirsn("logForAPI");
-                this.addApiLogging(logging, site);
             }
-
 
             results = m_pstmt.executeBatch();
             for (int i = 0; i < results.length; i++) {
@@ -361,37 +361,36 @@ public class Data400ThanhController {
                 logging.setCinwvl("Auto Label Maintenance update");
                 logging.setCirsn("logForAPI");
                 this.addApiLogging(logging, site);
-                result.put("msg", SUCCESS_MESSAGE);
-
-                conn.close();
-                return result;
-            }
-
-            String sQuery = "insert into EMLIB.EAUTOLBLVP values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-            m_pstmt = conn.prepareStatement(sQuery);
-            int i = 0;
-            m_pstmt.setInt(++i, model.getFactoryId());
-			m_pstmt.setInt(++i,model.getSiteId());
-			m_pstmt.setString(++i,model.getBusinessType());
-			m_pstmt.setInt(++i,model.getCustomerId());
-			m_pstmt.setString(++i,model.getPkg());
-			m_pstmt.setString(++i,model.getDim());
-			m_pstmt.setString(++i,model.getLead());
-			m_pstmt.setString(++i,model.getTargetDevice());
-			m_pstmt.setString(++i,model.getKeyField1());
-			m_pstmt.setString(++i,model.getKeyField2());
-			m_pstmt.setString(++i,model.getFieldName());
-			m_pstmt.setString(++i,model.getFieldValue());
-			m_pstmt.setLong(++i,currentDateTime);
-			m_pstmt.setInt(++i,model.getUserBadge());
-			m_pstmt.setLong(++i,0);
-			m_pstmt.setInt(++i,0);
-            record = m_pstmt.executeUpdate();
-            if (record == 0) {
-                msg = "FAILED TO ADD";
-            } else {
                 msg = SUCCESS_MESSAGE;
+            } else {
+                String sQuery = "insert into EMLIB.EAUTOLBLVP values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                m_pstmt = conn.prepareStatement(sQuery);
+                int i = 0;
+                m_pstmt.setInt(++i, model.getFactoryId());
+                m_pstmt.setInt(++i, model.getSiteId());
+                m_pstmt.setString(++i, model.getBusinessType());
+                m_pstmt.setInt(++i, model.getCustomerId());
+                m_pstmt.setString(++i, model.getPkg());
+                m_pstmt.setString(++i, model.getDim());
+                m_pstmt.setString(++i, model.getLead());
+                m_pstmt.setString(++i, model.getTargetDevice());
+                m_pstmt.setString(++i, model.getKeyField1());
+                m_pstmt.setString(++i, model.getKeyField2());
+                m_pstmt.setString(++i, model.getFieldName());
+                m_pstmt.setString(++i, model.getFieldValue());
+                m_pstmt.setLong(++i, currentDateTime);
+                m_pstmt.setInt(++i, model.getUserBadge());
+                m_pstmt.setLong(++i, 0);
+                m_pstmt.setInt(++i, 0);
+                record = m_pstmt.executeUpdate();
+                if (record == 0) {
+                    msg = "FAILED TO ADD";
+                } else {
+                    msg = SUCCESS_MESSAGE;
+                }
+                m_pstmt.close();
             }
+
             // logging
             logging.setCifcid(model.getFactoryId());
             logging.setCiasid(model.getSiteId());
@@ -402,10 +401,7 @@ public class Data400ThanhController {
             logging.setCirsn("logForAPI");
             this.addApiLogging(logging, site);
             result.put("msg", msg);
-
-            m_pstmt.close();
             conn.close();
-
         } catch (Exception ex) {
             result.put("msg", ex.getMessage());
         }
@@ -420,29 +416,29 @@ public class Data400ThanhController {
 
         String sQuery = "insert into EMLIB.EMESLP04 values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         m_pstmt = conn.prepareStatement(sQuery);
-        int i=1;
+        int i = 1;
 
         m_pstmt.setInt(i++, model.getCifcid());
-        m_pstmt.setInt(i++,model.getCiasid());
-        m_pstmt.setString(i++,model.getCistn());
-        m_pstmt.setLong(i++,model.getCiamkr());
-        m_pstmt.setInt(i++,model.getCisub());
-        m_pstmt.setString(i++,model.getCibztp());
-        m_pstmt.setString(i++,model.getCists());
-        m_pstmt.setFloat(i++,model.getCiseq());
-        m_pstmt.setInt(i++,model.getCiopr());
-        m_pstmt.setString(i++,model.getCichfd());
-        m_pstmt.setString(i++,model.getCiogvl());
-        m_pstmt.setString(i++,model.getCinwvl());
-        m_pstmt.setString(i++,model.getCirsn());
-        m_pstmt.setInt(i++,model.getCichbg());
-        m_pstmt.setLong(i++,model.getCichdt());
-        m_pstmt.setLong(i++,model.getCirqdt());
-        m_pstmt.setString(i++,model.getCirqpg());
-        m_pstmt.setInt(i++,model.getCirqbg());
-        m_pstmt.setLong(i++,model.getCiacdt());
+        m_pstmt.setInt(i++, model.getCiasid());
+        m_pstmt.setString(i++, model.getCistn());
+        m_pstmt.setLong(i++, model.getCiamkr());
+        m_pstmt.setInt(i++, model.getCisub());
+        m_pstmt.setString(i++, model.getCibztp());
+        m_pstmt.setString(i++, model.getCists());
+        m_pstmt.setFloat(i++, model.getCiseq());
+        m_pstmt.setInt(i++, model.getCiopr());
+        m_pstmt.setString(i++, model.getCichfd());
+        m_pstmt.setString(i++, model.getCiogvl());
+        m_pstmt.setString(i++, model.getCinwvl());
+        m_pstmt.setString(i++, model.getCirsn());
+        m_pstmt.setInt(i++, model.getCichbg());
+        m_pstmt.setLong(i++, model.getCichdt());
+        m_pstmt.setLong(i++, model.getCirqdt());
+        m_pstmt.setString(i++, model.getCirqpg());
+        m_pstmt.setInt(i++, model.getCirqbg());
+        m_pstmt.setLong(i++, model.getCiacdt());
         m_pstmt.setString(i++, model.getCiacpg());
-        m_pstmt.setInt(i,model.getCiacbg());
+        m_pstmt.setInt(i, model.getCiacbg());
 
         m_pstmt.executeUpdate();
 
@@ -463,7 +459,7 @@ public class Data400ThanhController {
                 contentBuilder.append("<h2>List of FGs below have not been scheduled for more than 30 days. Please review it!</h2>");
                 contentBuilder.append("<table style='border: 1px solid black'>");
                 contentBuilder.append("<tr style='border: 1px solid black'><th style='border: 1px solid black'>FG</th><th style='border: 1px solid black'>PV</th></tr>");
-                for (AlertForFGModel alert: listFG) {
+                for (AlertForFGModel alert : listFG) {
                     String rowContent = String.format("<tr style='border: 1px solid black'><td style='border: 1px solid black'>%s</td><td style='border: 1px solid black'>%s</td></tr>", alert.getFgCode(), alert.getPv());
                     contentBuilder.append(rowContent);
                 }
