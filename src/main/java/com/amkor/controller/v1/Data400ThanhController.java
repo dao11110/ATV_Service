@@ -44,6 +44,7 @@ public class Data400ThanhController {
             CustProductionInfoFgJsonModel charValue = null;
 
             Iterator<String> keys = jFgChar.keySet().iterator();
+            String if_timeext = this.getMaxIf_Timeext(conn, cust, jFg, jPv);
             while (keys.hasNext()) {
                 charValue = new CustProductionInfoFgJsonModel();
                 String key = keys.next().trim();
@@ -56,7 +57,6 @@ public class Data400ThanhController {
                 String characterPrevalue = this.getCharacterFromFG(conn, jFg, jPv, plant, charValue.getFgName());
                 charValue.setPreValue(characterPrevalue);
 
-                String if_timeext = this.getMaxIf_Timeext(conn, cust, jFg, jPv);
                 int record = this.saveFGSpecific(conn, cust, plant, jFg, jPv, if_timeext,
                         charValue.getFgName(), charValue.getNewValue(), user);
                 if (record == 0) {
@@ -64,23 +64,24 @@ public class Data400ThanhController {
                     break;
                 }
                 msg = SUCCESS_MESSAGE;
-
-                // logging
-                logging.setCifcid(Integer.parseInt(thanhService.getFactoryID(site)));
-                logging.setCiasid(Integer.parseInt(thanhService.getSiteID(site)));
-                logging.setCichdt(thanhService.getDateTime());
-                logging.setCichbg(Integer.parseInt(user));
-                logging.setCiogvl("API_custProductionInfoFgJson");
-                logging.setCinwvl("FG CHAR Change");
-                logging.setCirsn("logForAPI");
-                this.addApiLogging(logging, site);
             }
+
+            // logging
+            logging.setCifcid(Integer.parseInt(thanhService.getFactoryID(site)));
+            logging.setCiasid(Integer.parseInt(thanhService.getSiteID(site)));
+            logging.setCichdt(thanhService.getDateTime());
+            logging.setCichbg(Integer.parseInt(user));
+            logging.setCiogvl("API_custProductionInfoFgJson");
+            logging.setCinwvl("FG CHAR Change");
+            logging.setCirsn("logForAPI");
+            this.addApiLogging(logging, site);
 
             conn.close();
             stmt.close();
 
         } catch (Exception ex) {
             result.put("msg", ex.getMessage());
+            return result;
         }
         result.put("msg", msg);
         return result;
@@ -199,7 +200,7 @@ public class Data400ThanhController {
             m_rs = m_pstmt.executeQuery();
 
             if (m_rs.next()) {
-                sQuery = "update eplib.fgmtlct set ccvalu=?, if_user=?, if_status=? where cplnt=? And cmtlno=? And cpv=? and if_timeext=? and ccname=?";
+                sQuery = "update eplib.fgmtlct set ccvalu=?, if_user=?, if_status=?, if_errdesc=? where cplnt=? And cmtlno=? And cpv=? and if_timeext=? and ccname=?";
                 m_pstmt = m_conn.prepareStatement(sQuery);
 
                 i = 1;
@@ -207,6 +208,7 @@ public class Data400ThanhController {
                 m_pstmt.setString(i++, sCcValue.trim());
                 m_pstmt.setString(i++, user.trim());
                 m_pstmt.setString(i++, "API");
+                m_pstmt.setString(i++, "MES_FGCHAR");
                 m_pstmt.setString(i++, sPlant.trim());
                 m_pstmt.setString(i++, sFg.trim());
                 m_pstmt.setString(i++, sPv.trim());
