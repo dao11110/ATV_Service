@@ -1,9 +1,9 @@
 package com.amkor.controller.v1;
 
-import com.amkor.common.utils.SharedConstValue;
 import com.amkor.models.*;
 import com.amkor.service.APILoggingService;
-import com.amkor.service.ATVThanhService;
+import com.amkor.service.iService.IATVService;
+import com.amkor.service.iService.IATVThanhService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -16,12 +16,16 @@ import java.util.*;
 public class Data400ThanhController {
 
     @Autowired
-    private ATVThanhService thanhService;
+    private IATVThanhService iatvThanhService;
+
+    @Autowired
+    private IATVService iatvService;
 
     @Autowired
     private APILoggingService apiLoggingService;
 
     private static final String UPDATE_FAIL_MESSAGE = "FAILED TO UPDATE";
+    private static final String CREATE_FAIL_MESSAGE = "FAILED TO CREATE";
     private static final String SUCCESS_MESSAGE = "SUCCESS";
 
     @RequestMapping(method = RequestMethod.POST, value = "/data400/{site}/custProductionInfoFgJson")
@@ -32,11 +36,11 @@ public class Data400ThanhController {
         String msg = "";
         ApiLoggingModel logging = new ApiLoggingModel();
         StringBuilder logContent = new StringBuilder("{");
-        long currentDateTime = this.thanhService.getDateTime();
+        long currentDateTime = this.iatvService.getDateTime();
         try {
             Map<String, Object> jFgChar = (Map<String, Object>) jsonObject.get("fg_char");
-            Class.forName(thanhService.getDriver());
-            Connection conn = DriverManager.getConnection(thanhService.getURL(site), thanhService.getUserID(site), thanhService.getPasswd(site));
+            Class.forName(iatvThanhService.getDriver());
+            Connection conn = DriverManager.getConnection(iatvThanhService.getURL(site), iatvThanhService.getUserID(site), iatvThanhService.getPasswd(site));
             Statement stmt = conn.createStatement();
 
             int cust = 78;
@@ -45,7 +49,7 @@ public class Data400ThanhController {
             String jFg = jFgChar.remove("FG").toString();
             String jPv = jFgChar.remove("PV").toString();
 
-            CustProductionInfoFgJsonModel charValue = null;
+            CustProductionInfoFgJsonModel charValue;
 
             Iterator<String> keys = jFgChar.keySet().iterator();
             String if_timeext = this.getMaxIf_Timeext(conn, cust, jFg, jPv);
@@ -75,14 +79,14 @@ public class Data400ThanhController {
             logContent.append("}");
 
             // logging
-            logging.setCifcid(Integer.parseInt(thanhService.getFactoryID(site)));
-            logging.setCiasid(Integer.parseInt(thanhService.getSiteID(site)));
+            logging.setCifcid(Integer.parseInt(iatvService.getFactoryID(site)));
+            logging.setCiasid(Integer.parseInt(iatvService.getSiteID(site)));
             logging.setCichdt(currentDateTime);
             logging.setCichbg(Integer.parseInt(user));
             logging.setCiogvl("API_custProductionInfoFgJson");
             logging.setCinwvl("FG CHAR Change");
             logging.setCirsn("logForAPI");
-            this.addApiLogging(logging, site);
+            this.iatvThanhService.addApiLogging(logging);
             this.apiLoggingService.insertLog(new ATVNetAPILoggingModel(
                     user,
                     currentDateTime,
@@ -191,13 +195,13 @@ public class Data400ThanhController {
     }
 
     public int saveFGSpecific(Connection m_conn, int nCust, String sPlant, String sFg, String sPv, String if_timeext, String sCcName, String sCcValue, String user) {
-        PreparedStatement m_pstmt = null;
-        ResultSet m_rs = null;
+        PreparedStatement m_pstmt;
+        ResultSet m_rs;
 
         int nRec = 0;
 
         try {
-            long currentDateTime = thanhService.getDateTime();
+            long currentDateTime = iatvService.getDateTime();
 
             String sQuery = "select * from eplib.fgmtlct where cplnt=? And cmtlno=? And cpv=? and if_timeext=? and ccname=? ";
 
@@ -264,82 +268,56 @@ public class Data400ThanhController {
     public HashMap<String, String> createProcessNote(@PathVariable("site") String site,
                                                      @RequestBody ProcessNoteModel[] model) {
         HashMap<String, String> result = new HashMap<>();
-        PreparedStatement m_pstmt;
-        StringBuilder msg = new StringBuilder();
-        int[] results;
+        String msg = "";
         ApiLoggingModel logging = new ApiLoggingModel();
         try {
-            Class.forName(thanhService.getDriver());
-            Connection conn = DriverManager.getConnection(thanhService.getURL(site), thanhService.getUserID(site), thanhService.getPasswd(site));
-
-            long currentDateTime = thanhService.get400CurrentDate();
-
-            String sQuery = "insert into EPLIB.EPENOTP values (?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-            m_pstmt = conn.prepareStatement(sQuery);
-            long current = thanhService.getDateTime();
-
+            long current = iatvService.getDateTime();
             for (ProcessNoteModel processNoteModel : model) {
-
-                if (thanhService.checkExistProcessNote(processNoteModel)) {
-                    int record = thanhService.updateProcessNote(processNoteModel);
+                int record;
+                if (iatvService.checkExistProcessNote(processNoteModel)) {
+                    record = iatvThanhService.updateProcessNote(processNoteModel);
                     if (record == 0) {
-                        result.put("msg", UPDATE_FAIL_MESSAGE);
-                        return result;
+                        msg = UPDATE_FAIL_MESSAGE;
+                        logging.setCinwvl("Process Note update");
                     }
 
                 } else {
-                    int i = 1;
-                    m_pstmt.setInt(i++, processNoteModel.getFactoryId());
-                    m_pstmt.setString(i++, processNoteModel.getClassify().trim());
-                    m_pstmt.setInt(i++, processNoteModel.getCustomerId());
-                    m_pstmt.setString(i++, processNoteModel.getPkg().trim());
-                    m_pstmt.setString(i++, processNoteModel.getDim().trim());
-                    m_pstmt.setString(i++, processNoteModel.getLead().trim());
-                    m_pstmt.setString(i++, processNoteModel.getTargetDevice().trim());
-                    m_pstmt.setString(i++, processNoteModel.getOptionId().trim());
-                    m_pstmt.setInt(i++, processNoteModel.getOperation());
-                    m_pstmt.setInt(i++, processNoteModel.getSeq());
-                    m_pstmt.setString(i++, processNoteModel.getEngNote());
-                    m_pstmt.setLong(i++, currentDateTime);
-                    m_pstmt.setLong(i++, 0);
-                    m_pstmt.setString(i, processNoteModel.getUserBadge());
-
-                    m_pstmt.addBatch();
+                    record = iatvThanhService.createProcessNote(processNoteModel);
+                    if (record == 0) {
+                        msg = CREATE_FAIL_MESSAGE;
+                        logging.setCinwvl("Process Note create");
+                    }
                 }
 
                 // logging
                 logging.setCifcid(processNoteModel.getFactoryId());
-                logging.setCiasid(Integer.parseInt(thanhService.getSiteID(site)));
+                logging.setCiasid(Integer.parseInt(iatvThanhService.getSiteID(site)));
                 logging.setCichdt(current++);
                 logging.setCichbg(Integer.parseInt(processNoteModel.getUserBadge()));
                 logging.setCiogvl("API_createProcessNote");
-                logging.setCinwvl("Process Note create");
                 logging.setCirsn("logForAPI");
-                this.addApiLogging(logging, site);
+                this.iatvThanhService.addApiLogging(logging);
                 this.apiLoggingService.insertLog(new ATVNetAPILoggingModel(
                         String.valueOf(processNoteModel.getUserBadge()),
-                        currentDateTime,
+                        iatvService.getDateTime(),
                         processNoteModel.toString(),
                         "Process Note cre/upd"
                 ));
-            }
 
-            results = m_pstmt.executeBatch();
-            for (int i = 0; i < results.length; i++) {
-                if (results[i] == 0) {
-                    msg.append("FAILED TO ADD ELEMENT #").append(i).append("; ");
+                if (record == 0) {
+                    break;
                 }
             }
-            if (msg.length() == 0) {
-                msg.append(SUCCESS_MESSAGE);
+            if (msg.isEmpty()) {
+                msg = SUCCESS_MESSAGE;
             }
-            result.put("msg", msg.toString());
-            conn.close();
-            m_pstmt.close();
+            result.put("msg", msg);
 
         } catch (Exception ex) {
-            result.put("msg", ex.getMessage());
+            msg = ex.getMessage();
         }
+
+        result.put("msg", msg);
         return result;
     }
 
@@ -348,49 +326,24 @@ public class Data400ThanhController {
     public HashMap<String, String> createAutoLabelMaintenance(@PathVariable("site") String site,
                                                               @RequestBody AutoLabelModel model) {
         HashMap<String, String> result = new HashMap<>();
-        PreparedStatement m_pstmt;
-        String msg;
+
+        String msg = "";
         int record;
-        long currentDateTime = thanhService.getDateTime();
+        long currentDateTime = iatvService.getDateTime();
         ApiLoggingModel logging = new ApiLoggingModel();
         try {
-            Class.forName(thanhService.getDriver());
-            Connection conn = DriverManager.getConnection(thanhService.getURL(site), thanhService.getUserID(site), thanhService.getPasswd(site));
-
-            if (thanhService.checkExistAutoLabel(model)) {
-                int rec = thanhService.updateAutoLabel(model);
-                if (rec == 0) {
-                    result.put("msg", UPDATE_FAIL_MESSAGE);
-                    return result;
-                }
-                msg = SUCCESS_MESSAGE;
-            } else {
-                String sQuery = "insert into EMLIB.EAUTOLBLVP values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-                m_pstmt = conn.prepareStatement(sQuery);
-                int i = 0;
-                m_pstmt.setInt(++i, model.getFactoryId());
-                m_pstmt.setInt(++i, model.getSiteId());
-                m_pstmt.setString(++i, model.getBusinessType());
-                m_pstmt.setInt(++i, model.getCustomerId());
-                m_pstmt.setString(++i, model.getPkg());
-                m_pstmt.setString(++i, model.getDim());
-                m_pstmt.setString(++i, model.getLead());
-                m_pstmt.setString(++i, model.getTargetDevice());
-                m_pstmt.setString(++i, model.getKeyField1());
-                m_pstmt.setString(++i, model.getKeyField2());
-                m_pstmt.setString(++i, model.getFieldName());
-                m_pstmt.setString(++i, model.getFieldValue());
-                m_pstmt.setLong(++i, currentDateTime);
-                m_pstmt.setInt(++i, model.getUserBadge());
-                m_pstmt.setLong(++i, 0);
-                m_pstmt.setInt(++i, 0);
-                record = m_pstmt.executeUpdate();
+            if (iatvService.checkExistAutoLabel(model)) {
+                record = iatvThanhService.updateAutoLabel(model);
                 if (record == 0) {
-                    msg = "FAILED TO ADD";
-                } else {
-                    msg = SUCCESS_MESSAGE;
+                    msg = UPDATE_FAIL_MESSAGE;
                 }
-                m_pstmt.close();
+                logging.setCinwvl("Auto Label update");
+            } else {
+                record = iatvThanhService.createAutoLabelMaintenance(model);
+                if (record == 0) {
+                    msg = CREATE_FAIL_MESSAGE;
+                }
+                logging.setCinwvl("Auto Label create");
             }
 
             // logging
@@ -399,87 +352,22 @@ public class Data400ThanhController {
             logging.setCichdt(currentDateTime);
             logging.setCichbg(model.getUserBadge());
             logging.setCiogvl("API_createAutoLabelMaintenance");
-            logging.setCinwvl("Auto Label create");
             logging.setCirsn("logForAPI");
-            this.addApiLogging(logging, site);
+            this.iatvThanhService.addApiLogging(logging);
             this.apiLoggingService.insertLog(new ATVNetAPILoggingModel(
                     String.valueOf(model.getUserBadge()),
                     currentDateTime,
                     model.toString(),
-                    "Auto Label Maintenance create"
+                    "Auto Label Maintenance cre/upd"
             ));
-            result.put("msg", msg);
-            conn.close();
-        } catch (Exception ex) {
-            result.put("msg", ex.getMessage());
-        }
-
-        return result;
-    }
-
-    public void addApiLogging(ApiLoggingModel model, String site) throws ClassNotFoundException, SQLException {
-        PreparedStatement m_pstmt;
-        Class.forName(thanhService.getDriver());
-        Connection conn = DriverManager.getConnection(thanhService.getURL(site), thanhService.getUserID(site), thanhService.getPasswd(site));
-
-        String sQuery = "insert into EMLIB.EMESLP04 values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-        m_pstmt = conn.prepareStatement(sQuery);
-        int i = 1;
-
-        m_pstmt.setInt(i++, model.getCifcid());
-        m_pstmt.setInt(i++, model.getCiasid());
-        m_pstmt.setString(i++, model.getCistn());
-        m_pstmt.setLong(i++, model.getCiamkr());
-        m_pstmt.setInt(i++, model.getCisub());
-        m_pstmt.setString(i++, model.getCibztp());
-        m_pstmt.setString(i++, model.getCists());
-        m_pstmt.setFloat(i++, model.getCiseq());
-        m_pstmt.setInt(i++, model.getCiopr());
-        m_pstmt.setString(i++, model.getCichfd());
-        m_pstmt.setString(i++, model.getCiogvl());
-        m_pstmt.setString(i++, model.getCinwvl());
-        m_pstmt.setString(i++, model.getCirsn());
-        m_pstmt.setInt(i++, model.getCichbg());
-        m_pstmt.setLong(i++, model.getCichdt());
-        m_pstmt.setLong(i++, model.getCirqdt());
-        m_pstmt.setString(i++, model.getCirqpg());
-        m_pstmt.setInt(i++, model.getCirqbg());
-        m_pstmt.setLong(i++, model.getCiacdt());
-        m_pstmt.setString(i++, model.getCiacpg());
-        m_pstmt.setInt(i, model.getCiacbg());
-
-        m_pstmt.executeUpdate();
-
-        m_pstmt.close();
-        conn.close();
-    }
-
-    @RequestMapping(method = RequestMethod.GET, value = "/temptemptemp")
-    public void alertFGExceed30Days() {
-        try {
-            log.info("start sending email to alert fg...");
-            List<AlertForFGModel> listFG = thanhService.getAlertForFGNotScheduledFor30Days(SharedConstValue.FACTORY_ID, SharedConstValue.PLANT);
-            if (listFG != null && !listFG.isEmpty()) {
-                StringBuilder contentBuilder = new StringBuilder();
-                String title = "ATV_FGs not scheduled for more than 30 days";
-                List<String> toPeople = Arrays.asList();
-                List<String> ccPeople = Arrays.asList("Thanh.Truongcong@amkor.com");
-                contentBuilder.append("<h2>List of FGs below have not been scheduled for more than 30 days. Please review it!</h2>");
-                contentBuilder.append("<table style='border: 1px solid black'>");
-                contentBuilder.append("<tr style='border: 1px solid black'><th style='border: 1px solid black'>FG</th><th style='border: 1px solid black'>PV</th></tr>");
-                for (AlertForFGModel alert : listFG) {
-                    String rowContent = String.format("<tr style='border: 1px solid black'><td style='border: 1px solid black'>%s</td><td style='border: 1px solid black'>%s</td></tr>", alert.getFgCode(), alert.getPv());
-                    contentBuilder.append(rowContent);
-                }
-                contentBuilder.append("</table>");
-
-                thanhService.sendMailProcess(title, contentBuilder.toString(), toPeople, ccPeople, new ArrayList<>());
+            if (msg.isEmpty()) {
+                msg = SUCCESS_MESSAGE;
             }
-            log.info("end sending email to alert fg...");
         } catch (Exception ex) {
-            log.error(ex.getMessage());
+            msg = ex.getMessage();
         }
-
+        result.put("msg", msg);
+        return result;
     }
 
 }

@@ -1,6 +1,11 @@
 package com.amkor.service;
 
 
+import com.amkor.common.utils.SharedConstValue;
+import com.amkor.models.AlertForFGModel;
+import com.amkor.models.AutoLabelModel;
+import com.amkor.models.ProcessNoteModel;
+import com.amkor.service.iService.IATVService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableAsync;
@@ -14,6 +19,12 @@ import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -23,26 +34,25 @@ import java.util.*;
 @EnableAsync
 @EnableScheduling
 
-public class ATVService {
+public class ATVService implements IATVService {
 
 
     //    @Scheduled(cron = "${batch.cron.auto-send-mail-mon-to-sat")
 //    @Scheduled(cron = "0 0 10 * * MON-SAT")
-    public void sendMailDaily(String fileName, String fileNameString,String title) {
+    public void sendMailDaily(String fileName, String fileNameString, String title) {
 
 
         try {
 
             List<String> listTo = new ArrayList<>();
             listTo.add("Dao.Nguyenvan@amkor.com");
-            if (title.equals("Diebank Inventory Daily")){
+            if (title.equals("Diebank Inventory Daily")) {
                 listTo.add("V1BANK@amkor.com");
                 listTo.add("V1EFT0064@amkor.com");
                 listTo.add("V1EFT0066@amkor.com");
-            }else if (title.equals("NG Store Inventory Daily")){
+            } else if (title.equals("NG Store Inventory Daily")) {
                 listTo.add("V1NG@amkor.com");
-            }
-            else {
+            } else {
                 listTo.add("V1SHIP@amkor.com");
             }
 
@@ -302,5 +312,136 @@ public class ATVService {
             ex.printStackTrace();
         }
         return true;
+    }
+
+    @Override
+    public boolean checkExistAutoLabel(AutoLabelModel model) {
+        boolean result = false;
+        Connection m_conn;
+        PreparedStatement m_psmt;
+        ResultSet m_rs;
+        try {
+            String sQuery = "select * from EMLIB.EAUTOLBLVP where FACTORY_ID = ? AND SITE_ID = ? AND BUSINESS_TYPE = ? " +
+                    "AND CUSTOMER = ? AND PACKAGE = ? AND DIMENSION = ? AND LEAD = ? AND TARGET_DEVICE = ? " +
+                    "AND KEY_FIELD1 = ? AND KEY_FIELD2 = ? AND FIELD_NAME = ?";
+            Class.forName(this.getDriver());
+            m_conn = DriverManager.getConnection(getURL(SharedConstValue.AMKOR_SHORTNAME), getUserID(SharedConstValue.AMKOR_SHORTNAME), getPasswd(SharedConstValue.AMKOR_SHORTNAME));
+            m_psmt = m_conn.prepareStatement(sQuery);
+            int i = 1;
+            m_psmt.setInt(i++, model.getFactoryId());
+            m_psmt.setInt(i++, model.getSiteId());
+            m_psmt.setString(i++, model.getBusinessType());
+            m_psmt.setInt(i++, model.getCustomerId());
+            m_psmt.setString(i++, model.getPkg());
+            m_psmt.setString(i++, model.getDim());
+            m_psmt.setString(i++, model.getLead());
+            m_psmt.setString(i++, model.getTargetDevice());
+            m_psmt.setString(i++, model.getKeyField1());
+            m_psmt.setString(i++, model.getKeyField2());
+            m_psmt.setString(i++, model.getFieldName());
+            m_rs = m_psmt.executeQuery();
+            if (m_rs.next()) {
+                result = true;
+            }
+
+            m_conn.close();
+            m_psmt.close();
+            m_rs.close();
+
+        } catch (Exception ex) {
+            log.error(ex.getMessage(), ex);
+        }
+
+
+        return result;
+    }
+
+    @Override
+    public boolean checkExistProcessNote(ProcessNoteModel model) {
+
+        boolean result = false;
+        Connection m_conn;
+        PreparedStatement m_psmt;
+        ResultSet m_rs;
+        try {
+            String sQuery = "select * from EPLIB.EPENOTP where ENFCID = ? AND ENCLAS = ? AND ENCUST = ? AND ENPKGE = ? " +
+                    "AND ENDMSN = ? AND ENLEAD = ? AND ENDEVC = ? AND ENOPID = ? AND ENOPER = ? AND ENSEQ# = ?";
+            Class.forName(this.getDriver());
+            m_conn = DriverManager.getConnection(getURL(SharedConstValue.AMKOR_SHORTNAME), getUserID(SharedConstValue.AMKOR_SHORTNAME), getPasswd(SharedConstValue.AMKOR_SHORTNAME));
+            m_psmt = m_conn.prepareStatement(sQuery);
+            int i = 1;
+            m_psmt.setInt(i++, model.getFactoryId());
+            m_psmt.setString(i++, model.getClassify());
+            m_psmt.setInt(i++, model.getCustomerId());
+            m_psmt.setString(i++, model.getPkg());
+            m_psmt.setString(i++, model.getDim());
+            m_psmt.setString(i++, model.getLead());
+            m_psmt.setString(i++, model.getTargetDevice());
+            m_psmt.setString(i++, model.getOptionId());
+            m_psmt.setInt(i++, model.getOperation());
+            m_psmt.setInt(i, model.getSeq());
+            m_rs = m_psmt.executeQuery();
+            if (m_rs.next()) {
+                result = true;
+            }
+
+            m_rs.close();
+            m_psmt.close();
+            m_conn.close();
+        } catch (Exception ex) {
+            log.error(ex.getMessage(), ex);
+        }
+
+        return result;
+    }
+
+    @Override
+    public List<AlertForFGModel> getAlertForFGNotScheduledFor30Days(int factoryId, String plant) {
+        Connection m_conn;
+        PreparedStatement m_psmt;
+        ResultSet m_rs;
+        List<AlertForFGModel> result = new ArrayList<>();
+        try {
+            long lToday = this.getDate();
+            Date releasedDate = Date.from(Instant.now().minus(Duration.ofDays(90)));  // released date 3 months ago
+            long lReleasedDate = this.getDate(releasedDate);
+            Date scheduledDate = Date.from(Instant.now().minus(Duration.ofDays(30)));  // scheduled date 1 month ago
+            long lScheduledDate = this.getDateTime(scheduledDate);
+            String sQuery = "SELECT DISTINCT XMTLNO, XPV " +
+                    "FROM EMLIB.ASCHMP03 " +
+                    "JOIN EMLIB.EMESTP02 ON SSFCID = CVFCID AND SSASID = CVASID AND CVAMKR = SSWAMK AND SSSUB# = CVSUB# AND CVBZTP = SSBZTP " +
+                    "JOIN EMLIB.XREFPOP ON SSFCID = XFCID AND SSASID =XASID AND SSWAMK =XAMKID AND SSSUB# = XSUBID AND XBZTYP = SUBSTRING(SSBZTP,0,2) " +
+                    "JOIN EMLIB.INPOP ON XPONO = IPONO AND XMTLNO = IMTLNO AND XSONO = ISONO " +
+                    "WHERE SSFCID = " + factoryId + " AND XPLNT = '" + plant + "' AND ICUST = 78 " +
+                    "AND XMTLNO in (SELECT DISTINCT IMTLNO FROM EMLIB.INPOP i WHERE i.IRLSDT >= " + lReleasedDate + " AND i.IRLSDT <= " + lToday + " AND i.IF_STATUS in ('OK','DLV','ONG', 'DON')) " +
+                    "AND SSLTCD = '' " +
+                    "AND CVMDUL='SCHEDULE' AND ((CVFLDN = 'NPIFLAG' AND CVFLDV = '') OR (CVFLDN = 'TNPIFLAG' AND CVFLDV = 'N')) " +
+                    "AND XMTLNO not in (SELECT DISTINCT XMTLNO " +
+                    "                   FROM EMLIB.ASCHMP03 " +
+                    "                   JOIN EMLIB.EMESTP02 ON SSFCID = CVFCID AND SSASID = CVASID AND CVAMKR = SSWAMK AND SSSUB# = CVSUB# AND CVBZTP = SSBZTP" +
+                    "                   JOIN EMLIB.XREFPOP ON SSFCID = XFCID AND SSASID =XASID AND SSWAMK =XAMKID AND SSSUB# = XSUBID AND XBZTYP = SUBSTRING(SSBZTP,0,2) " +
+                    "                   WHERE SSFCID = " + factoryId + " AND XPLNT = '" + plant + "' " +
+                    "                   AND XMTLNO in (SELECT DISTINCT IMTLNO FROM EMLIB.INPOP i WHERE i.IRLSDT >= " + lReleasedDate + " AND i.IRLSDT <= " + lToday + " AND i.IF_STATUS in ('OK','DLV','ONG', 'DON')) " +
+                    "                   AND SSLTCD = '' " +
+                    "                   AND CVMDUL='SCHEDULE' AND ((CVFLDN = 'NPIFLAG' AND CVFLDV = '') OR (CVFLDN = 'TNPIFLAG' AND CVFLDV = 'N')) " +
+                    "                   AND ((SUBSTRING(SSBZTP,0,2) = 'A' AND (SSSCHD > " + lScheduledDate + " OR SSSCHD = 0)) OR (SUBSTRING(SSBZTP,0,2) = 'T' AND (SSWIDT > " + lScheduledDate + " OR SSWIDT = 0))))";
+            Class.forName(this.getDriver());
+            m_conn = DriverManager.getConnection(getURL(SharedConstValue.AMKOR_SHORTNAME), getUserID(SharedConstValue.AMKOR_SHORTNAME), getPasswd(SharedConstValue.AMKOR_SHORTNAME));
+            m_psmt = m_conn.prepareStatement(sQuery);
+            m_rs = m_psmt.executeQuery();
+            while (m_rs.next()) {
+                AlertForFGModel alert = new AlertForFGModel();
+                alert.setFgCode(m_rs.getString("XMTLNO").trim());
+                alert.setPv(m_rs.getString("XPV").trim());
+                result.add(alert);
+            }
+            m_rs.close();
+            m_psmt.close();
+            m_conn.close();
+
+        } catch (Exception ex) {
+            log.error(ex.getMessage(), ex);
+        }
+        return result;
     }
 }

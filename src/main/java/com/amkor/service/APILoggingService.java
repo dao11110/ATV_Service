@@ -17,7 +17,7 @@ public class APILoggingService {
         return repo.findAll();
     }
 
-    public ATVNetAPILoggingModel insertLog(ATVNetAPILoggingModel model) {
-        return repo.save(model);
+    public void insertLog(ATVNetAPILoggingModel model) {
+        repo.save(model);
     }
 }
