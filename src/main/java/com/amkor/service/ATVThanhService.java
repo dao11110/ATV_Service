@@ -1,8 +1,10 @@
 package com.amkor.service;
 
-import com.amkor.models.AlertForFGModel;
+import com.amkor.common.utils.SharedConstValue;
+import com.amkor.models.ApiLoggingModel;
 import com.amkor.models.AutoLabelModel;
 import com.amkor.models.ProcessNoteModel;
+import com.amkor.service.iService.IATVThanhService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -17,124 +19,16 @@ import javax.mail.internet.MimeMultipart;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.text.SimpleDateFormat;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.*;
 
 @Service
-public class ATVThanhService {
-    private static final String DRIVER = "com.ibm.as400.access.AS400JDBCDriver";
+public class ATVThanhService implements IATVThanhService {
     private static final Logger log = LoggerFactory.getLogger(ATVThanhService.class);
 
-    public String getDriver() {
-        return DRIVER;
-    }
-
-    public String getURL(String site) {
-        String result = "";
-
-        switch (site) {
-            case "ATK":
-                result = "jdbc:as400://10.101.6.12";
-                break;
-            case "ATV":
-                result = "jdbc:as400://10.201.6.11";
-                break;
-        }
-        return result;
-    }
-
-    public String getUserID(String site) {
-        String result = "";
-
-        switch (site) {
-            case "ATK":
-                result = "pruser";
-                break;
-            case "ATV":
-                result = "MESPGMR";
-                break;
-        }
-        return result;
-    }
-
-    public String getPasswd(String site) {
-        String result = "";
-
-        switch (site) {
-            case "ATK":
-                result = "prod0504";
-                break;
-            case "ATV":
-                result = "gloryah";
-                break;
-        }
-        return result;
-    }
-
-    public String getPPOMSTP(String site) {
-        String result = "";
-
-        switch (site) {
-            case "ATK":
-                result = "PPSLIB.PPOMSTP";
-                break;
-            case "ATV":
-                result = "EMLIB.PPOMSTP";
-                break;
-        }
-        return result;
-    }
-
-    public String getLibrary(String site) {
-        String result = "";
-
-        switch (site) {
-            case "ATK":
-                result = "PPSLIB";
-                break;
-            case "ATV":
-                result = "EMLIB";
-                break;
-        }
-        return result;
-    }
-
-    public String getFactoryID(String site) {
-        String result = "";
-
-        switch (site) {
-            case "ATK":
-                result = "1";
-                break;
-            case "ATV":
-                result = "80";
-                break;
-        }
-        return result;
-    }
-
-    public String getSiteID(String site) {
-        String result = "";
-
-        switch (site) {
-            case "ATK":
-                result = "1";
-                break;
-            case "ATV":
-                result = "1";
-                break;
-        }
-        return result;
-    }
-
-    public boolean sendMailProcess(String title, String sContent, List<String> toPeople, List<String> ccPeople, List<String> fileNames)
-            throws Exception {
+    @Override
+    public boolean sendMailProcess(String title, String sContent, List<String> toPeople, List<String> ccPeople, List<String> fileNames) {
 
         String ENCODE = "UTF8";
-        String MIME_PLAIN = "text/plain";
         String MIME_HTML = "text/html";
         String user = "atvzabbix";
         String password = "XR}1Y,S3NmQ]J({s#4o_#hJCuqB%fo";
@@ -162,16 +56,15 @@ public class ATVThanhService {
             });
             MimeMessage msg = new MimeMessage(session);
 
-            /** from address **/
+            // from address
             msg.setFrom(new InternetAddress(fromAddress));
 
             Vector toList = new Vector();
             Vector ccList = new Vector();
             Vector files = new Vector();
 
-            /** To **/
-            for (int i = 0; i < toPeople.size(); i++) {
-                String to = toPeople.get(i);
+            // To
+            for (String to : toPeople) {
                 toList.addElement(new InternetAddress(to)); // Array to Vector
             }
             Address[] toAddrList = new Address[toList.size()];
@@ -179,11 +72,10 @@ public class ATVThanhService {
             msg.setRecipients(Message.RecipientType.TO, toAddrList);
             toList.clear();
 
-            /** CC **/
+            // CC
             if (ccPeople != null) {
-                for (int j = 0; j < ccPeople.size(); j++) {
-                    String cc = ccPeople.get(j);
-                    if (!cc.trim().equals("")) {
+                for (String cc : ccPeople) {
+                    if (!cc.trim().isEmpty()) {
                         ccList.addElement(new InternetAddress(cc));
                     }
                 }
@@ -193,16 +85,16 @@ public class ATVThanhService {
             msg.setRecipients(Message.RecipientType.CC, ccAddrList);
             ccList.clear();
 
-            /** Title **/
+            // Title
             msg.setSubject(title, ENCODE);
 
-            /** File Attach **/
+            // File Attach
             Multipart mp = new MimeMultipart();
 
-            /** add body message **/
+            // add body message
             MimeBodyPart contentPart = new MimeBodyPart();
 
-            StringBuffer content = new StringBuffer();
+            StringBuilder content = new StringBuilder();
             content.append(sContent);
 
             String body = content.toString();
@@ -234,67 +126,36 @@ public class ATVThanhService {
         return true;
     }
 
-    public long getDate() {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
-        Date now = new Date();
-        String strDate = sdf.format(now);
-        return Long.parseLong(strDate);
-    }
-
-    public long getDate(Date d) {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
-        String strDate = sdf.format(d);
-        return Long.parseLong(strDate);
-    }
-
-    public long getDateTime() {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
-        Date now = new Date();
-        String strDate = sdf.format(now);
-        return Long.parseLong(strDate);
-    }
-
-    public long getDateTime(Date d) {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
-        String strDate = sdf.format(d);
-        return Long.parseLong(strDate);
-    }
-
-    public long get400CurrentDate() {
-        String current = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
-        long result = Long.parseLong(current) - 19000000000000L;
-        return result;
-    }
-
-    public boolean checkExistProcessNote(ProcessNoteModel model) {
-
-        boolean result = false;
+    @Override
+    public int createProcessNote(ProcessNoteModel model) {
+        int result = 0;
         Connection m_conn;
         PreparedStatement m_psmt;
-        ResultSet m_rs;
+        long currentDateTime = this.get400CurrentDate();
         try {
-            String sQuery = "select * from EPLIB.EPENOTP where ENFCID = ? AND ENCLAS = ? AND ENCUST = ? AND ENPKGE = ? " +
-                    "AND ENDMSN = ? AND ENLEAD = ? AND ENDEVC = ? AND ENOPID = ? AND ENOPER = ? AND ENSEQ# = ?";
-            Class.forName(DRIVER);
-            m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
+            Class.forName(this.getDriver());
+            m_conn = DriverManager.getConnection(this.getURL(SharedConstValue.AMKOR_SHORTNAME), this.getUserID(SharedConstValue.AMKOR_SHORTNAME), this.getPasswd(SharedConstValue.AMKOR_SHORTNAME));
+
+            String sQuery = "insert into EPLIB.EPENOTP values (?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
             m_psmt = m_conn.prepareStatement(sQuery);
             int i = 1;
             m_psmt.setInt(i++, model.getFactoryId());
-            m_psmt.setString(i++, model.getClassify());
+            m_psmt.setString(i++, model.getClassify().trim());
             m_psmt.setInt(i++, model.getCustomerId());
-            m_psmt.setString(i++, model.getPkg());
-            m_psmt.setString(i++, model.getDim());
-            m_psmt.setString(i++, model.getLead());
-            m_psmt.setString(i++, model.getTargetDevice());
-            m_psmt.setString(i++, model.getOptionId());
+            m_psmt.setString(i++, model.getPkg().trim());
+            m_psmt.setString(i++, model.getDim().trim());
+            m_psmt.setString(i++, model.getLead().trim());
+            m_psmt.setString(i++, model.getTargetDevice().trim());
+            m_psmt.setString(i++, model.getOptionId().trim());
             m_psmt.setInt(i++, model.getOperation());
-            m_psmt.setInt(i, model.getSeq());
-            m_rs = m_psmt.executeQuery();
-            if (m_rs.next()) {
-                result = true;
-            }
+            m_psmt.setInt(i++, model.getSeq());
+            m_psmt.setString(i++, model.getEngNote());
+            m_psmt.setLong(i++, currentDateTime);
+            m_psmt.setLong(i++, 0);
+            m_psmt.setString(i, model.getUserBadge());
 
-            m_rs.close();
+            result = m_psmt.executeUpdate();
+
             m_psmt.close();
             m_conn.close();
         } catch (Exception ex) {
@@ -304,6 +165,8 @@ public class ATVThanhService {
         return result;
     }
 
+
+    @Override
     public int updateProcessNote(ProcessNoteModel model) {
         int result = 0;
         Connection m_conn;
@@ -312,8 +175,8 @@ public class ATVThanhService {
         try {
             String sQuery = "update EPLIB.EPENOTP set ENNOTE = ?, ENMNDT = ?, ENTUSR = ? where ENFCID = ? AND ENCLAS = ? AND ENCUST = ? AND ENPKGE = ? " +
                     "AND ENDMSN = ? AND ENLEAD = ? AND ENDEVC = ? AND ENOPID = ? AND ENOPER = ? AND ENSEQ# = ?";
-            Class.forName(DRIVER);
-            m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
+            Class.forName(this.getDriver());
+            m_conn = DriverManager.getConnection(getURL(SharedConstValue.AMKOR_SHORTNAME), getUserID(SharedConstValue.AMKOR_SHORTNAME), getPasswd(SharedConstValue.AMKOR_SHORTNAME));
             m_psmt = m_conn.prepareStatement(sQuery);
             int i = 1;
             m_psmt.setString(i++, model.getEngNote());
@@ -340,47 +203,45 @@ public class ATVThanhService {
         return result;
     }
 
-    public boolean checkExistAutoLabel(AutoLabelModel model) {
-        boolean result = false;
-        Connection m_conn;
-        PreparedStatement m_psmt;
-        ResultSet m_rs;
+    @Override
+    public int createAutoLabelMaintenance(AutoLabelModel model) {
+        PreparedStatement m_pstmt;
+        int record = 0;
+        long currentDateTime = this.getDateTime();
         try {
-            String sQuery = "select * from EMLIB.EAUTOLBLVP where FACTORY_ID = ? AND SITE_ID = ? AND BUSINESS_TYPE = ? " +
-                    "AND CUSTOMER = ? AND PACKAGE = ? AND DIMENSION = ? AND LEAD = ? AND TARGET_DEVICE = ? " +
-                    "AND KEY_FIELD1 = ? AND KEY_FIELD2 = ? AND FIELD_NAME = ?";
-            Class.forName(DRIVER);
-            m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
-            m_psmt = m_conn.prepareStatement(sQuery);
-            int i = 1;
-            m_psmt.setInt(i++, model.getFactoryId());
-            m_psmt.setInt(i++, model.getSiteId());
-            m_psmt.setString(i++, model.getBusinessType());
-            m_psmt.setInt(i++, model.getCustomerId());
-            m_psmt.setString(i++, model.getPkg());
-            m_psmt.setString(i++, model.getDim());
-            m_psmt.setString(i++, model.getLead());
-            m_psmt.setString(i++, model.getTargetDevice());
-            m_psmt.setString(i++, model.getKeyField1());
-            m_psmt.setString(i++, model.getKeyField2());
-            m_psmt.setString(i++, model.getFieldName());
-            m_rs = m_psmt.executeQuery();
-            if (m_rs.next()) {
-                result = true;
-            }
+            Class.forName(this.getDriver());
+            Connection conn = DriverManager.getConnection(this.getURL(SharedConstValue.AMKOR_SHORTNAME), this.getUserID(SharedConstValue.AMKOR_SHORTNAME), this.getPasswd(SharedConstValue.AMKOR_SHORTNAME));
+            String sQuery = "insert into EMLIB.EAUTOLBLVP values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+            m_pstmt = conn.prepareStatement(sQuery);
+            int i = 0;
+            m_pstmt.setInt(++i, model.getFactoryId());
+            m_pstmt.setInt(++i, model.getSiteId());
+            m_pstmt.setString(++i, model.getBusinessType());
+            m_pstmt.setInt(++i, model.getCustomerId());
+            m_pstmt.setString(++i, model.getPkg());
+            m_pstmt.setString(++i, model.getDim());
+            m_pstmt.setString(++i, model.getLead());
+            m_pstmt.setString(++i, model.getTargetDevice());
+            m_pstmt.setString(++i, model.getKeyField1());
+            m_pstmt.setString(++i, model.getKeyField2());
+            m_pstmt.setString(++i, model.getFieldName());
+            m_pstmt.setString(++i, model.getFieldValue());
+            m_pstmt.setLong(++i, currentDateTime);
+            m_pstmt.setInt(++i, model.getUserBadge());
+            m_pstmt.setLong(++i, 0);
+            m_pstmt.setInt(++i, 0);
+            record = m_pstmt.executeUpdate();
 
-            m_conn.close();
-            m_psmt.close();
-            m_rs.close();
-
+            conn.close();
+            m_pstmt.close();
         } catch (Exception ex) {
             log.error(ex.getMessage(), ex);
         }
 
-
-        return result;
+        return record;
     }
 
+    @Override
     public int updateAutoLabel(AutoLabelModel model) {
         int result = 0;
         if (!model.getFieldName().trim().equalsIgnoreCase("lblq") && !model.getFieldName().trim().equalsIgnoreCase("unitq")) {
@@ -393,8 +254,8 @@ public class ATVThanhService {
             String sQuery = "update EMLIB.EAUTOLBLVP set FIELD_VALUE = ?, CHANGE_TIMESTAMO = ?, CHANGE_USER = ? where FACTORY_ID = ? AND SITE_ID = ? AND BUSINESS_TYPE = ? " +
                     "AND CUSTOMER = ? AND PACKAGE = ? AND DIMENSION = ? AND LEAD = ? AND TARGET_DEVICE = ? " +
                     "AND KEY_FIELD1 = ? AND KEY_FIELD2 = ? AND FIELD_NAME = ?";
-            Class.forName(DRIVER);
-            m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
+            Class.forName(this.getDriver());
+            m_conn = DriverManager.getConnection(getURL(SharedConstValue.AMKOR_SHORTNAME), getUserID(SharedConstValue.AMKOR_SHORTNAME), getPasswd(SharedConstValue.AMKOR_SHORTNAME));
             m_psmt = m_conn.prepareStatement(sQuery);
             int i = 1;
             m_psmt.setString(i++, model.getFieldValue());
@@ -410,7 +271,7 @@ public class ATVThanhService {
             m_psmt.setString(i++, model.getTargetDevice());
             m_psmt.setString(i++, model.getKeyField1());
             m_psmt.setString(i++, model.getKeyField2());
-            m_psmt.setString(i++, model.getFieldName());
+            m_psmt.setString(i, model.getFieldName());
             result = m_psmt.executeUpdate();
 
             m_conn.close();
@@ -422,51 +283,47 @@ public class ATVThanhService {
         return result;
     }
 
-    public List<AlertForFGModel> getAlertForFGNotScheduledFor30Days(int factoryId, String plant) {
-        Connection m_conn;
-        PreparedStatement m_psmt;
-        ResultSet m_rs;
-        List<AlertForFGModel> result = new ArrayList<>();
+    @Override
+    public int addApiLogging(ApiLoggingModel model) {
+        PreparedStatement m_pstmt;
+        int record = 0;
         try {
-            long lToday = this.getDate();
-            Date releasedDate = Date.from(Instant.now().minus(Duration.ofDays(90)));  // released date 3 months ago
-            long lReleasedDate = this.getDate(releasedDate);
-            Date scheduledDate = Date.from(Instant.now().minus(Duration.ofDays(30)));  // scheduled date 1 month ago
-            long lScheduledDate = this.getDateTime(scheduledDate);
-            String sQuery = "SELECT DISTINCT XMTLNO, XPV " +
-                    "FROM EMLIB.ASCHMP03 " +
-                    "JOIN EMLIB.EMESTP02 ON SSFCID = CVFCID AND SSASID = CVASID AND CVAMKR = SSWAMK AND SSSUB# = CVSUB# AND CVBZTP = SSBZTP " +
-                    "JOIN EMLIB.XREFPOP ON SSFCID = XFCID AND SSASID =XASID AND SSWAMK =XAMKID AND SSSUB# = XSUBID AND XBZTYP = SSBZTP " +
-                    "WHERE SSFCID = " + factoryId + " AND XPLNT = '" + plant + "' " +
-                    "AND XMTLNO in (SELECT DISTINCT IMTLNO FROM EMLIB.INPOP i WHERE i.IRLSDT >= " + lReleasedDate + " AND i.IRLSDT <= " + lToday + " AND i.IF_STATUS = 'DON') " +
-                    "AND SSLTCD = '' " +
-                    "AND CVMDUL='SCHEDULE' AND (CVFLDN = 'NPIFLAG' OR CVFLDN = 'TNPIFLAG') AND CVFLDV = ''  " +
-                    "AND XMTLNO not in (SELECT DISTINCT XMTLNO " +
-                    "                   FROM EMLIB.ASCHMP03 " +
-                    "                   JOIN EMLIB.EMESTP02 ON SSFCID = CVFCID AND SSASID = CVASID AND CVAMKR = SSWAMK AND SSSUB# = CVSUB# AND CVBZTP = SSBZTP" +
-                    "                   JOIN EMLIB.XREFPOP ON SSFCID = XFCID AND SSASID =XASID AND SSWAMK =XAMKID AND SSSUB# = XSUBID AND XBZTYP = SSBZTP " +
-                    "                   WHERE SSFCID = " + factoryId + " AND XPLNT = '" + plant + "' " +
-                    "                   AND XMTLNO in (SELECT DISTINCT IMTLNO FROM EMLIB.INPOP i WHERE i.IRLSDT >= " + lReleasedDate + " AND i.IRLSDT <= " + lToday + " AND i.IF_STATUS = 'DON') " +
-                    "                   AND SSLTCD = '' " +
-                    "                   AND CVMDUL='SCHEDULE' AND (CVFLDN = 'NPIFLAG' OR CVFLDN = 'TNPIFLAG') AND CVFLDV = ''  " +
-                    "                   AND ((SSBZTP = 'A' AND SSSCHD > " + lScheduledDate + ") OR (SSBZTP = 'T' AND SSWIDT > " + lScheduledDate + ")))";
-            Class.forName(DRIVER);
-            m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
-            m_psmt = m_conn.prepareStatement(sQuery);
-            m_rs = m_psmt.executeQuery();
-            while (m_rs.next()) {
-                AlertForFGModel alert = new AlertForFGModel();
-                alert.setFgCode(m_rs.getString("XMTLNO").trim());
-                alert.setPv(m_rs.getString("XPV").trim());
-                result.add(alert);
-            }
-            m_rs.close();
-            m_psmt.close();
-            m_conn.close();
+            Class.forName(this.getDriver());
+            Connection conn = DriverManager.getConnection(this.getURL(SharedConstValue.AMKOR_SHORTNAME), this.getUserID(SharedConstValue.AMKOR_SHORTNAME), this.getPasswd(SharedConstValue.AMKOR_SHORTNAME));
 
+            String sQuery = "insert into EMLIB.EMESLP04 values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+            m_pstmt = conn.prepareStatement(sQuery);
+            int i = 1;
+
+            m_pstmt.setInt(i++, model.getCifcid());
+            m_pstmt.setInt(i++, model.getCiasid());
+            m_pstmt.setString(i++, model.getCistn());
+            m_pstmt.setLong(i++, model.getCiamkr());
+            m_pstmt.setInt(i++, model.getCisub());
+            m_pstmt.setString(i++, model.getCibztp());
+            m_pstmt.setString(i++, model.getCists());
+            m_pstmt.setFloat(i++, model.getCiseq());
+            m_pstmt.setInt(i++, model.getCiopr());
+            m_pstmt.setString(i++, model.getCichfd());
+            m_pstmt.setString(i++, model.getCiogvl());
+            m_pstmt.setString(i++, model.getCinwvl());
+            m_pstmt.setString(i++, model.getCirsn());
+            m_pstmt.setInt(i++, model.getCichbg());
+            m_pstmt.setLong(i++, model.getCichdt());
+            m_pstmt.setLong(i++, model.getCirqdt());
+            m_pstmt.setString(i++, model.getCirqpg());
+            m_pstmt.setInt(i++, model.getCirqbg());
+            m_pstmt.setLong(i++, model.getCiacdt());
+            m_pstmt.setString(i++, model.getCiacpg());
+            m_pstmt.setInt(i, model.getCiacbg());
+
+            record = m_pstmt.executeUpdate();
+
+            m_pstmt.close();
+            conn.close();
         } catch (Exception ex) {
             log.error(ex.getMessage(), ex);
         }
-        return result;
+        return record;
     }
 }
