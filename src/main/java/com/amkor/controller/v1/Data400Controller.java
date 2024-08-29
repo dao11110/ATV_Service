@@ -147,7 +147,8 @@ public class Data400Controller {
         try {
             Class.forName(DRIVER);
             m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
-            String query = "SELECT DISTINCT  DMCSCD, DMLOT#,DMDCC,DMSDEV,DMDAMK,DMEOHQ,DMWEOH,DMRLOC,CICHDT,CICHFD,CIOGVL,CINWVL  FROM  EMLIB.ADSTMP01\n" +
+            String query = "SELECT DISTINCT  DMCSCD, DMLOT#,DMDCC,DMSDEV,DMDAMK,DMEOHQ,DMWEOH,DMRLOC,CICHDT,CICHFD,CIOGVL,CINWVL,XBATCH,XMTLNO  FROM  EMLIB.ADSTMP01\n" +
+                    "INNER JOIN EMLIB.XREFWFP ON DMFCID=XFCID AND DMASID=XASID AND DMDAMK=XAMKID " +
                     "LEFT JOIN   EMLIB.EMESLP04 ON DMFCID=CIFCID AND DMASID=CIASID AND DMDAMK=CIAMKR AND CICHFD = 'MSCAN' \n" +
                     " WHERE DMFCID=80 AND DMASID=1 AND DCPLNT = 'V1' AND DMSTN = 'DIEBANK' AND DMSTS2 IN ( 'ACTIVE',  'HOLD')" +
                     " AND DMDAMK NOT IN (SELECT DISTINCT (SLAMKR) FROM EMLIB.EMESLP12 WHERE DMFCID=SLFCID AND DMASID=SLASID AND DMDAMK=SLAMKR AND (SLLOCT='L' OR SLLOCT='T' )   )" +
@@ -167,6 +168,8 @@ public class Data400Controller {
                 lotInformationModel.setEohWaferQty(m_rs.getInt("DMWEOH"));
                 lotInformationModel.setRackLocationCode(m_rs.getString("DMRLOC").trim());
                 locationList.add(m_rs.getString("DMRLOC").trim());
+                lotInformationModel.setFgsNo(m_rs.getString("XBATCH").trim());
+                lotInformationModel.setBinNo(m_rs.getString("XMTLNO").trim());
 
                 if (m_rs.getString("CIOGVL") != null) {
                     lotInformationModel.setResponseMessage(m_rs.getString("CIOGVL").trim());
@@ -229,8 +232,9 @@ public class Data400Controller {
         try {
             Class.forName(DRIVER);
             m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
-            query = "SELECT DISTINCT  DMCSCD, DMLOT#,DMDCC,DMSDEV,DMDAMK,DMEOHQ,DMWEOH,DMRLOC,CICHDT,CICHFD,CIOGVL,CINWVL FROM  EMLIB.ADSTMP01\n" +
-                    "LEFT JOIN   EMLIB.EMESLP04 ON DMFCID=CIFCID AND DMASID=CIASID AND DMDAMK=CIAMKR AND CICHFD = 'MSCAN' \n" +
+            query = "SELECT DISTINCT  DMCSCD, DMLOT#,DMDCC,DMSDEV,DMDAMK,DMEOHQ,DMWEOH,DMRLOC,CICHDT,CICHFD,CIOGVL,CINWVL ,XBATCH,XMTLNO  FROM  EMLIB.ADSTMP01 " +
+                    "INNER JOIN EMLIB.XREFWFP ON DMFCID=XFCID AND DMASID=XASID AND DMDAMK=XAMKID " +
+                    "LEFT JOIN   EMLIB.EMESLP04 ON DMFCID=CIFCID AND DMASID=CIASID AND DMDAMK=CIAMKR AND CICHFD = 'MSCAN'  " +
                     " WHERE DMFCID=80 AND DMASID=1 AND DCPLNT = 'V1' AND DMSTN = 'DIEBANK' AND DMSTS2 IN ( 'ACTIVE',  'HOLD')" +
                     " AND DMDAMK NOT IN (SELECT DISTINCT (SLAMKR) FROM EMLIB.EMESLP12 WHERE DMFCID=SLFCID AND DMASID=SLASID AND DMDAMK=SLAMKR  AND (SLLOCT='L' OR SLLOCT='T' )  )" +
                     "  AND DMCSCD  IN " + cus + " AND DMRLOC IN " + location + " ORDER  BY DMCSCD ";
@@ -249,6 +253,8 @@ public class Data400Controller {
                 lotInformationModel.setEohWaferQty(m_rs.getInt("DMWEOH"));
                 lotInformationModel.setRackLocationCode(m_rs.getString("DMRLOC").trim());
 
+                lotInformationModel.setFgsNo(m_rs.getString("XBATCH").trim());
+                lotInformationModel.setBinNo(m_rs.getString("XMTLNO").trim());
                 if (m_rs.getString("CIOGVL") != null) {
                     lotInformationModel.setResponseMessage(m_rs.getString("CIOGVL").trim());
                     lotInformationModel.setResponseMessageDesc(m_rs.getString("CINWVL").trim());
@@ -653,9 +659,11 @@ public class Data400Controller {
             row.createCell(3).setCellValue("DCC");
             row.createCell(4).setCellValue("Die Qty");
             row.createCell(5).setCellValue("Wafer Qty");
-            row.createCell(6).setCellValue("Device");
-            row.createCell(7).setCellValue("Location");
-            row.createCell(8).setCellValue("Scanned");
+            row.createCell(6).setCellValue("Material No");
+            row.createCell(7).setCellValue("Batch No");
+            row.createCell(8).setCellValue("Device");
+            row.createCell(9).setCellValue("Location");
+            row.createCell(10).setCellValue("Scanned");
 
             int rowCount = 5;
 
@@ -670,9 +678,11 @@ public class Data400Controller {
                 lotRow.createCell(3).setCellValue(lot.getCustDcc());
                 lotRow.createCell(4).setCellValue(lot.getEohQty());
                 lotRow.createCell(5).setCellValue(lot.getEohWaferQty());
-                lotRow.createCell(6).setCellValue(lot.getSourceDevice());
-                lotRow.createCell(7).setCellValue(lot.getRackLocationCode());
-                lotRow.createCell(8).setCellValue(lot.isScanned() ? "Y" : "N");
+                lotRow.createCell(6).setCellValue(lot.getBinNo());
+                lotRow.createCell(7).setCellValue(lot.getFgsNo());
+                lotRow.createCell(8).setCellValue(lot.getSourceDevice());
+                lotRow.createCell(9).setCellValue(lot.getRackLocationCode());
+                lotRow.createCell(10).setCellValue(lot.isScanned() ? "Y" : "N");
 
 
                 rowCount++;
