@@ -33,7 +33,8 @@ public class Scheduler {
             if (listFG != null && !listFG.isEmpty()) {
                 StringBuilder contentBuilder = new StringBuilder();
                 String title = "ATV_FGs not scheduled for more than 30 days";
-                List<String> toPeople = Arrays.asList("Thanh.Truongcong@amkor.com", "Nam.Nguyenhoang@amkor.com");
+                List<String> toPeople = Arrays.asList("ATVKIOXIAPCS@amkor.com");
+                List<String> ccPeople = Arrays.asList("Thanh.Truongcong@amkor.com");
                 contentBuilder.append("<h2>List of FGs below have not been scheduled for more than 30 days. Please review it!</h2>");
                 contentBuilder.append("<table style='border: 1px solid black'>");
                 contentBuilder.append("<tr style='border: 1px solid black'><th style='border: 1px solid black'>FG</th><th style='border: 1px solid black'>PV</th></tr>");
@@ -43,7 +44,7 @@ public class Scheduler {
                 }
                 contentBuilder.append("</table>");
 
-                iatvThanhService.sendMailProcess(title, contentBuilder.toString(), toPeople, new ArrayList<>(), new ArrayList<>());
+                iatvThanhService.sendMailProcess(title, contentBuilder.toString(), toPeople, ccPeople, new ArrayList<>());
             }
             log.info("end sending email to alert fg...");
         } catch (Exception ex) {
