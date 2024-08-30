@@ -269,6 +269,7 @@ public class Data400ThanhController {
                                                      @RequestBody ProcessNoteModel[] model) {
         HashMap<String, String> result = new HashMap<>();
         String msg = "";
+        String note;
         ApiLoggingModel logging = new ApiLoggingModel();
         try {
             long current = iatvService.getDateTime();
@@ -276,16 +277,18 @@ public class Data400ThanhController {
                 int record;
                 if (iatvService.checkExistProcessNote(processNoteModel)) {
                     record = iatvThanhService.updateProcessNote(processNoteModel);
+                    logging.setCinwvl("Process Note update");
+                    note = "Process Note update";
                     if (record == 0) {
                         msg = UPDATE_FAIL_MESSAGE;
-                        logging.setCinwvl("Process Note update");
                     }
 
                 } else {
                     record = iatvThanhService.createProcessNote(processNoteModel);
+                    logging.setCinwvl("Process Note create");
+                    note = "Process Note create";
                     if (record == 0) {
                         msg = CREATE_FAIL_MESSAGE;
-                        logging.setCinwvl("Process Note create");
                     }
                 }
 
@@ -301,7 +304,7 @@ public class Data400ThanhController {
                         String.valueOf(processNoteModel.getUserBadge()),
                         iatvService.getDateTime(),
                         processNoteModel.toString(),
-                        "Process Note cre/upd"
+                        note
                 ));
 
                 if (record == 0) {
@@ -328,6 +331,7 @@ public class Data400ThanhController {
         HashMap<String, String> result = new HashMap<>();
 
         String msg = "";
+        String note;
         int record;
         long currentDateTime = iatvService.getDateTime();
         ApiLoggingModel logging = new ApiLoggingModel();
@@ -338,12 +342,14 @@ public class Data400ThanhController {
                     msg = UPDATE_FAIL_MESSAGE;
                 }
                 logging.setCinwvl("Auto Label update");
+                note = "Auto Label update";
             } else {
                 record = iatvThanhService.createAutoLabelMaintenance(model);
                 if (record == 0) {
                     msg = CREATE_FAIL_MESSAGE;
                 }
                 logging.setCinwvl("Auto Label create");
+                note = "Auto Label create";
             }
 
             // logging
@@ -358,7 +364,7 @@ public class Data400ThanhController {
                     String.valueOf(model.getUserBadge()),
                     currentDateTime,
                     model.toString(),
-                    "Auto Label Maintenance cre/upd"
+                    note
             ));
             if (msg.isEmpty()) {
                 msg = SUCCESS_MESSAGE;
