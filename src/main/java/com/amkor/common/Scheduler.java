@@ -2,7 +2,9 @@ package com.amkor.common;
 
 
 import com.amkor.common.utils.SharedConstValue;
+import com.amkor.models.ATVNetMiscTableModel;
 import com.amkor.models.AlertForFGModel;
+import com.amkor.service.ATVNetMiscTableService;
 import com.amkor.service.iService.IATVService;
 import com.amkor.service.iService.IATVThanhService;
 import org.slf4j.Logger;
@@ -25,6 +27,9 @@ public class Scheduler {
     @Autowired
     private IATVThanhService iatvThanhService;
 
+    @Autowired
+    private ATVNetMiscTableService miscTableService;
+
     @Scheduled(cron = "0 0 8 * * MON-SAT")
     public void sendMailAlertFGNotScheduledIn30Days() {
         try {
@@ -33,8 +38,24 @@ public class Scheduler {
             if (listFG != null && !listFG.isEmpty()) {
                 StringBuilder contentBuilder = new StringBuilder();
                 String title = "ATV_FGs not scheduled for more than 30 days";
-                List<String> toPeople = Arrays.asList("ATVKIOXIAPCS@amkor.com");
-                List<String> ccPeople = Arrays.asList("Thanh.Truongcong@amkor.com");
+                List<String> toPeople = new ArrayList<>();
+                List<String> ccPeople = new ArrayList<>();
+
+                List<ATVNetMiscTableModel> records = miscTableService.getList(
+                        SharedConstValue.FACTORY_ID,
+                        SharedConstValue.MISC_TABLE_ID_MAIL_ALERT_FG,
+                        SharedConstValue.PLANT,
+                        "78"
+                );
+
+                for (ATVNetMiscTableModel record : records) {
+                    String[] recipients = record.getLongDesc().split(";");
+                    if (record.getShortDesc().equals("to")) {
+                        toPeople.addAll(Arrays.asList(recipients));
+                    } else {
+                        ccPeople.addAll(Arrays.asList(recipients));
+                    }
+                }
                 contentBuilder.append("<h2>List of FGs below have not been scheduled for more than 30 days. Please review it!</h2>");
                 contentBuilder.append("<table style='border: 1px solid black'>");
                 contentBuilder.append("<tr style='border: 1px solid black'><th style='border: 1px solid black'>FG</th><th style='border: 1px solid black'>PV</th></tr>");
