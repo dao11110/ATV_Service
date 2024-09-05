@@ -9,4 +9,5 @@ import lombok.Setter;
 public class AlertForFGModel {
     private String fgCode;
     private String pv;
+    private String targetDevice;
 }
