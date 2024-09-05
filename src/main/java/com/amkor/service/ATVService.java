@@ -407,7 +407,7 @@ public class ATVService implements IATVService {
             long lReleasedDate = this.getDate(releasedDate);
             Date scheduledDate = Date.from(Instant.now().minus(Duration.ofDays(30)));  // scheduled date 1 month ago
             long lScheduledDate = this.getDateTime(scheduledDate);
-            String sQuery = "SELECT DISTINCT XMTLNO, XPV " +
+            String sQuery = "SELECT DISTINCT XMTLNO, XPV, SSDEVC " +
                     "FROM EMLIB.ASCHMP03 " +
                     "JOIN EMLIB.EMESTP02 ON SSFCID = CVFCID AND SSASID = CVASID AND CVAMKR = SSWAMK AND SSSUB# = CVSUB# AND CVBZTP = SSBZTP " +
                     "JOIN EMLIB.XREFPOP ON SSFCID = XFCID AND SSASID =XASID AND SSWAMK =XAMKID AND SSSUB# = XSUBID AND XBZTYP = SUBSTRING(SSBZTP,0,2) " +
@@ -433,6 +433,7 @@ public class ATVService implements IATVService {
                 AlertForFGModel alert = new AlertForFGModel();
                 alert.setFgCode(m_rs.getString("XMTLNO").trim());
                 alert.setPv(m_rs.getString("XPV").trim());
+                alert.setTargetDevice(m_rs.getString("SSDEVC").trim());
                 result.add(alert);
             }
             m_rs.close();
