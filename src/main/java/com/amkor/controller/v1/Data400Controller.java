@@ -147,7 +147,7 @@ public class Data400Controller {
         try {
             Class.forName(DRIVER);
             m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
-            String query = "SELECT DISTINCT  DMCSCD, DMLOT#,DMDCC,DMSDEV,DMDAMK,DMEOHQ,DMWEOH,DMRLOC,CICHDT,CICHFD,CIOGVL,CINWVL,XBATCH,XMTLNO  FROM  EMLIB.ADSTMP01\n" +
+            String query = "SELECT DISTINCT  DMCSCD, DMLOT#,DMDCC,DMSDEV,DMDAMK,DMEOHQ,DMWEOH,DMRLOC,CICHDT,CICHFD,CIOGVL,CINWVL,XBATCH,XMTLNO,DMLTCD  FROM  EMLIB.ADSTMP01\n" +
                     "INNER JOIN EMLIB.XREFWFP ON DMFCID=XFCID AND DMASID=XASID AND DMDAMK=XAMKID " +
                     "LEFT JOIN   EMLIB.EMESLP04 ON DMFCID=CIFCID AND DMASID=CIASID AND DMDAMK=CIAMKR AND CICHFD = 'MSCAN' \n" +
                     " WHERE DMFCID=80 AND DMASID=1 AND DCPLNT = 'V1' AND DMSTN = 'DIEBANK' AND DMSTS2 IN ( 'ACTIVE',  'HOLD')" +
@@ -170,6 +170,7 @@ public class Data400Controller {
                 locationList.add(m_rs.getString("DMRLOC").trim());
                 lotInformationModel.setFgsNo(m_rs.getString("XBATCH").trim());
                 lotInformationModel.setBinNo(m_rs.getString("XMTLNO").trim());
+                lotInformationModel.setLotType(m_rs.getString("DMLTCD").trim());
 
                 if (m_rs.getString("CIOGVL") != null) {
                     lotInformationModel.setResponseMessage(m_rs.getString("CIOGVL").trim());
@@ -232,7 +233,7 @@ public class Data400Controller {
         try {
             Class.forName(DRIVER);
             m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
-            query = "SELECT DISTINCT  DMCSCD, DMLOT#,DMDCC,DMSDEV,DMDAMK,DMEOHQ,DMWEOH,DMRLOC,CICHDT,CICHFD,CIOGVL,CINWVL ,XBATCH,XMTLNO  FROM  EMLIB.ADSTMP01 " +
+            query = "SELECT DISTINCT  DMCSCD, DMLOT#,DMDCC,DMSDEV,DMDAMK,DMEOHQ,DMWEOH,DMRLOC,CICHDT,CICHFD,CIOGVL,CINWVL ,XBATCH,XMTLNO,DMLTCD   FROM  EMLIB.ADSTMP01 " +
                     "INNER JOIN EMLIB.XREFWFP ON DMFCID=XFCID AND DMASID=XASID AND DMDAMK=XAMKID " +
                     "LEFT JOIN   EMLIB.EMESLP04 ON DMFCID=CIFCID AND DMASID=CIASID AND DMDAMK=CIAMKR AND CICHFD = 'MSCAN'  " +
                     " WHERE DMFCID=80 AND DMASID=1 AND DCPLNT = 'V1' AND DMSTN = 'DIEBANK' AND DMSTS2 IN ( 'ACTIVE',  'HOLD')" +
@@ -252,6 +253,7 @@ public class Data400Controller {
                 lotInformationModel.setEohQty(m_rs.getInt("DMEOHQ"));
                 lotInformationModel.setEohWaferQty(m_rs.getInt("DMWEOH"));
                 lotInformationModel.setRackLocationCode(m_rs.getString("DMRLOC").trim());
+                lotInformationModel.setLotType(m_rs.getString("DMLTCD").trim());
 
                 lotInformationModel.setFgsNo(m_rs.getString("XBATCH").trim());
                 lotInformationModel.setBinNo(m_rs.getString("XMTLNO").trim());
@@ -661,9 +663,11 @@ public class Data400Controller {
             row.createCell(5).setCellValue("Wafer Qty");
             row.createCell(6).setCellValue("Material No");
             row.createCell(7).setCellValue("Batch No");
-            row.createCell(8).setCellValue("Device");
-            row.createCell(9).setCellValue("Location");
-            row.createCell(10).setCellValue("Scanned");
+            row.createCell(8).setCellValue("Lot Type");
+
+            row.createCell(9).setCellValue("Device");
+            row.createCell(10).setCellValue("Location");
+            row.createCell(11).setCellValue("Scanned");
 
             int rowCount = 5;
 
@@ -680,9 +684,10 @@ public class Data400Controller {
                 lotRow.createCell(5).setCellValue(lot.getEohWaferQty());
                 lotRow.createCell(6).setCellValue(lot.getBinNo());
                 lotRow.createCell(7).setCellValue(lot.getFgsNo());
-                lotRow.createCell(8).setCellValue(lot.getSourceDevice());
-                lotRow.createCell(9).setCellValue(lot.getRackLocationCode());
-                lotRow.createCell(10).setCellValue(lot.isScanned() ? "Y" : "N");
+                lotRow.createCell(8).setCellValue(lot.getLotType());
+                lotRow.createCell(9).setCellValue(lot.getSourceDevice());
+                lotRow.createCell(10).setCellValue(lot.getRackLocationCode());
+                lotRow.createCell(11).setCellValue(lot.isScanned() ? "Y" : "N");
 
 
                 rowCount++;

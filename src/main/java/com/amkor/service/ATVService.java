@@ -46,15 +46,15 @@ public class ATVService implements IATVService {
 
             List<String> listTo = new ArrayList<>();
             listTo.add("Dao.Nguyenvan@amkor.com");
-            if (title.equals("Diebank Inventory Daily")) {
-                listTo.add("V1BANK@amkor.com");
-                listTo.add("V1EFT0064@amkor.com");
-                listTo.add("V1EFT0066@amkor.com");
-            } else if (title.equals("NG Store Inventory Daily")) {
-                listTo.add("V1NG@amkor.com");
-            } else {
-                listTo.add("V1SHIP@amkor.com");
-            }
+//            if (title.equals("Diebank Inventory Daily")) {
+//                listTo.add("V1BANK@amkor.com");
+//                listTo.add("V1EFT0064@amkor.com");
+//                listTo.add("V1EFT0066@amkor.com");
+//            } else if (title.equals("NG Store Inventory Daily")) {
+//                listTo.add("V1NG@amkor.com");
+//            } else {
+//                listTo.add("V1SHIP@amkor.com");
+//            }
 
             List<String> listFileName = new ArrayList<>();
             listFileName.add(fileName);
