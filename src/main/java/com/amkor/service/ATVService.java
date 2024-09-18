@@ -52,7 +52,10 @@ public class ATVService implements IATVService {
                 listTo.add("V1EFT0066@amkor.com");
             } else if (title.equals("NG Store Inventory Daily")) {
                 listTo.add("V1NG@amkor.com");
-            } else {
+            }else if (title.equals("NG Store Scrap Daily")) {
+                listTo.add("V1NG@amkor.com");
+
+            } else  {
                 listTo.add("V1SHIP@amkor.com");
             }
 

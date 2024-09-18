@@ -446,6 +446,84 @@ public class Data400Controller {
         return result;
     }
 
+    @RequestMapping(method = RequestMethod.GET, value = "/sendMailNGScrap")
+    public  String sendMailNGScrap(){
+        ArrayList<LotInformationModel> listData = new ArrayList<>();
+        LotInformationModel lotInformationModel = new LotInformationModel();
+        Connection m_conn = null;
+        PreparedStatement m_psmt = null;
+        CallableStatement m_cs = null;
+        ResultSet m_rs = null;
+        Long dateStart = Long.parseLong(currentDate()+"000000");
+        Long dateEnd = Long.parseLong(currentDate()+"235959");
+
+        String result = "Fail";
+        String query = "";
+
+        try {
+            Class.forName(DRIVER);
+            m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
+            query = "SELECT NMFCID,NMASID,NMWAMK,NMSUB#,NMOPR,NMSTN,NMSTS1,NMSTS2,NMLOT#,NMDCC,NFPLNT,NTPLNT,NMCSCD,NMPKG,NMDMS,NMLEAD,NMDEVC, NMRCVQ,NMEOH,NMRACK,NMSHLF,NMRQDT,NMRQBG,NMCRDT,NMCRBG,NMSCDT,NRFCID,NRASID,NRWAMK,NRSUB#,NRSEQ,NRMODE,NRSTS,NRBINO,NRQTY, NRREMK,NRMAIL,NRRTND,NRISLC,NRRTNF,NRCRDT,NRCRBG,NRCHDT,NRCHBG , NSBINO \n" +
+                    "FROM EMLIB.ANGSTP01 " +
+                    "LEFT JOIN EMLIB.ANGSTP02 ON NMFCID=NSFCID AND NMASID=NSASID AND NMWAMK=NSWAMK AND NMSUB#= NSSUB#  AND NMOPR= NSOPR  " +
+                    "LEFT JOIN EMLIB.EMESLP30 ON NMFCID=NRFCID AND NMASID= NRASID AND NMWAMK=NRWAMK AND  NMSUB#=NRSUB# AND  NMOPR=NRSEQ  " +
+                    "WHERE  NMSTS1='CLOSE' AND NMSTS2='SCRAP' AND  NMEOH=0 AND NRMODE='SCRAP' AND NRSTS='P-SCRAPED' AND NRCRDT >= "+ dateStart+" AND NRCRDT <= "+ dateEnd;
+
+
+            m_psmt = m_conn.prepareStatement(query);
+
+            m_rs = m_psmt.executeQuery();
+            while (m_rs != null && m_rs.next()) {
+                lotInformationModel = new LotInformationModel();
+                lotInformationModel.setFactoryID(m_rs.getInt("NMFCID"));
+                lotInformationModel.setSiteID(m_rs.getInt("NMASID"));
+                lotInformationModel.setFromPlant(m_rs.getString("NFPLNT").trim());
+                lotInformationModel.setCustCode(m_rs.getInt("NMCSCD"));
+                lotInformationModel.setWipLot(m_rs.getString("NMLOT#").trim());
+                lotInformationModel.setWipDcc(m_rs.getString("NMDCC").trim());
+                lotInformationModel.setWipAmkorID(m_rs.getInt("NMWAMK"));
+                lotInformationModel.setWipAmkorSubID(m_rs.getInt("NMSUB#"));
+                lotInformationModel.setEohQty(m_rs.getInt("NRQTY"));
+                lotInformationModel.setOperationNo(m_rs.getInt("NMOPR"));
+                lotInformationModel.setTargetDevice(m_rs.getString("NMDEVC").trim());
+                lotInformationModel.setStatus2(m_rs.getString("NMSTS2").trim());
+                lotInformationModel.setBadge(Integer.parseInt(m_rs.getString("NRCHBG").trim()));
+                lotInformationModel.setStripMark(m_rs.getString("NRREMK").trim());
+                lotInformationModel.setRackLocationCode(m_rs.getString("NMRACK").trim());
+                lotInformationModel.setShelfLocationCode(m_rs.getString("NMSHLF").trim());
+
+                listData.add(lotInformationModel);
+
+
+            }
+
+
+
+            m_psmt.close();
+            m_rs.close();
+
+
+            m_conn.close();
+
+            if (listData.size() > 0) {
+                List<LotInformationModel> listLotByLocation = new ArrayList<>();
+
+                result = "Send Email Success";
+                String fileName = "C:\\Dao\\SendMail\\";
+
+                String fileNameString ="NGStoreScrap" + currentDate() + ".xls";
+                fileName = fileName + fileNameString;
+                createWorkbookNGStoreScrap(new File(fileName), listData, fileNameString);
+            } else {
+                result = "There is no data Shipment ";
+            }
+
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+
+        return result;
+    }
 
     @RequestMapping(method = RequestMethod.GET, value = "/sync/checkWindowTimeHold")
 //    @Scheduled(fixedDelay = 1800000, initialDelay = 1800000)
@@ -906,7 +984,99 @@ public class Data400Controller {
             throw new RuntimeException(e);
         }
     }
+    private void createWorkbookNGStoreScrap(File fileName, ArrayList<LotInformationModel> lotList, String fileNameString){
+        try {
 
+
+            if (fileName.exists()) {
+                fileName.delete();
+            }
+
+
+            FileOutputStream fos = new FileOutputStream(fileName);
+            Workbook workbook = new HSSFWorkbook();
+
+            Sheet sheet = workbook.createSheet("Scrap");
+            CellStyle style = workbook.createCellStyle();
+            style.setBorderBottom(BorderStyle.THIN);
+            style.setBottomBorderColor(IndexedColors.BLACK.getIndex());
+            style.setBorderLeft(BorderStyle.THIN);
+            style.setLeftBorderColor(IndexedColors.GREEN.getIndex());
+            style.setBorderRight(BorderStyle.THIN);
+            style.setRightBorderColor(IndexedColors.BLUE.getIndex());
+            style.setBorderTop(BorderStyle.MEDIUM);
+            style.setTopBorderColor(IndexedColors.BLACK.getIndex());
+//            style.setWrapText(true);
+            style.setVerticalAlignment(VerticalAlignment.CENTER);
+//            if (lotList.size() > 1) {
+//                sheet.addMergedRegion(new CellRangeAddress(3, lotList.size() + 2, 0, 0));
+//            }
+
+
+            Row row = sheet.createRow(2);
+
+            row.createCell(0).setCellValue("No");
+            row.createCell(1).setCellValue("Scrap Date");
+            row.createCell(2).setCellValue("Plant");
+            row.createCell(3).setCellValue("Cust");
+            row.createCell(4).setCellValue("Lot#");
+            row.createCell(5).setCellValue("Dcc");
+            row.createCell(6).setCellValue("Oper#");
+            row.createCell(7).setCellValue("EOH");
+            row.createCell(8).setCellValue("Rack");
+            row.createCell(9).setCellValue("Shelf");
+            row.createCell(10).setCellValue("Status");
+
+            for (int i = 0; i < 11; i++) {
+                row.getCell(i).setCellStyle(style);
+                sheet.autoSizeColumn(i);
+            }
+
+            int rowCount = 3;
+
+
+            for (LotInformationModel lot : lotList) {
+
+                Row lotRow = sheet.createRow(rowCount);
+
+
+                lotRow.createCell(0).setCellValue(rowCount - 2);
+                lotRow.createCell(1).setCellValue(currentDate());
+                lotRow.createCell(2).setCellValue(lot.getFromPlant());
+                lotRow.createCell(3).setCellValue(lot.getCustCode());
+                lotRow.createCell(4).setCellValue(lot.getWipLot());
+                lotRow.createCell(5).setCellValue(lot.getWipDcc());
+                lotRow.createCell(6).setCellValue(lot.getOperationNo());
+                lotRow.createCell(7).setCellValue(lot.getEohQty());
+                lotRow.createCell(8).setCellValue(lot.getRackLocationCode());
+                lotRow.createCell(9).setCellValue(lot.getShelfLocationCode());
+                lotRow.createCell(10).setCellValue(lot.getStatus2());
+
+
+                for (int i = 0; i < 11; i++) {
+                    lotRow.getCell(i).setCellStyle(style);
+                    sheet.autoSizeColumn(i);
+                }
+
+                rowCount++;
+            }
+
+
+
+            workbook.write(fos);
+            fos.flush();
+            fos.close();
+            atvService.sendMailDaily(fileName.getPath(), fileNameString, "NG Store Scrap Daily");
+
+
+
+        } catch (FileNotFoundException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     private String currentDate() {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
@@ -963,5 +1133,14 @@ public class Data400Controller {
         }
 
         return listLot;
+    }
+    @RequestMapping(method = RequestMethod.GET,value = "labelValidation")
+    public String  labelValidation(@RequestParam(value = "jsonBody") String jsonBody){
+        String result="";
+        if (jsonBody!=null){
+            result="OK";
+        }else
+            result="Not Success";
+        return result;
     }
 }
