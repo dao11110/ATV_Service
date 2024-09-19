@@ -292,7 +292,7 @@ public class Data400Controller {
         CallableStatement m_cs = null;
         ResultSet m_rs = null;
         Long dateStart = Long.parseLong(currentDate());
-//        Long dateStart = Long.parseLong("20240806");
+//        Long dateStart = Long.parseLong("20240918");
 
         String result = "Fail";
         String query = "";
@@ -325,6 +325,7 @@ public class Data400Controller {
                 lotInformationModel = new LotInformationModel();
                 lotInformationModel.setCustCode(m_rs.getInt("SMSCST"));
                 lotInformationModel.setCustLot(m_rs.getString("SMLOT#").trim());
+                lotInformationModel.setWipAmkorSubID(m_rs.getInt("SSSUB#"));
                 lotInformationModel.setCustDcc(m_rs.getString("SMDCC").trim());
                 lotInformationModel.setTargetDevice(m_rs.getString("SSDEVC").trim());
                 lotInformationModel.setWipAmkorID(m_rs.getInt("SMWAMK"));
@@ -341,7 +342,7 @@ public class Data400Controller {
 
 
             }
-            listData=getFPO(listData,"TEST");
+//            listData=getFPO(listData,"TEST");
 
 
             m_psmt.close();
