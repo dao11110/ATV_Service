@@ -1,13 +1,21 @@
 package com.amkor.controller.v1;
 
+import com.amkor.common.utils.SharedConstValue;
 import com.amkor.models.*;
 import com.amkor.service.APILoggingService;
+import com.amkor.service.ATVNetMiscTableService;
 import com.amkor.service.iService.IATVService;
 import com.amkor.service.iService.IATVThanhService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.BufferedInputStream;
+import java.net.URL;
 import java.sql.*;
 import java.util.*;
 
@@ -23,6 +31,9 @@ public class Data400ThanhController {
 
     @Autowired
     private APILoggingService apiLoggingService;
+
+    @Autowired
+    private ATVNetMiscTableService miscTableService;
 
     private static final String UPDATE_FAIL_MESSAGE = "FAILED TO UPDATE";
     private static final String CREATE_FAIL_MESSAGE = "FAILED TO CREATE";
@@ -376,4 +387,60 @@ public class Data400ThanhController {
         return result;
     }
 
+    @RequestMapping(method = RequestMethod.GET, value = "data400/{site}/getScheduleSheetMemoFile")
+    public ResponseEntity<Resource> getOnlineScheduleSheetMemoFileFromStationAndLotName(@PathVariable("site") String site,
+                                                                                        @RequestParam("lotName") String lotName,
+                                                                                        @RequestParam("station") String station,
+                                                                                        @RequestParam("userBadge") String userBadge) {
+        InputStreamResource resource = null;
+        String fileName = "result.xlsx";
+        ApiLoggingModel logging = new ApiLoggingModel();
+        long currentDateTime = iatvService.getDateTime();
+        String note;
+        try {
+            OnLineScheduleSheetFileModel fileModel = iatvService.getOnlineScheduleSheetMemoFileFromStationAndLotName(lotName, station);
+            if (fileModel != null) {
+                fileName = fileModel.getFile();
+                String filePath = fileModel.getPath() + fileModel.getFile();
+                String domain = "";
+                List<ATVNetMiscTableModel> miscs = miscTableService.getList(
+                        SharedConstValue.FACTORY_ID,
+                        "EMES_DOMAIN",
+                        "PRD",
+                        "");
+                if (!miscs.isEmpty()) {
+                    domain = miscs.get(0).getLongDesc();
+                }
+
+                domain += "eMES/commons/fileDownloader.do?filePath=" + filePath;
+                URL url = new URL(domain);
+                BufferedInputStream in = new BufferedInputStream(url.openStream());
+                resource = new InputStreamResource(new BufferedInputStream(in));
+                note = "Get online schedule sheet memo file api";
+
+                // logging
+                logging.setCifcid(fileModel.getFactoryID());
+                logging.setCiasid(SharedConstValue.SITE_ID);
+                logging.setCichdt(currentDateTime);
+                logging.setCichbg(Integer.parseInt(userBadge));
+                logging.setCiogvl("API_getMemoFile");
+                logging.setCirsn("logForAPI");
+                this.iatvThanhService.addApiLogging(logging);
+                this.apiLoggingService.insertLog(new ATVNetAPILoggingModel(
+                        userBadge,
+                        currentDateTime,
+                        "{lotName: " + lotName + ", station: " + station + "}",
+                        note
+                ));
+            }
+        } catch (Exception exception) {
+            System.out.println(exception.getMessage());
+        }
+        if (resource == null) {
+            return ResponseEntity.badRequest().contentType(MediaType.APPLICATION_OCTET_STREAM).body(resource);
+        } else {
+            return ResponseEntity.ok().header("Content-disposition", "attachment; filename=" + fileName).contentType(MediaType.APPLICATION_OCTET_STREAM).body(resource);
+        }
+
+    }
 }
