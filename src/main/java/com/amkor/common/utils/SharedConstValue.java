@@ -8,4 +8,6 @@ public class SharedConstValue {
     public static final String AMKOR_SHORTNAME = "ATV";
 
     public static final String MISC_TABLE_ID_MAIL_ALERT_FG = "MAIL_ALERT_FG";
+
+    public static final String CUST_CODE_KIOXIA = "78";
 }

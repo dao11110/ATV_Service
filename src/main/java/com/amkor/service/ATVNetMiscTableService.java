@@ -18,4 +18,8 @@ public class ATVNetMiscTableService implements IReadService {
     public List<ATVNetMiscTableModel> getList(int factoryId, String tableId, String tableCode1, String tableCode2) {
         return repo.getList(factoryId, tableId, tableCode1, tableCode2);
     }
+
+    public ATVNetMiscTableModel getOne(int factoryId, String tableId, String tableCode1, String tableCode2) {
+        return repo.getOne(factoryId, tableId, tableCode1, tableCode2);
+    }
 }

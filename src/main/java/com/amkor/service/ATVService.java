@@ -442,7 +442,7 @@ public class ATVService implements IATVService {
     }
 
     @Override
-    public List<AlertForFGModel> getAlertForFGNotScheduledFor30Days(int factoryId, String plant) {
+    public List<AlertForFGModel> getAlertForFGNotScheduledFor30Days(int factoryId, String plant, String cust) {
         Connection m_conn;
         PreparedStatement m_psmt;
         ResultSet m_rs;
@@ -458,7 +458,7 @@ public class ATVService implements IATVService {
                     "JOIN EMLIB.EMESTP02 ON SSFCID = CVFCID AND SSASID = CVASID AND CVAMKR = SSWAMK AND SSSUB# = CVSUB# AND CVBZTP = SSBZTP " +
                     "JOIN EMLIB.XREFPOP ON SSFCID = XFCID AND SSASID =XASID AND SSWAMK =XAMKID AND SSSUB# = XSUBID AND XBZTYP = SUBSTRING(SSBZTP,0,2) " +
                     "JOIN EMLIB.INPOP ON XPONO = IPONO AND XMTLNO = IMTLNO AND XSONO = ISONO " +
-                    "WHERE SSFCID = " + factoryId + " AND XPLNT = '" + plant + "' AND ICUST = 78 " +
+                    "WHERE SSFCID = " + factoryId + " AND XPLNT = '" + plant + "' AND ICUST = " + cust + " " +
                     "AND XMTLNO in (SELECT DISTINCT IMTLNO FROM EMLIB.INPOP i WHERE i.IRLSDT >= " + lReleasedDate + " AND i.IRLSDT <= " + lToday + " AND i.IF_STATUS in ('OK','DLV','ONG', 'DON')) " +
                     "AND SSLTCD = '' " +
                     "AND CVMDUL='SCHEDULE' AND ((CVFLDN = 'NPIFLAG' AND CVFLDV = '') OR (CVFLDN = 'TNPIFLAG' AND CVFLDV = 'N')) " +
