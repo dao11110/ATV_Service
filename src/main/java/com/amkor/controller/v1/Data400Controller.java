@@ -1210,9 +1210,12 @@ public class Data400Controller {
                     ObjectNode objectNode = mapper.createObjectNode();
                     for (int i = 0; i < colCount; i++) {
                         Cell cell = currentRow.getCell(i);
-                        String header = headerRow.getCell(i).getStringCellValue();
-                        String value = cell.toString();
-                        objectNode.put(header, value);
+                        if (cell != null) {
+                            String header = headerRow.getCell(i).getStringCellValue();
+                            String value = cell.toString();
+                            objectNode.put(header, value);
+                        }
+
                     }
                     arrayNode.add(objectNode);
                 }

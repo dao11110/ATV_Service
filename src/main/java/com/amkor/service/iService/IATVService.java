@@ -10,7 +10,7 @@ import java.util.List;
 
 @Service
 public interface IATVService extends IReadService {
-    List<AlertForFGModel> getAlertForFGNotScheduledFor30Days(int factoryId, String plant);
+    List<AlertForFGModel> getAlertForFGNotScheduledFor30Days(int factoryId, String plant, String cust);
 
     boolean checkExistProcessNote(ProcessNoteModel model);
 

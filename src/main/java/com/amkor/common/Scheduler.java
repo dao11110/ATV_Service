@@ -1,6 +1,7 @@
 package com.amkor.common;
 
 
+import com.amkor.common.utils.CommonUtils;
 import com.amkor.common.utils.SharedConstValue;
 import com.amkor.models.ATVNetMiscTableModel;
 import com.amkor.models.AlertForFGModel;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 public class Scheduler {
@@ -34,7 +36,7 @@ public class Scheduler {
     public void sendMailAlertFGNotScheduledIn30Days() {
         try {
             log.info("start sending email to alert fg...");
-            List<AlertForFGModel> listFG = iatvService.getAlertForFGNotScheduledFor30Days(SharedConstValue.FACTORY_ID, SharedConstValue.PLANT);
+            List<AlertForFGModel> listFG = iatvService.getAlertForFGNotScheduledFor30Days(SharedConstValue.FACTORY_ID, SharedConstValue.PLANT, SharedConstValue.CUST_CODE_KIOXIA);
             if (listFG != null && !listFG.isEmpty()) {
                 StringBuilder contentBuilder = new StringBuilder();
                 String title = "ATV_FGs not scheduled for more than 30 days";
@@ -45,7 +47,7 @@ public class Scheduler {
                         SharedConstValue.FACTORY_ID,
                         SharedConstValue.MISC_TABLE_ID_MAIL_ALERT_FG,
                         SharedConstValue.PLANT,
-                        "78"
+                        SharedConstValue.CUST_CODE_KIOXIA
                 );
 
                 for (ATVNetMiscTableModel record : records) {
@@ -56,12 +58,24 @@ public class Scheduler {
                         ccPeople.addAll(Arrays.asList(recipients));
                     }
                 }
+
+                ATVNetMiscTableModel record = miscTableService.getOne(
+                        SharedConstValue.FACTORY_ID,
+                        "WHITELIST_ALERT_FG",
+                        SharedConstValue.PLANT,
+                        SharedConstValue.CUST_CODE_KIOXIA
+                );
+
+                String[] whitelistFgs = record.getLongDesc().split(";");
+
                 contentBuilder.append("<h2>List of FGs below have not been scheduled for more than 30 days. Please review it!</h2>");
                 contentBuilder.append("<table style='border: 1px solid black'>");
                 contentBuilder.append("<tr style='border: 1px solid black'><th style='border: 1px solid black'>FG</th><th style='border: 1px solid black'>PV</th><th style='border: 1px solid black'>Target Device</th></tr>");
                 for (AlertForFGModel alert : listFG) {
-                    String rowContent = String.format("<tr style='border: 1px solid black'><td style='border: 1px solid black'>%s</td><td style='border: 1px solid black'>%s</td><td style='border: 1px solid black'>%s</td></tr>", alert.getFgCode(), alert.getPv(), alert.getTargetDevice());
-                    contentBuilder.append(rowContent);
+                    if (!CommonUtils.ArrayContains(whitelistFgs, alert.getFgCode().trim())) {
+                        String rowContent = String.format("<tr style='border: 1px solid black'><td style='border: 1px solid black'>%s</td><td style='border: 1px solid black'>%s</td><td style='border: 1px solid black'>%s</td></tr>", alert.getFgCode().trim(), alert.getPv().trim(), alert.getTargetDevice().trim());
+                        contentBuilder.append(rowContent);
+                    }
                 }
                 contentBuilder.append("</table>");
 
