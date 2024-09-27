@@ -1,21 +1,32 @@
 package com.amkor.controller.v1;
 
 
+import com.amkor.common.response.ApiResponse;
+import com.amkor.common.utils.SharedConstValue;
 import com.amkor.models.*;
+import com.amkor.service.APILoggingService;
+import com.amkor.service.ATVNetMiscTableService;
 import com.amkor.service.ATVService;
+import com.amkor.service.iService.IATVService;
+import com.amkor.service.iService.IATVThanhService;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.hssf.usermodel.*;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -31,6 +42,18 @@ public class Data400Controller {
     private static String DRIVER = "com.ibm.as400.access.AS400JDBCDriver";
     @Autowired
     private ATVService atvService;
+
+    @Autowired
+    private IATVThanhService iatvThanhService;
+
+    @Autowired
+    private IATVService iatvService;
+
+    @Autowired
+    private APILoggingService apiLoggingService;
+
+    @Autowired
+    private ATVNetMiscTableService miscTableService;
 
     public String getURL(String site) {
         String result = "";
@@ -350,7 +373,7 @@ public class Data400Controller {
 
 
             m_conn.close();
-            listData=getFPO(listData,"TEST");
+            listData = getFPO(listData, "TEST");
             if (listData.size() > 0) {
                 List<LotInformationModel> listLotByLocation = new ArrayList<>();
 
@@ -370,6 +393,7 @@ public class Data400Controller {
 
         return result;
     }
+
     @RequestMapping(method = RequestMethod.GET, value = "/sendMailNGInventory")
     public String sendMailNGInventory() {
         ArrayList<LotInformationModel> listData = new ArrayList<>();
@@ -378,8 +402,8 @@ public class Data400Controller {
         PreparedStatement m_psmt = null;
         CallableStatement m_cs = null;
         ResultSet m_rs = null;
-        Long dateStart = Long.parseLong(currentDate()+"000000");
-         Long dateEnd = Long.parseLong(currentDate()+"235959");
+        Long dateStart = Long.parseLong(currentDate() + "000000");
+        Long dateEnd = Long.parseLong(currentDate() + "235959");
 
         String result = "Fail";
         String query = "";
@@ -387,11 +411,10 @@ public class Data400Controller {
         try {
             Class.forName(DRIVER);
             m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
-            query = "SELECT A.FACTORY_ID,A.SITE_ID,A.CUSTOMER_NO,A.LOT_NO,A.LOT_DCC, A.AMKOR_ID, A.SUB_ID,A.EOH_QTY,A.OPERATION_NO,A.DEVICE,A.STATUS2,B.CHANGE_BADGE,C.LOG_REMARK FROM EMLIB.ANGSTP01 AS A "+
-            " JOIN  EMLIB.EMESLP30 AS B ON A.FACTORY_ID = B.FACTORY_ID AND A.SITE_ID = B.SITE_ID AND A.AMKOR_ID = B.AMKOR_ID AND A.SUB_ID =B.SUB_ID AND A.OPERATION_NO = B.SEQUENCE_NO " +
-           "LEFT JOIN  EMLIB.EMESLP30 AS C ON A.FACTORY_ID = C.FACTORY_ID AND A.SITE_ID = C.SITE_ID AND A.AMKOR_ID = C.AMKOR_ID AND A.SUB_ID =C.SUB_ID AND A.OPERATION_NO = C.SEQUENCE_NO AND C.TRNX_MODE = 'BOXID'"+
-           " WHERE B.FACTORY_ID =80 AND B.SITE_ID =1 AND FR_PLANT = 'V1'  AND B.TRNX_MODE ='INVENTORY' AND B.LOG_REMARK='CHECKED' AND B.CHANGE_DATETIME BETWEEN " +dateStart+ " AND " +dateEnd +"  ORDER BY A.CUSTOMER_NO " ;
-
+            query = "SELECT A.FACTORY_ID,A.SITE_ID,A.CUSTOMER_NO,A.LOT_NO,A.LOT_DCC, A.AMKOR_ID, A.SUB_ID,A.EOH_QTY,A.OPERATION_NO,A.DEVICE,A.STATUS2,B.CHANGE_BADGE,C.LOG_REMARK FROM EMLIB.ANGSTP01 AS A " +
+                    " JOIN  EMLIB.EMESLP30 AS B ON A.FACTORY_ID = B.FACTORY_ID AND A.SITE_ID = B.SITE_ID AND A.AMKOR_ID = B.AMKOR_ID AND A.SUB_ID =B.SUB_ID AND A.OPERATION_NO = B.SEQUENCE_NO " +
+                    "LEFT JOIN  EMLIB.EMESLP30 AS C ON A.FACTORY_ID = C.FACTORY_ID AND A.SITE_ID = C.SITE_ID AND A.AMKOR_ID = C.AMKOR_ID AND A.SUB_ID =C.SUB_ID AND A.OPERATION_NO = C.SEQUENCE_NO AND C.TRNX_MODE = 'BOXID'" +
+                    " WHERE B.FACTORY_ID =80 AND B.SITE_ID =1 AND FR_PLANT = 'V1'  AND B.TRNX_MODE ='INVENTORY' AND B.LOG_REMARK='CHECKED' AND B.CHANGE_DATETIME BETWEEN " + dateStart + " AND " + dateEnd + "  ORDER BY A.CUSTOMER_NO ";
 
 
             m_psmt = m_conn.prepareStatement(query);
@@ -420,7 +443,6 @@ public class Data400Controller {
             }
 
 
-
             m_psmt.close();
             m_rs.close();
 
@@ -433,7 +455,7 @@ public class Data400Controller {
                 result = "Send Email Success";
                 String fileName = "C:\\Dao\\SendMail\\";
 
-                String fileNameString ="NGStoreInventory" + currentDate() + ".xls";
+                String fileNameString = "NGStoreInventory" + currentDate() + ".xls";
                 fileName = fileName + fileNameString;
                 createWorkbookNGStoreInventory(new File(fileName), listData, fileNameString);
             } else {
@@ -448,15 +470,15 @@ public class Data400Controller {
     }
 
     @RequestMapping(method = RequestMethod.GET, value = "/sendMailNGScrap")
-    public  String sendMailNGScrap(){
+    public String sendMailNGScrap() {
         ArrayList<LotInformationModel> listData = new ArrayList<>();
         LotInformationModel lotInformationModel = new LotInformationModel();
         Connection m_conn = null;
         PreparedStatement m_psmt = null;
         CallableStatement m_cs = null;
         ResultSet m_rs = null;
-        Long dateStart = Long.parseLong(currentDate()+"000000");
-        Long dateEnd = Long.parseLong(currentDate()+"235959");
+        Long dateStart = Long.parseLong(currentDate() + "000000");
+        Long dateEnd = Long.parseLong(currentDate() + "235959");
 
         String result = "Fail";
         String query = "";
@@ -468,7 +490,7 @@ public class Data400Controller {
                     "FROM EMLIB.ANGSTP01 " +
                     "LEFT JOIN EMLIB.ANGSTP02 ON NMFCID=NSFCID AND NMASID=NSASID AND NMWAMK=NSWAMK AND NMSUB#= NSSUB#  AND NMOPR= NSOPR  " +
                     "LEFT JOIN EMLIB.EMESLP30 ON NMFCID=NRFCID AND NMASID= NRASID AND NMWAMK=NRWAMK AND  NMSUB#=NRSUB# AND  NMOPR=NRSEQ  " +
-                    "WHERE  NMSTS1='CLOSE' AND NMSTS2='SCRAP' AND  NMEOH=0 AND NRMODE='SCRAP' AND NRSTS='P-SCRAPED' AND NRCRDT >= "+ dateStart+" AND NRCRDT <= "+ dateEnd;
+                    "WHERE  NMSTS1='CLOSE' AND NMSTS2='SCRAP' AND  NMEOH=0 AND NRMODE='SCRAP' AND NRSTS='P-SCRAPED' AND NRCRDT >= " + dateStart + " AND NRCRDT <= " + dateEnd;
 
 
             m_psmt = m_conn.prepareStatement(query);
@@ -499,7 +521,6 @@ public class Data400Controller {
             }
 
 
-
             m_psmt.close();
             m_rs.close();
 
@@ -512,7 +533,7 @@ public class Data400Controller {
                 result = "Send Email Success";
                 String fileName = "C:\\Dao\\SendMail\\";
 
-                String fileNameString ="NGStoreScrap" + currentDate() + ".xls";
+                String fileNameString = "NGStoreScrap" + currentDate() + ".xls";
                 fileName = fileName + fileNameString;
                 createWorkbookNGStoreScrap(new File(fileName), listData, fileNameString);
             } else {
@@ -894,7 +915,8 @@ public class Data400Controller {
             throw new RuntimeException(e);
         }
     }
-    private void createWorkbookNGStoreInventory(File fileName, ArrayList<LotInformationModel> lotList, String fileNameString){
+
+    private void createWorkbookNGStoreInventory(File fileName, ArrayList<LotInformationModel> lotList, String fileNameString) {
         try {
 
 
@@ -970,12 +992,10 @@ public class Data400Controller {
             }
 
 
-
             workbook.write(fos);
             fos.flush();
             fos.close();
             atvService.sendMailDaily(fileName.getPath(), fileNameString, "NG Store Inventory Daily");
-
 
 
         } catch (FileNotFoundException e) {
@@ -985,7 +1005,8 @@ public class Data400Controller {
             throw new RuntimeException(e);
         }
     }
-    private void createWorkbookNGStoreScrap(File fileName, ArrayList<LotInformationModel> lotList, String fileNameString){
+
+    private void createWorkbookNGStoreScrap(File fileName, ArrayList<LotInformationModel> lotList, String fileNameString) {
         try {
 
 
@@ -1063,12 +1084,10 @@ public class Data400Controller {
             }
 
 
-
             workbook.write(fos);
             fos.flush();
             fos.close();
             atvService.sendMailDaily(fileName.getPath(), fileNameString, "NG Store Scrap Daily");
-
 
 
         } catch (FileNotFoundException e) {
@@ -1091,34 +1110,32 @@ public class Data400Controller {
         return result;
     }
 
-    public ArrayList<LotInformationModel> getFPO(ArrayList<LotInformationModel> listLot,String bizType){
+    public ArrayList<LotInformationModel> getFPO(ArrayList<LotInformationModel> listLot, String bizType) {
         for (LotInformationModel lotInformationModel : listLot) {
-            String 	sValue="";
+            String sValue = "";
             ResultSet m_rs = null;
             PreparedStatement m_pstmt;
-            try
-            {
+            try {
                 Class.forName(DRIVER);
                 Connection m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
 
 
-                String sQuery="  select CVFLDV from EMLIB.EMESTP02 "
+                String sQuery = "  select CVFLDV from EMLIB.EMESTP02 "
                         + "	 where CVFCID=? and CVBZTP=? and CVASID=? and CVAMKR=? and CVSUB#=?  and CVFLDN=? ORDER BY CVCRDT DESC";
                 m_pstmt = m_conn.prepareStatement(sQuery);
 
-                m_pstmt.setInt(1,80);
+                m_pstmt.setInt(1, 80);
                 m_pstmt.setString(2, bizType);
-                m_pstmt.setInt(3,1 );
-                m_pstmt.setLong(4,lotInformationModel.getWipAmkorID());
+                m_pstmt.setInt(3, 1);
+                m_pstmt.setLong(4, lotInformationModel.getWipAmkorID());
                 m_pstmt.setInt(5, lotInformationModel.getWipAmkorSubID());
                 m_pstmt.setString(6, "FPO#");
-                m_rs=m_pstmt.executeQuery();
+                m_rs = m_pstmt.executeQuery();
 
-                if (m_rs.next())
-                {
+                if (m_rs.next()) {
                     sValue = m_rs.getString("CVFLDV").trim();
-                    if(sValue!="") {
-                        System.out.println("aa1"+sValue);
+                    if (sValue != "") {
+                        System.out.println("aa1" + sValue);
                         lotInformationModel.setTraceCode(sValue);
                     }
                 }
@@ -1126,8 +1143,7 @@ public class Data400Controller {
                 m_rs.close();
                 m_pstmt.close();
                 m_conn.close();
-            }catch (Exception e)
-            {
+            } catch (Exception e) {
                 System.out.println(e.getMessage());
             }
 
@@ -1135,13 +1151,106 @@ public class Data400Controller {
 
         return listLot;
     }
-    @RequestMapping(method = RequestMethod.GET,value = "labelValidation")
-    public String  labelValidation(@RequestParam(value = "jsonBody") String jsonBody){
-        String result="";
-        if (jsonBody!=null){
-            result="OK";
-        }else
-            result="Not Success";
+
+    @RequestMapping(method = RequestMethod.GET, value = "labelValidation")
+    public String labelValidation(@RequestParam(value = "jsonBody") String jsonBody) {
+        String result = "";
+        if (jsonBody != null) {
+            result = "OK";
+        } else
+            result = "Not Success";
         return result;
+    }
+
+    @RequestMapping(method = RequestMethod.GET, value = "/data400/{site}/getScheduleSheetMemoFile")
+    @CrossOrigin(origins = "*")
+    public ApiResponse<List<HashMap<String, Object>>> getOnlineScheduleSheetMemoFileFromStationAndLotName(@PathVariable("site") String site,
+                                                                                                          @RequestParam("lotName") String lotName,
+                                                                                                          @RequestParam("station") String station,
+                                                                                                          @RequestParam("userBadge") String userBadge) {
+        InputStreamResource resource;
+        ApiLoggingModel logging = new ApiLoggingModel();
+        long currentDateTime = iatvService.getDateTime();
+        String note;
+        String msg;
+        List<HashMap<String, Object>> data;
+        try {
+            OnLineScheduleSheetFileModel fileModel = iatvService.getOnlineScheduleSheetMemoFileFromStationAndLotName(lotName, station);
+            if (fileModel != null) {
+                String filePath = URLEncoder.encode(fileModel.getPath() + fileModel.getFile(), StandardCharsets.UTF_8.toString());
+                String domain = "";
+                List<ATVNetMiscTableModel> miscs = miscTableService.getList(
+                        SharedConstValue.FACTORY_ID,
+                        "EMES_DOMAIN",
+                        "PRD",
+                        "");
+                if (!miscs.isEmpty()) {
+                    domain = miscs.get(0).getLongDesc();
+                }
+
+                domain += "eMES/commons/fileDownloader.do?filePath=" + filePath;
+                URL url = new URL(domain);
+                BufferedInputStream in = new BufferedInputStream(url.openStream());
+                resource = new InputStreamResource(new BufferedInputStream(in));
+                note = "Get online schedule sheet memo file api";
+
+                // converting excel to json
+                Workbook workbook = new XSSFWorkbook(resource.getInputStream());
+                Sheet sheet = workbook.getSheetAt(0);
+
+                ObjectMapper mapper = new ObjectMapper();
+                ArrayNode arrayNode = mapper.createArrayNode();
+
+                Iterator<Row> rowIterator = sheet.iterator();
+                Row headerRow = rowIterator.next();
+                int colCount = headerRow.getPhysicalNumberOfCells();
+
+                while (rowIterator.hasNext()) {
+                    Row currentRow = rowIterator.next();
+                    ObjectNode objectNode = mapper.createObjectNode();
+                    for (int i = 0; i < colCount; i++) {
+                        Cell cell = currentRow.getCell(i);
+                        String header = headerRow.getCell(i).getStringCellValue();
+                        String value = cell.toString();
+                        objectNode.put(header, value);
+                    }
+                    arrayNode.add(objectNode);
+                }
+
+                // convert json string to result object
+                String jsonString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(arrayNode);
+                data = mapper.readValue(jsonString, new TypeReference<List<HashMap<String, Object>>>() {
+                });
+                msg = "SUCCESS";
+                workbook.close();
+
+                // logging
+                logging.setCifcid(fileModel.getFactoryID());
+                logging.setCiasid(SharedConstValue.SITE_ID);
+                logging.setCichdt(currentDateTime);
+                logging.setCichbg(Integer.parseInt(userBadge));
+                logging.setCiogvl("API_getMemoFile");
+                logging.setCirsn("logForAPI");
+                this.iatvThanhService.addApiLogging(logging);
+                this.apiLoggingService.insertLog(new ATVNetAPILoggingModel(
+                        userBadge,
+                        currentDateTime,
+                        "{lotName: " + lotName + ", station: " + station + "}",
+                        note
+                ));
+            } else {
+                msg = null;
+                data = null;
+            }
+        } catch (Exception ex) {
+            System.out.println(ex.getMessage());
+            msg = ex.getMessage();
+            data = null;
+        }
+        return ApiResponse.of(
+                data != null ? HttpStatus.OK : HttpStatus.BAD_REQUEST,
+                data != null ? ApiResponse.Code.SUCCESS : ApiResponse.Code.FAILED,
+                msg,
+                data);
     }
 }

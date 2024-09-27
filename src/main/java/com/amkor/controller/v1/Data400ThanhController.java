@@ -2,6 +2,7 @@ package com.amkor.controller.v1;
 
 import com.amkor.models.*;
 import com.amkor.service.APILoggingService;
+import com.amkor.service.ATVNetMiscTableService;
 import com.amkor.service.iService.IATVService;
 import com.amkor.service.iService.IATVThanhService;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +24,9 @@ public class Data400ThanhController {
 
     @Autowired
     private APILoggingService apiLoggingService;
+
+    @Autowired
+    private ATVNetMiscTableService miscTableService;
 
     private static final String UPDATE_FAIL_MESSAGE = "FAILED TO UPDATE";
     private static final String CREATE_FAIL_MESSAGE = "FAILED TO CREATE";
@@ -375,5 +379,6 @@ public class Data400ThanhController {
         result.put("msg", msg);
         return result;
     }
+
 
 }

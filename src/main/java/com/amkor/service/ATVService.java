@@ -4,6 +4,7 @@ package com.amkor.service;
 import com.amkor.common.utils.SharedConstValue;
 import com.amkor.models.AlertForFGModel;
 import com.amkor.models.AutoLabelModel;
+import com.amkor.models.OnLineScheduleSheetFileModel;
 import com.amkor.models.ProcessNoteModel;
 import com.amkor.service.iService.IATVService;
 import lombok.extern.slf4j.Slf4j;
@@ -52,10 +53,10 @@ public class ATVService implements IATVService {
                 listTo.add("V1EFT0066@amkor.com");
             } else if (title.equals("NG Store Inventory Daily")) {
                 listTo.add("V1NG@amkor.com");
-            }else if (title.equals("NG Store Scrap Daily")) {
+            } else if (title.equals("NG Store Scrap Daily")) {
                 listTo.add("V1NG@amkor.com");
 
-            } else  {
+            } else {
                 listTo.add("V1SHIP@amkor.com");
             }
 
@@ -357,6 +358,48 @@ public class ATVService implements IATVService {
 
 
         return result;
+    }
+
+    @Override
+    public OnLineScheduleSheetFileModel getOnlineScheduleSheetMemoFileFromStationAndLotName(String station, String lotName) {
+        Connection m_conn;
+        PreparedStatement m_psmt;
+        ResultSet m_rs;
+        OnLineScheduleSheetFileModel onLineScheduleSheetFileModel = null;
+        try {
+            String sQuery = "SELECT * " +
+                    "FROM EMLIB.EMESTP032 " +
+                    "WHERE FACTORY_ID = " + SharedConstValue.FACTORY_ID + " AND TYPE_ID = 'S' " +
+                    "AND FILE_X like '%" + station + "%' AND FILE_X like '%" + lotName + "%' " +
+                    "ORDER BY CRT_STAMP " +
+                    "LIMIT 1";
+            Class.forName(this.getDriver());
+            m_conn = DriverManager.getConnection(getURL(SharedConstValue.AMKOR_SHORTNAME), getUserID(SharedConstValue.AMKOR_SHORTNAME), getPasswd(SharedConstValue.AMKOR_SHORTNAME));
+            m_psmt = m_conn.prepareStatement(sQuery);
+            m_rs = m_psmt.executeQuery();
+            if (m_rs.next()) {
+                onLineScheduleSheetFileModel = new OnLineScheduleSheetFileModel();
+
+                onLineScheduleSheetFileModel.setFactoryID(m_rs.getInt(1));
+                onLineScheduleSheetFileModel.setType(m_rs.getString(2));
+                onLineScheduleSheetFileModel.setRecordID(m_rs.getString(3));
+                onLineScheduleSheetFileModel.setPath(m_rs.getString(4));
+                onLineScheduleSheetFileModel.setFile(m_rs.getString(5));
+                onLineScheduleSheetFileModel.setEffectiveTo(m_rs.getLong(6));
+                onLineScheduleSheetFileModel.setCreateDateTime(m_rs.getLong(7));
+                onLineScheduleSheetFileModel.setCreateBadge(m_rs.getString(8));
+                onLineScheduleSheetFileModel.setMaintDateTime(m_rs.getLong(9));
+                onLineScheduleSheetFileModel.setMaintBadge(m_rs.getString(10));
+            }
+
+            m_conn.close();
+            m_psmt.close();
+            m_rs.close();
+        } catch (Exception ex) {
+            log.error(ex.getMessage(), ex);
+        }
+
+        return onLineScheduleSheetFileModel;
     }
 
     @Override
