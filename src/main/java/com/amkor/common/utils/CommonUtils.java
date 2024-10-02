@@ -2,6 +2,9 @@ package com.amkor.common.utils;
 
 import lombok.experimental.UtilityClass;
 
+import javax.validation.constraints.NotNull;
+import java.util.Arrays;
+
 @UtilityClass
 public class CommonUtils {
 
@@ -10,13 +13,7 @@ public class CommonUtils {
         return email.matches(regex);
     }
 
-    public <T> boolean ArrayContains(T[] arr, T value) {
-        for (T obj : arr) {
-            if (obj.equals(value)) {
-                return true;
-            }
-        }
-
-        return false;
+    public <T> boolean ArrayContains(@NotNull T[] arr, @NotNull T value) {
+        return Arrays.asList(arr).contains(value);
     }
 }

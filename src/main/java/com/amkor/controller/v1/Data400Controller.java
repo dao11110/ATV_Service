@@ -28,6 +28,7 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
+import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
@@ -1369,7 +1370,7 @@ public class Data400Controller {
                         Cell cell = currentRow.getCell(i);
                         if (cell != null) {
                             String header = headerRow.getCell(i).getStringCellValue();
-                            String value = cell.toString();
+                            String value = getFormattedCellValue(cell);
                             objectNode.put(header, value);
                         }
 
@@ -1412,5 +1413,33 @@ public class Data400Controller {
                 data != null ? ApiResponse.Code.SUCCESS : ApiResponse.Code.FAILED,
                 msg,
                 data);
+    }
+
+    private static String getFormattedCellValue(Cell cell) {
+        switch (cell.getCellType()) {
+            case NUMERIC:
+                if (DateUtil.isCellDateFormatted(cell)) {
+                    return cell.getDateCellValue().toString();
+                } else {
+                    DecimalFormat df = new DecimalFormat("#");
+                    return df.format(cell.getNumericCellValue());
+                }
+            case STRING:
+                return cell.getStringCellValue();
+            case BOOLEAN:
+                return String.valueOf(cell.getBooleanCellValue());
+            case FORMULA:
+                try {
+                    return String.valueOf(cell.getNumericCellValue());
+                } catch (IllegalStateException e) {
+                    return cell.getStringCellValue();
+                }
+            case BLANK:
+                return "";
+            case ERROR:
+                return "ERROR";
+            default:
+                return "";
+        }
     }
 }
