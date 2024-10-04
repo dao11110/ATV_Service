@@ -439,7 +439,7 @@ public class Data400Controller {
 
 
             }
-            data=getFPO(data,"TEST");
+            data = getFPO(data, "TEST");
 
 
             m_psmt.close();
@@ -939,11 +939,11 @@ public class Data400Controller {
             if (fileName.exists()) {
                 fileName.delete();
             }
-            int nNotScanned=0;
+            int nNotScanned = 0;
 
             if (!status.trim().equals("('ACTIVE')")) {
                 for (LotInformationModel lot : lotListInventory) {
-                    boolean check = lotListScanned.stream().anyMatch(e -> e.getWipAmkorID() == lot.getWipAmkorID() && e.getWipDcc()==lot.getWipDcc()&& e.getWipAmkorSubID() == lot.getWipAmkorSubID());
+                    boolean check = lotListScanned.stream().anyMatch(e -> e.getWipAmkorID() == lot.getWipAmkorID() && e.getWipDcc() == lot.getWipDcc() && e.getWipAmkorSubID() == lot.getWipAmkorSubID());
                     if (!check) {
                         lot.setScanned(false);
                         lotListScanned.add(lot);
@@ -976,7 +976,7 @@ public class Data400Controller {
             rowLotScanned.createCell(0).setCellValue("Scanned Lot: ");
 
 
-            rowLotScanned.createCell(3).setCellValue(lotListScanned.size()-nNotScanned + " / " +lotListScanned.size());
+            rowLotScanned.createCell(3).setCellValue(lotListScanned.size() - nNotScanned + " / " + lotListScanned.size());
 
             sheet.addMergedRegion(new CellRangeAddress(0, 0, 0, 2));
 
@@ -1092,7 +1092,7 @@ public class Data400Controller {
             if (fileName.exists()) {
                 fileName.delete();
             }
-            int nNotScanned=0;
+            int nNotScanned = 0;
             for (LotInformationModel lot : listDataInventory) {
 //
                 boolean check = lotListChecked.stream().anyMatch(e -> e.getWipLot().equals(lot.getWipLot()) && e.getWipDcc().equals(lot.getWipDcc()) && lot.getOperationNo() == e.getOperationNo() && e.getWipAmkorSubID() == lot.getWipAmkorSubID());
@@ -1128,7 +1128,7 @@ public class Data400Controller {
             rowLotScanned.createCell(0).setCellValue("Scanned Lot: ");
 
 
-            rowLotScanned.createCell(3).setCellValue(lotListChecked.size()-nNotScanned + " / " +lotListChecked.size());
+            rowLotScanned.createCell(3).setCellValue(lotListChecked.size() - nNotScanned + " / " + lotListChecked.size());
 
             sheet.addMergedRegion(new CellRangeAddress(0, 0, 0, 2));
 
@@ -1179,7 +1179,7 @@ public class Data400Controller {
                 lotRow.createCell(7).setCellValue(lot.getTargetDevice());
                 lotRow.createCell(8).setCellValue(lot.getStatus2());
                 lotRow.createCell(9).setCellValue(lot.getBadge());
-                lotRow.createCell(10).setCellValue(lot.getRackLocationCode()+"-"+lot.getShelfLocationCode());
+                lotRow.createCell(10).setCellValue(lot.getRackLocationCode() + "-" + lot.getShelfLocationCode());
                 lotRow.createCell(11).setCellValue(lot.isScanned() ? "Y" : "N");
 
 
@@ -1334,8 +1334,9 @@ public class Data400Controller {
                 m_rs = m_pstmt.executeQuery();
 
                 if (m_rs.next()) {
-                    sValue = m_rs.getString("CVFLDV").trim();
-                    if (sValue != "") {
+                    if (m_rs.getString("CVFLDV") != null)
+                        sValue = m_rs.getString("CVFLDV").trim();
+                    if (!sValue.equals("")) {
 //                        System.out.println("aa1" + sValue);
                         lotInformationModel.setTraceCode(sValue);
                     }
