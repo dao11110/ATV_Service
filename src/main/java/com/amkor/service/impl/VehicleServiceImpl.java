@@ -73,5 +73,10 @@ public class VehicleServiceImpl implements IVehicleService {
         return vehicleHeaderRepository.updateVehicleHeader(userUpdate,id);
     }
 
+    @Override
+    public ArrayList<VehicleHeaderModel> checkExistedData(String visitor, String invoice, String fwdr) {
+        return vehicleHeaderRepository.checkExistedData(visitor,invoice,fwdr);
+    }
+
 
 }

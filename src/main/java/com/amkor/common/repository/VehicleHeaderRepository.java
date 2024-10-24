@@ -24,4 +24,6 @@ public interface VehicleHeaderRepository extends JpaRepository<VehicleHeaderMode
     int updateVehicleHeader(String userUpdate, int id);
 
 
+    @Query(value = " Select * from vehicle_header where visitor=:visitor and invoice=:invoice and fwdr=:fwdr ",nativeQuery = true)
+    ArrayList<VehicleHeaderModel> checkExistedData(String visitor,String invoice,String fwdr);
 }

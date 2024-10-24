@@ -43,7 +43,8 @@ public class MobileController {
             model.setCreateBy((String) dataHeader.get("createBy"));
 //            model.setCreatedAt((String) dataHeader.get("createdAt"));
             model.setCusCode((Integer) dataHeader.get("cusCode"));
-            model.setDateFrom((String) dataHeader.get("dateTo"));
+            model.setDateFrom((String) dataHeader.get("dateFrom"));
+            model.setDateTo((String) dataHeader.get("dateTo"));
             model.setFwdr((String) dataHeader.get("fwdr"));
             model.setLocation((String) dataHeader.get("location"));
             model.setNation((int) dataHeader.get("nation"));
@@ -55,14 +56,19 @@ public class MobileController {
             model.setVisitor((String) dataHeader.get("visitor"));
             model.setCreatedAt(getTimeDateCurrent());
             model.setUpdatedAt(getTimeDateCurrent());
-            idHeader = vehicleServiceImpl.saveVehiclePre(model);
-            if ((idHeader > 0)) {
+            if (checkExistedData(model.getVisitor(), model.getInvoice(), model.getFwdr()) > 0) {
+                result = "The data is existed";
+            } else {
+                idHeader = vehicleServiceImpl.saveVehiclePre(model);
+                if ((idHeader > 0)) {
 
-                vehicleServiceImpl.saveVehicleItem(listItem, idHeader);
+                    vehicleServiceImpl.saveVehicleItem(listItem, idHeader);
 
 
-                result = "Save Vehicle Success";
+                    result = "Save Vehicle Success";
+                }
             }
+
         }
         return result;
     }
@@ -76,8 +82,14 @@ public class MobileController {
         }
         return result;
     }
-    public static Date getTimeDateCurrent(){
-        Calendar calendar=Calendar.getInstance();
-        return  calendar.getTime();
+
+    @RequestMapping(method = RequestMethod.GET, value = "/checkExistedData")
+    public int checkExistedData(String visitor, String invoice, String fwdr) {
+        return vehicleServiceImpl.checkExistedData(visitor, invoice, fwdr).size();
+    }
+
+    public static Date getTimeDateCurrent() {
+        Calendar calendar = Calendar.getInstance();
+        return calendar.getTime();
     }
 }

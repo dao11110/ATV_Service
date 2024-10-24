@@ -15,4 +15,5 @@ public interface IVehicleService {
     ArrayList<VehicleItemModel>findVehicleItemByID(int id);
 
     int updateVehiclePre(String userUpdate,int id);
+    ArrayList<VehicleHeaderModel> checkExistedData(String visitor,String invoice,String fwdr);
 }
