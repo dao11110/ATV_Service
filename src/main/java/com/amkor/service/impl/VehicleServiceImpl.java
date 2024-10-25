@@ -48,7 +48,7 @@ public class VehicleServiceImpl implements IVehicleService {
             model.setPhoneNumber((String) data.get("phoneNumber"));
             model.setPickupLocation((String)  data.get("pickupLocation"));
             model.setSeq((Integer) data.get("seq"));
-            model.setSeqBtnColor((Integer) data.get("intColor"));
+            model.setSeqBtnColor((Integer) data.get("seqBtnColor"));
             model.setShipmentDate(String.valueOf((Integer) data.get("shipmentDate")));
             model.setShippingPlant((String) data.get("shippingPlant"));
             model.setUserID((String) data.get("userID"));
