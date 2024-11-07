@@ -367,12 +367,11 @@ public class ATVService implements IATVService {
         ResultSet m_rs;
         OnLineScheduleSheetFileModel onLineScheduleSheetFileModel = null;
         try {
-            String sQuery = "SELECT * " +
-                    "FROM EMLIB.EMESTP032 " +
-                    "WHERE FACTORY_ID = " + SharedConstValue.FACTORY_ID + " AND TYPE_ID = 'S' " +
-                    "AND FILE_X like '%" + station + "%' AND FILE_X like '%" + lotName + "%' " +
-                    "ORDER BY CRT_STAMP " +
-                    "LIMIT 1";
+            String sQuery = "SELECT * FROM EMLIB.EMESTP032 " +
+                    "join EMLIB.ASCHMP02 on FACTORY_ID = SMFCID AND RECORD_ID = SMSCH# " +
+                    "WHERE FACTORY_ID = " + SharedConstValue.FACTORY_ID + " AND TYPE_ID = 'S' AND SMLOT# = '" + lotName + "' AND ( " +
+                    "EXISTS (SELECT 1 FROM EMLIB.EMESTP032 WHERE SMLOT# = '" + lotName + "' AND FILE_X LIKE '%" + station + "%') " +
+                    "OR FILE_X LIKE '%" + station + "%')";
             Class.forName(this.getDriver());
             m_conn = DriverManager.getConnection(getURL(SharedConstValue.AMKOR_SHORTNAME), getUserID(SharedConstValue.AMKOR_SHORTNAME), getPasswd(SharedConstValue.AMKOR_SHORTNAME));
             m_psmt = m_conn.prepareStatement(sQuery);
