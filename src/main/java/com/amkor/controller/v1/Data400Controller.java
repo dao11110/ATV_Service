@@ -1,34 +1,16 @@
 package com.amkor.controller.v1;
 
-
-import com.amkor.common.response.ApiResponse;
-import com.amkor.common.utils.SharedConstValue;
 import com.amkor.models.*;
-import com.amkor.service.APILoggingService;
-import com.amkor.service.ATVNetMiscTableService;
 import com.amkor.service.ATVService;
-import com.amkor.service.iService.IATVService;
-import com.amkor.service.iService.IATVThanhService;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.hssf.usermodel.*;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.InputStreamResource;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.*;
-import java.net.URL;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.sql.*;
-import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
@@ -43,18 +25,6 @@ public class Data400Controller {
     private static String DRIVER = "com.ibm.as400.access.AS400JDBCDriver";
     @Autowired
     private ATVService atvService;
-
-    @Autowired
-    private IATVThanhService iatvThanhService;
-
-    @Autowired
-    private IATVService iatvService;
-
-    @Autowired
-    private APILoggingService apiLoggingService;
-
-    @Autowired
-    private ATVNetMiscTableService miscTableService;
 
     public String getURL(String site) {
         String result = "";
@@ -1364,126 +1334,5 @@ public class Data400Controller {
         return result;
     }
 
-    @RequestMapping(method = RequestMethod.GET, value = "/data400/{site}/getScheduleSheetMemoFile")
-    @CrossOrigin(origins = "*")
-    public ApiResponse<List<HashMap<String, Object>>> getOnlineScheduleSheetMemoFileFromStationAndLotName(@PathVariable("site") String site,
-                                                                                                          @RequestParam("lotName") String lotName,
-                                                                                                          @RequestParam("station") String station,
-                                                                                                          @RequestParam("userBadge") String userBadge) {
-        InputStreamResource resource;
-        ApiLoggingModel logging = new ApiLoggingModel();
-        long currentDateTime = iatvService.getDateTime();
-        String note;
-        String msg;
-        List<HashMap<String, Object>> data;
-        try {
-            OnLineScheduleSheetFileModel fileModel = iatvService.getOnlineScheduleSheetMemoFileFromStationAndLotName(lotName, station);
-            if (fileModel != null) {
-                String filePath = URLEncoder.encode(fileModel.getPath() + fileModel.getFile(), StandardCharsets.UTF_8.toString());
-                String domain = "";
-                List<ATVNetMiscTableModel> miscs = miscTableService.getList(
-                        SharedConstValue.FACTORY_ID,
-                        "EMES_DOMAIN",
-                        "PRD",
-                        "");
-                if (!miscs.isEmpty()) {
-                    domain = miscs.get(0).getLongDesc();
-                }
 
-                domain += "eMES/commons/fileDownloader.do?filePath=" + filePath;
-                URL url = new URL(domain);
-                BufferedInputStream in = new BufferedInputStream(url.openStream());
-                resource = new InputStreamResource(new BufferedInputStream(in));
-                note = "Get online schedule sheet memo file api";
-
-                // converting excel to json
-                Workbook workbook = new XSSFWorkbook(resource.getInputStream());
-                Sheet sheet = workbook.getSheetAt(0);
-
-                ObjectMapper mapper = new ObjectMapper();
-                ArrayNode arrayNode = mapper.createArrayNode();
-
-                Iterator<Row> rowIterator = sheet.iterator();
-                Row headerRow = rowIterator.next();
-                int colCount = headerRow.getPhysicalNumberOfCells();
-
-                while (rowIterator.hasNext()) {
-                    Row currentRow = rowIterator.next();
-                    ObjectNode objectNode = mapper.createObjectNode();
-                    for (int i = 0; i < colCount; i++) {
-                        Cell cell = currentRow.getCell(i);
-                        if (cell != null) {
-                            String header = headerRow.getCell(i).getStringCellValue();
-                            String value = getFormattedCellValue(cell);
-                            objectNode.put(header, value);
-                        }
-
-                    }
-                    arrayNode.add(objectNode);
-                }
-
-                // convert json string to result object
-                String jsonString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(arrayNode);
-                data = mapper.readValue(jsonString, new TypeReference<List<HashMap<String, Object>>>() {
-                });
-                msg = "SUCCESS";
-                workbook.close();
-
-                // logging
-                logging.setCifcid(fileModel.getFactoryID());
-                logging.setCiasid(SharedConstValue.SITE_ID);
-                logging.setCichdt(currentDateTime);
-                logging.setCichbg(Integer.parseInt(userBadge));
-                logging.setCiogvl("API_getMemoFile");
-                logging.setCirsn("logForAPI");
-                this.iatvThanhService.addApiLogging(logging);
-                this.apiLoggingService.insertLog(new ATVNetAPILoggingModel(
-                        userBadge,
-                        currentDateTime,
-                        "{lotName: " + lotName + ", station: " + station + "}",
-                        note
-                ));
-            } else {
-                msg = null;
-                data = null;
-            }
-        } catch (Exception ex) {
-            System.out.println(ex.getMessage());
-            msg = ex.getMessage();
-            data = null;
-        }
-        return ApiResponse.of(
-                data != null ? HttpStatus.OK : HttpStatus.BAD_REQUEST,
-                data != null ? ApiResponse.Code.SUCCESS : ApiResponse.Code.FAILED,
-                msg,
-                data);
-    }
-
-    private static String getFormattedCellValue(Cell cell) {
-        switch (cell.getCellType()) {
-            case NUMERIC:
-                if (DateUtil.isCellDateFormatted(cell)) {
-                    return cell.getDateCellValue().toString();
-                } else {
-                    DecimalFormat df = new DecimalFormat("#");
-                    return df.format(cell.getNumericCellValue());
-                }
-            case STRING:
-                return cell.getStringCellValue();
-            case BOOLEAN:
-                return String.valueOf(cell.getBooleanCellValue());
-            case FORMULA:
-                try {
-                    return String.valueOf(cell.getNumericCellValue());
-                } catch (IllegalStateException e) {
-                    return cell.getStringCellValue();
-                }
-            case BLANK:
-                return "";
-            case ERROR:
-                return "ERROR";
-            default:
-                return "";
-        }
-    }
 }

@@ -1,10 +1,10 @@
-package com.amkor.service;
+package com.amkor.service.impl;
 
 import com.amkor.common.utils.SharedConstValue;
-import com.amkor.models.ApiLoggingModel;
 import com.amkor.models.AutoLabelModel;
+import com.amkor.models.OnLineScheduleSheetFileModel;
 import com.amkor.models.ProcessNoteModel;
-import com.amkor.service.iService.IATVThanhService;
+import com.amkor.service.iService.ITFAService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -19,11 +19,12 @@ import javax.mail.internet.MimeMultipart;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.*;
 
 @Service
-public class ATVThanhService implements IATVThanhService {
-    private static final Logger log = LoggerFactory.getLogger(ATVThanhService.class);
+public class TFAServiceImpl implements ITFAService {
+    private static final Logger log = LoggerFactory.getLogger(TFAServiceImpl.class);
 
     @Override
     public boolean sendMailProcess(String title, String sContent, List<String> toPeople, List<String> ccPeople, List<String> fileNames) {
@@ -61,7 +62,6 @@ public class ATVThanhService implements IATVThanhService {
 
             Vector toList = new Vector();
             Vector ccList = new Vector();
-            Vector files = new Vector();
 
             // To
             for (String to : toPeople) {
@@ -284,46 +284,124 @@ public class ATVThanhService implements IATVThanhService {
     }
 
     @Override
-    public int addApiLogging(ApiLoggingModel model) {
-        PreparedStatement m_pstmt;
-        int record = 0;
+    public boolean checkExistAutoLabel(AutoLabelModel model) {
+        boolean result = false;
+        Connection m_conn;
+        PreparedStatement m_psmt;
+        ResultSet m_rs;
         try {
+            String sQuery = "select * from EMLIB.EAUTOLBLVP where FACTORY_ID = ? AND SITE_ID = ? AND BUSINESS_TYPE = ? " +
+                    "AND CUSTOMER = ? AND PACKAGE = ? AND DIMENSION = ? AND LEAD = ? AND TARGET_DEVICE = ? " +
+                    "AND KEY_FIELD1 = ? AND KEY_FIELD2 = ? AND FIELD_NAME = ?";
             Class.forName(this.getDriver());
-            Connection conn = DriverManager.getConnection(this.getURL(SharedConstValue.AMKOR_SHORTNAME), this.getUserID(SharedConstValue.AMKOR_SHORTNAME), this.getPasswd(SharedConstValue.AMKOR_SHORTNAME));
-
-            String sQuery = "insert into EMLIB.EMESLP04 values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-            m_pstmt = conn.prepareStatement(sQuery);
+            m_conn = DriverManager.getConnection(getURL(SharedConstValue.AMKOR_SHORTNAME), getUserID(SharedConstValue.AMKOR_SHORTNAME), getPasswd(SharedConstValue.AMKOR_SHORTNAME));
+            m_psmt = m_conn.prepareStatement(sQuery);
             int i = 1;
+            m_psmt.setInt(i++, model.getFactoryId());
+            m_psmt.setInt(i++, model.getSiteId());
+            m_psmt.setString(i++, model.getBusinessType());
+            m_psmt.setInt(i++, model.getCustomerId());
+            m_psmt.setString(i++, model.getPkg());
+            m_psmt.setString(i++, model.getDim());
+            m_psmt.setString(i++, model.getLead());
+            m_psmt.setString(i++, model.getTargetDevice());
+            m_psmt.setString(i++, model.getKeyField1());
+            m_psmt.setString(i++, model.getKeyField2());
+            m_psmt.setString(i++, model.getFieldName());
+            m_rs = m_psmt.executeQuery();
+            if (m_rs.next()) {
+                result = true;
+            }
 
-            m_pstmt.setInt(i++, model.getCifcid());
-            m_pstmt.setInt(i++, model.getCiasid());
-            m_pstmt.setString(i++, model.getCistn());
-            m_pstmt.setLong(i++, model.getCiamkr());
-            m_pstmt.setInt(i++, model.getCisub());
-            m_pstmt.setString(i++, model.getCibztp());
-            m_pstmt.setString(i++, model.getCists());
-            m_pstmt.setFloat(i++, model.getCiseq());
-            m_pstmt.setInt(i++, model.getCiopr());
-            m_pstmt.setString(i++, model.getCichfd());
-            m_pstmt.setString(i++, model.getCiogvl());
-            m_pstmt.setString(i++, model.getCinwvl());
-            m_pstmt.setString(i++, model.getCirsn());
-            m_pstmt.setInt(i++, model.getCichbg());
-            m_pstmt.setLong(i++, model.getCichdt());
-            m_pstmt.setLong(i++, model.getCirqdt());
-            m_pstmt.setString(i++, model.getCirqpg());
-            m_pstmt.setInt(i++, model.getCirqbg());
-            m_pstmt.setLong(i++, model.getCiacdt());
-            m_pstmt.setString(i++, model.getCiacpg());
-            m_pstmt.setInt(i, model.getCiacbg());
+            m_conn.close();
+            m_psmt.close();
+            m_rs.close();
 
-            record = m_pstmt.executeUpdate();
-
-            m_pstmt.close();
-            conn.close();
         } catch (Exception ex) {
             log.error(ex.getMessage(), ex);
         }
-        return record;
+
+
+        return result;
+    }
+
+    @Override
+    public OnLineScheduleSheetFileModel getOnlineScheduleSheetMemoFileFromStationAndLotName(String station, String lotName) {
+        Connection m_conn;
+        PreparedStatement m_psmt;
+        ResultSet m_rs;
+        OnLineScheduleSheetFileModel onLineScheduleSheetFileModel = null;
+        try {
+            String sQuery = "SELECT * FROM EMLIB.EMESTP032 " +
+                    "join EMLIB.ASCHMP02 on FACTORY_ID = SMFCID AND RECORD_ID = SMSCH# " +
+                    "WHERE FACTORY_ID = " + SharedConstValue.FACTORY_ID + " AND TYPE_ID = 'S' AND SMLOT# = '" + lotName + "' AND ( " +
+                    "EXISTS (SELECT 1 FROM EMLIB.EMESTP032 WHERE SMLOT# = '" + lotName + "' AND FILE_X LIKE '%" + station + "%') " +
+                    "OR FILE_X LIKE '%" + station + "%')";
+            Class.forName(this.getDriver());
+            m_conn = DriverManager.getConnection(getURL(SharedConstValue.AMKOR_SHORTNAME), getUserID(SharedConstValue.AMKOR_SHORTNAME), getPasswd(SharedConstValue.AMKOR_SHORTNAME));
+            m_psmt = m_conn.prepareStatement(sQuery);
+            m_rs = m_psmt.executeQuery();
+            if (m_rs.next()) {
+                onLineScheduleSheetFileModel = new OnLineScheduleSheetFileModel();
+
+                onLineScheduleSheetFileModel.setFactoryID(m_rs.getInt(1));
+                onLineScheduleSheetFileModel.setType(m_rs.getString(2));
+                onLineScheduleSheetFileModel.setRecordID(m_rs.getString(3));
+                onLineScheduleSheetFileModel.setPath(m_rs.getString(4));
+                onLineScheduleSheetFileModel.setFile(m_rs.getString(5));
+                onLineScheduleSheetFileModel.setEffectiveTo(m_rs.getLong(6));
+                onLineScheduleSheetFileModel.setCreateDateTime(m_rs.getLong(7));
+                onLineScheduleSheetFileModel.setCreateBadge(m_rs.getString(8));
+                onLineScheduleSheetFileModel.setMaintDateTime(m_rs.getLong(9));
+                onLineScheduleSheetFileModel.setMaintBadge(m_rs.getString(10));
+            }
+
+            m_conn.close();
+            m_psmt.close();
+            m_rs.close();
+        } catch (Exception ex) {
+            log.error(ex.getMessage(), ex);
+        }
+
+        return onLineScheduleSheetFileModel;
+    }
+
+    @Override
+    public boolean checkExistProcessNote(ProcessNoteModel model) {
+
+        boolean result = false;
+        Connection m_conn;
+        PreparedStatement m_psmt;
+        ResultSet m_rs;
+        try {
+            String sQuery = "select * from EPLIB.EPENOTP where ENFCID = ? AND ENCLAS = ? AND ENCUST = ? AND ENPKGE = ? " +
+                    "AND ENDMSN = ? AND ENLEAD = ? AND ENDEVC = ? AND ENOPID = ? AND ENOPER = ? AND ENSEQ# = ?";
+            Class.forName(this.getDriver());
+            m_conn = DriverManager.getConnection(getURL(SharedConstValue.AMKOR_SHORTNAME), getUserID(SharedConstValue.AMKOR_SHORTNAME), getPasswd(SharedConstValue.AMKOR_SHORTNAME));
+            m_psmt = m_conn.prepareStatement(sQuery);
+            int i = 1;
+            m_psmt.setInt(i++, model.getFactoryId());
+            m_psmt.setString(i++, model.getClassify());
+            m_psmt.setInt(i++, model.getCustomerId());
+            m_psmt.setString(i++, model.getPkg());
+            m_psmt.setString(i++, model.getDim());
+            m_psmt.setString(i++, model.getLead());
+            m_psmt.setString(i++, model.getTargetDevice());
+            m_psmt.setString(i++, model.getOptionId());
+            m_psmt.setInt(i++, model.getOperation());
+            m_psmt.setInt(i, model.getSeq());
+            m_rs = m_psmt.executeQuery();
+            if (m_rs.next()) {
+                result = true;
+            }
+
+            m_rs.close();
+            m_psmt.close();
+            m_conn.close();
+        } catch (Exception ex) {
+            log.error(ex.getMessage(), ex);
+        }
+
+        return result;
     }
 }
