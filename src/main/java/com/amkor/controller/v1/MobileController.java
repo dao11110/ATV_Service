@@ -56,6 +56,7 @@ public class MobileController {
             model.setVisitor((String) dataHeader.get("visitor"));
             model.setCreatedAt(getTimeDateCurrent());
             model.setUpdatedAt(getTimeDateCurrent());
+            model.setStatus(1);
             if (checkExistedData(model.getVisitor(), model.getInvoice(), model.getFwdr()) > 0) {
                 result = "The data is existed";
             } else {
