@@ -18,17 +18,17 @@ public class MobileController {
 
 
     @RequestMapping(method = RequestMethod.GET, value = "/getListVehiclePre")
-    public ArrayList<VehicleHeaderModel> getListVehiclePre() {
+    public ArrayList<VehicleHeaderModel> getListVehiclePre()throws Exception {
         return vehicleServiceImpl.getListVehicle();
     }
 
     @RequestMapping(method = RequestMethod.GET, value = "/findVehicleItemByIdHeader")
-    public ArrayList<VehicleItemModel> findVehicleItemByIdHeader(int idHeader) {
+    public ArrayList<VehicleItemModel> findVehicleItemByIdHeader(int idHeader) throws Exception {
         return vehicleServiceImpl.findVehicleItemByID(idHeader);
     }
 
     @RequestMapping(method = RequestMethod.POST, value = "/saveVehiclePre")
-    public String saveVehiclePre(@RequestBody Map<String, Object> data) {
+    public String saveVehiclePre(@RequestBody Map<String, Object> data) throws Exception {
         int idHeader = 0;
         String result = "Save Vehicle Fail";
         if (data != null) {
@@ -59,7 +59,13 @@ public class MobileController {
             model.setStatus(1);
             if (checkExistedData(model.getVisitor(), model.getInvoice(), model.getFwdr()) > 0) {
                 result = "The data is existed";
-            } else {
+            }
+            else {
+                if (checkExistedData(model.getInvoice(),model.getFwdr()).size()>0){
+                    for (VehicleHeaderModel modelVe:checkExistedData(model.getInvoice(),model.getFwdr())) {
+                        updateVehiclePre("230041",modelVe.getId());
+                    }
+                }
                 idHeader = vehicleServiceImpl.saveVehiclePre(model);
                 if ((idHeader > 0)) {
 
@@ -75,7 +81,7 @@ public class MobileController {
     }
 
     @RequestMapping(method = RequestMethod.POST, value = "/updateVehiclePre")
-    public String updateVehiclePre(@RequestParam("userUpdate") String userUpdate, @RequestParam("id") int id) {
+    public String updateVehiclePre(@RequestParam("userUpdate") String userUpdate, @RequestParam("id") int id)  throws Exception {
         String result = "Update Vehicle Pre Fail";
         int update = vehicleServiceImpl.updateVehiclePre(userUpdate, id);
         if (update > 0) {
@@ -85,8 +91,11 @@ public class MobileController {
     }
 
     @RequestMapping(method = RequestMethod.GET, value = "/checkExistedData")
-    public int checkExistedData(String visitor, String invoice, String fwdr) {
+    public int checkExistedData(String visitor, String invoice, String fwdr) throws Exception  {
         return vehicleServiceImpl.checkExistedData(visitor, invoice, fwdr).size();
+    }
+    public ArrayList<VehicleHeaderModel> checkExistedData( String invoice, String fwdr) throws Exception  {
+        return vehicleServiceImpl.checkExistedData( invoice, fwdr);
     }
 
     public static Date getTimeDateCurrent() {

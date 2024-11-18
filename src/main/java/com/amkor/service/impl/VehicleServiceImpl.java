@@ -23,7 +23,7 @@ public class VehicleServiceImpl implements IVehicleService {
 
     @Override
     public ArrayList<VehicleHeaderModel> getListVehicle() {
-        return vehicleHeaderRepository.findAll();
+        return vehicleHeaderRepository.getVehicleHeaderModelList();
     }
 
     @Override
@@ -76,6 +76,11 @@ public class VehicleServiceImpl implements IVehicleService {
     @Override
     public ArrayList<VehicleHeaderModel> checkExistedData(String visitor, String invoice, String fwdr) {
         return vehicleHeaderRepository.checkExistedData(visitor,invoice,fwdr);
+    }
+
+    @Override
+    public ArrayList<VehicleHeaderModel> checkExistedData(String invoice, String fwdr) {
+        return vehicleHeaderRepository.checkExistedData(invoice,fwdr);
     }
 
 
