@@ -163,7 +163,7 @@ public class Data400Controller {
         PreparedStatement m_psmt = null;
         CallableStatement m_cs = null;
         ResultSet m_rs = null;
-        Long dateStart = Long.parseLong(currentDate() + "000000");
+        Long dateStart = Long.parseLong(currentDate()+ "000000");
         Long dateEnd = Long.parseLong(currentDate() + "230000");
         String result = "Fail";
         List<String> locationList = new ArrayList<>();
@@ -191,7 +191,7 @@ public class Data400Controller {
                 lotInformationModel.setEohQty(m_rs.getInt("DMEOHQ"));
                 lotInformationModel.setEohWaferQty(m_rs.getInt("DMWEOH"));
                 lotInformationModel.setRackLocationCode(m_rs.getString("DMRLOC").trim());
-                locationList.add(m_rs.getString("DMRLOC").trim());
+//                locationList.add(m_rs.getString("DMRLOC").trim());
                 lotInformationModel.setFgsNo(m_rs.getString("XBATCH").trim());
                 lotInformationModel.setBinNo(m_rs.getString("XMTLNO").trim());
                 lotInformationModel.setLotType(m_rs.getString("DMLTCD").trim());
@@ -212,6 +212,7 @@ public class Data400Controller {
 
 
             m_conn.close();
+            locationList=listLocationDiebank();
             if (dataSearch.size() > 0) {
                 List<LotInformationModel> listLotByLocation = new ArrayList<>();
                 listLotByLocation = checkLotByLocation(locationList, customer);
@@ -229,6 +230,30 @@ public class Data400Controller {
             System.out.println(e);
         }
         return result;
+    }
+    private List<String>listLocationDiebank(){
+        List<String>listLocation=new ArrayList<>();
+        Connection m_conn = null;
+        PreparedStatement m_psmt = null;
+        CallableStatement m_cs = null;
+        ResultSet m_rs = null;
+        try {
+            Class.forName(DRIVER);
+            m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
+            String query = "  SELECT DISTINCT DMRLOC  FROM EMLIB.ADSTMP01 ";
+            m_psmt = m_conn.prepareStatement(query);
+
+            m_rs = m_psmt.executeQuery();
+            while (m_rs != null && m_rs.next()) {
+                listLocation.add(m_rs.getString("DMRLOC").trim());
+            }
+            m_psmt.close();
+            m_rs.close();
+            m_conn.close();
+        }catch (Exception e) {
+            System.out.println(e);
+        }
+        return listLocation;
     }
 
     //    @RequestMapping(method = RequestMethod.GET, value = "/getListDieByLocation")
