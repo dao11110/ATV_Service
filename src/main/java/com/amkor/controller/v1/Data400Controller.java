@@ -163,8 +163,8 @@ public class Data400Controller {
         PreparedStatement m_psmt = null;
         CallableStatement m_cs = null;
         ResultSet m_rs = null;
-        Long dateStart = Long.parseLong(currentDate()+ "000000");
-        Long dateEnd = Long.parseLong(currentDate() + "230000");
+        Long dateStart = Long.parseLong("20241210"+ "000000");
+        Long dateEnd = Long.parseLong("20241210" + "230000");
         String result = "Fail";
         List<String> locationList = new ArrayList<>();
         String customer = "( 948,78  )";
@@ -174,7 +174,7 @@ public class Data400Controller {
             String query = "SELECT DISTINCT  DMCSCD, DMLOT#,DMDCC,DMSDEV,DMDAMK,DMEOHQ,DMWEOH,DMRLOC,CICHDT,CICHFD,CIOGVL,CINWVL,XBATCH,XMTLNO,DMLTCD  FROM  EMLIB.ADSTMP01\n" +
                     "INNER JOIN EMLIB.XREFWFP ON DMFCID=XFCID AND DMASID=XASID AND DMDAMK=XAMKID " +
                     "LEFT JOIN   EMLIB.EMESLP04 ON DMFCID=CIFCID AND DMASID=CIASID AND DMDAMK=CIAMKR AND CICHFD = 'MSCAN' \n" +
-                    " WHERE DMFCID=80 AND DMASID=1 AND DCPLNT = 'V1' AND DMSTN = 'DIEBANK' AND DMSTS2 IN ( 'ACTIVE',  'HOLD')" +
+                    " WHERE DMFCID=80 AND DMASID=1 AND DCPLNT = 'V1' AND DMSTN = 'DIEBANK' AND DMSTS2 IN ( 'ACTIVE')" +
                     " AND DMDAMK NOT IN (SELECT DISTINCT (SLAMKR) FROM EMLIB.EMESLP12 WHERE DMFCID=SLFCID AND DMASID=SLASID AND DMDAMK=SLAMKR AND (SLLOCT='L' OR SLLOCT='T' )   )" +
                     " AND  DMCSCD IN " + customer
                     + " AND CICHDT >=" + dateStart + " AND CICHDT <=" + dateEnd + " ORDER  BY DMCSCD ";
@@ -191,7 +191,7 @@ public class Data400Controller {
                 lotInformationModel.setEohQty(m_rs.getInt("DMEOHQ"));
                 lotInformationModel.setEohWaferQty(m_rs.getInt("DMWEOH"));
                 lotInformationModel.setRackLocationCode(m_rs.getString("DMRLOC").trim());
-//                locationList.add(m_rs.getString("DMRLOC").trim());
+                locationList.add(m_rs.getString("DMRLOC").trim());
                 lotInformationModel.setFgsNo(m_rs.getString("XBATCH").trim());
                 lotInformationModel.setBinNo(m_rs.getString("XMTLNO").trim());
                 lotInformationModel.setLotType(m_rs.getString("DMLTCD").trim());
@@ -212,7 +212,7 @@ public class Data400Controller {
 
 
             m_conn.close();
-            locationList=listLocationDiebank();
+//            locationList=listLocationDiebank();
             if (dataSearch.size() > 0) {
                 List<LotInformationModel> listLotByLocation = new ArrayList<>();
                 listLotByLocation = checkLotByLocation(locationList, customer);
@@ -285,7 +285,7 @@ public class Data400Controller {
             query = "SELECT DISTINCT  DMCSCD, DMLOT#,DMDCC,DMSDEV,DMDAMK,DMEOHQ,DMWEOH,DMRLOC,CICHDT,CICHFD,CIOGVL,CINWVL ,XBATCH,XMTLNO,DMLTCD   FROM  EMLIB.ADSTMP01 " +
                     "INNER JOIN EMLIB.XREFWFP ON DMFCID=XFCID AND DMASID=XASID AND DMDAMK=XAMKID " +
                     "LEFT JOIN   EMLIB.EMESLP04 ON DMFCID=CIFCID AND DMASID=CIASID AND DMDAMK=CIAMKR AND CICHFD = 'MSCAN'  " +
-                    " WHERE DMFCID=80 AND DMASID=1 AND DCPLNT = 'V1' AND DMSTN = 'DIEBANK' AND DMSTS2 IN ( 'ACTIVE',  'HOLD')" +
+                    " WHERE DMFCID=80 AND DMASID=1 AND DCPLNT = 'V1' AND DMSTN = 'DIEBANK' AND DMSTS2 IN ( 'ACTIVE')" +
                     " AND DMDAMK NOT IN (SELECT DISTINCT (SLAMKR) FROM EMLIB.EMESLP12 WHERE DMFCID=SLFCID AND DMASID=SLASID AND DMDAMK=SLAMKR  AND (SLLOCT='L' OR SLLOCT='T' )  )" +
                     "  AND DMCSCD  IN " + cus + " AND DMRLOC IN " + location + " ORDER  BY DMCSCD ";
 //
