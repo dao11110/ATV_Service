@@ -18,6 +18,7 @@ import org.apache.poi.hssf.usermodel.*;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.xmlbeans.impl.tool.Diff;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpStatus;
@@ -163,8 +164,8 @@ public class Data400Controller {
         PreparedStatement m_psmt = null;
         CallableStatement m_cs = null;
         ResultSet m_rs = null;
-        Long dateStart = Long.parseLong("20241210"+ "000000");
-        Long dateEnd = Long.parseLong("20241210" + "230000");
+        Long dateStart = Long.parseLong(currentDate()+ "000000");
+        Long dateEnd = Long.parseLong(currentDate() + "230000");
         String result = "Fail";
         List<String> locationList = new ArrayList<>();
         String customer = "( 948,78  )";
@@ -191,7 +192,7 @@ public class Data400Controller {
                 lotInformationModel.setEohQty(m_rs.getInt("DMEOHQ"));
                 lotInformationModel.setEohWaferQty(m_rs.getInt("DMWEOH"));
                 lotInformationModel.setRackLocationCode(m_rs.getString("DMRLOC").trim());
-                locationList.add(m_rs.getString("DMRLOC").trim());
+//                locationList.add(m_rs.getString("DMRLOC").trim());
                 lotInformationModel.setFgsNo(m_rs.getString("XBATCH").trim());
                 lotInformationModel.setBinNo(m_rs.getString("XMTLNO").trim());
                 lotInformationModel.setLotType(m_rs.getString("DMLTCD").trim());
@@ -212,7 +213,7 @@ public class Data400Controller {
 
 
             m_conn.close();
-//            locationList=listLocationDiebank();
+            locationList=listLocationDiebank();
             if (dataSearch.size() > 0) {
                 List<LotInformationModel> listLotByLocation = new ArrayList<>();
                 listLotByLocation = checkLotByLocation(locationList, customer);
@@ -245,7 +246,10 @@ public class Data400Controller {
 
             m_rs = m_psmt.executeQuery();
             while (m_rs != null && m_rs.next()) {
-                listLocation.add(m_rs.getString("DMRLOC").trim());
+                if (!m_rs.getString("DMRLOC").trim().equals("")){
+                    listLocation.add(m_rs.getString("DMRLOC").trim());
+                }
+
             }
             m_psmt.close();
             m_rs.close();
@@ -1332,7 +1336,7 @@ public class Data400Controller {
 
     public long get400CurrentDate() {
         String current = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
-        long result = Long.parseLong(current) - 19000000000000L;
+        long result = Long.parseLong(current);
         return result;
     }
 
@@ -1483,6 +1487,128 @@ public class Data400Controller {
                 msg,
                 data);
     }
+
+    @RequestMapping(method = RequestMethod.GET, value = "checkExistLocationFull")
+    public String checkExistLocationFull( String location) {
+
+            String result = "Fail";
+            ResultSet m_rs = null;
+            PreparedStatement m_pstmt;
+            try {
+                Class.forName(DRIVER);
+                Connection m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
+
+
+                String sQuery = "  SELECT  * FROM EMLIB.EMISCELP e  WHERE  FACTORY_ID =80 AND TABLE_ID ='DIE_LOC' AND TABLE_CODE_01 =? ";
+                m_pstmt = m_conn.prepareStatement(sQuery);
+
+
+                m_pstmt.setString(1, location);
+
+                m_rs = m_pstmt.executeQuery();
+
+                if (m_rs.next()) {
+                    result="True";
+                }
+
+
+                m_rs.close();
+                m_pstmt.close();
+                m_conn.close();
+                if (result.equals("Fail")){
+                    result=countLotLocation(location);
+                }
+            } catch (Exception e) {
+                System.out.println(e.getMessage());
+            }
+
+
+
+        return result;
+    }
+
+    public String countLotLocation( String location) {
+
+        String result = "Fail";
+
+        ResultSet m_rs = null;
+        PreparedStatement m_pstmt;
+        try {
+            Class.forName(DRIVER);
+            Connection m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
+
+
+            String sQuery = "  SELECT  DMRLOC ,COUNT (DMRLOC) AS TOTAL FROM  EMLIB.ADSTMP01 a  WHERE DMRLOC=? GROUP BY DMRLOC ORDER BY DMRLOC   ";
+            m_pstmt = m_conn.prepareStatement(sQuery);
+
+
+            m_pstmt.setString(1, location);
+
+            m_rs = m_pstmt.executeQuery();
+
+            if (m_rs.next()) {
+                result=String.valueOf(m_rs.getInt("TOTAL"));
+            }
+
+            m_rs.close();
+            m_pstmt.close();
+            m_conn.close();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+
+
+
+        return result;
+    }
+
+
+    @RequestMapping(method = RequestMethod.GET, value = "createFullLocation")
+    public String createFullLocation( String location,String badge,String totalLot) {
+
+        String result = "Create Full Location Fail";
+        ResultSet m_rs = null;
+        PreparedStatement m_pstmt;
+        int update=0;
+        try {
+            Class.forName(DRIVER);
+            Connection m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
+
+
+            String sQuery = "  INSERT INTO EMLIB.EMISCELP (FACTORY_ID,TABLE_ID,TABLE_CODE_01,TABLE_CODE_02,LENGTH_01,LENGTH_02,SHORT_DESC,FULL_DESC,CREATE_DATETIME,CREATE_USER,MAINT_DATETIME,MAINT_USER) VALUES " +
+                    " (80,'DIE_LOC',?,?,0,0,'DIE_BANK','',?,?,0,'')   ";
+            m_pstmt = m_conn.prepareStatement(sQuery);
+
+
+            m_pstmt.setString(1, location);
+            m_pstmt.setString(2, totalLot);
+            m_pstmt.setLong(3, get400CurrentDate());
+            m_pstmt.setString(4, badge);
+
+            update = m_pstmt.executeUpdate();
+            if (update==1){
+                result = "Create Full Location Success";
+            }
+
+
+
+            m_rs.close();
+            m_pstmt.close();
+            m_conn.close();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+
+
+
+        return result;
+    }
+
+
+
+
+
+
 
     private static String getFormattedCellValue(Cell cell) {
         switch (cell.getCellType()) {
