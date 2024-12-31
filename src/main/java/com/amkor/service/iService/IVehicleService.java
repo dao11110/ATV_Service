@@ -16,4 +16,5 @@ public interface IVehicleService {
 
     int updateVehiclePre(String userUpdate,int id);
     ArrayList<VehicleHeaderModel> checkExistedData(String visitor,String invoice,String fwdr);
+    ArrayList<VehicleHeaderModel> checkExistedData(String invoice,String fwdr);
 }

@@ -133,7 +133,7 @@ public class Data400Controller {
         PreparedStatement m_psmt = null;
         CallableStatement m_cs = null;
         ResultSet m_rs = null;
-        Long dateStart = Long.parseLong(currentDate() + "000000");
+        Long dateStart = Long.parseLong(currentDate()+ "000000");
         Long dateEnd = Long.parseLong(currentDate() + "230000");
         String result = "Fail";
         List<String> locationList = new ArrayList<>();
@@ -144,7 +144,7 @@ public class Data400Controller {
             String query = "SELECT DISTINCT  DMCSCD, DMLOT#,DMDCC,DMSDEV,DMDAMK,DMEOHQ,DMWEOH,DMRLOC,CICHDT,CICHFD,CIOGVL,CINWVL,XBATCH,XMTLNO,DMLTCD  FROM  EMLIB.ADSTMP01\n" +
                     "INNER JOIN EMLIB.XREFWFP ON DMFCID=XFCID AND DMASID=XASID AND DMDAMK=XAMKID " +
                     "LEFT JOIN   EMLIB.EMESLP04 ON DMFCID=CIFCID AND DMASID=CIASID AND DMDAMK=CIAMKR AND CICHFD = 'MSCAN' \n" +
-                    " WHERE DMFCID=80 AND DMASID=1 AND DCPLNT = 'V1' AND DMSTN = 'DIEBANK' AND DMSTS2 IN ( 'ACTIVE',  'HOLD')" +
+                    " WHERE DMFCID=80 AND DMASID=1 AND DCPLNT = 'V1' AND DMSTN = 'DIEBANK' AND DMSTS2 IN ( 'ACTIVE')" +
                     " AND DMDAMK NOT IN (SELECT DISTINCT (SLAMKR) FROM EMLIB.EMESLP12 WHERE DMFCID=SLFCID AND DMASID=SLASID AND DMDAMK=SLAMKR AND (SLLOCT='L' OR SLLOCT='T' )   )" +
                     " AND  DMCSCD IN " + customer
                     + " AND CICHDT >=" + dateStart + " AND CICHDT <=" + dateEnd + " ORDER  BY DMCSCD ";
@@ -161,7 +161,7 @@ public class Data400Controller {
                 lotInformationModel.setEohQty(m_rs.getInt("DMEOHQ"));
                 lotInformationModel.setEohWaferQty(m_rs.getInt("DMWEOH"));
                 lotInformationModel.setRackLocationCode(m_rs.getString("DMRLOC").trim());
-                locationList.add(m_rs.getString("DMRLOC").trim());
+//                locationList.add(m_rs.getString("DMRLOC").trim());
                 lotInformationModel.setFgsNo(m_rs.getString("XBATCH").trim());
                 lotInformationModel.setBinNo(m_rs.getString("XMTLNO").trim());
                 lotInformationModel.setLotType(m_rs.getString("DMLTCD").trim());
@@ -182,6 +182,7 @@ public class Data400Controller {
 
 
             m_conn.close();
+            locationList=listLocationDiebank();
             if (dataSearch.size() > 0) {
                 List<LotInformationModel> listLotByLocation = new ArrayList<>();
                 listLotByLocation = checkLotByLocation(locationList, customer);
@@ -199,6 +200,33 @@ public class Data400Controller {
             System.out.println(e);
         }
         return result;
+    }
+    private List<String>listLocationDiebank(){
+        List<String>listLocation=new ArrayList<>();
+        Connection m_conn = null;
+        PreparedStatement m_psmt = null;
+        CallableStatement m_cs = null;
+        ResultSet m_rs = null;
+        try {
+            Class.forName(DRIVER);
+            m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
+            String query = "  SELECT DISTINCT DMRLOC  FROM EMLIB.ADSTMP01 ";
+            m_psmt = m_conn.prepareStatement(query);
+
+            m_rs = m_psmt.executeQuery();
+            while (m_rs != null && m_rs.next()) {
+                if (!m_rs.getString("DMRLOC").trim().equals("")){
+                    listLocation.add(m_rs.getString("DMRLOC").trim());
+                }
+
+            }
+            m_psmt.close();
+            m_rs.close();
+            m_conn.close();
+        }catch (Exception e) {
+            System.out.println(e);
+        }
+        return listLocation;
     }
 
     //    @RequestMapping(method = RequestMethod.GET, value = "/getListDieByLocation")
@@ -230,7 +258,7 @@ public class Data400Controller {
             query = "SELECT DISTINCT  DMCSCD, DMLOT#,DMDCC,DMSDEV,DMDAMK,DMEOHQ,DMWEOH,DMRLOC,CICHDT,CICHFD,CIOGVL,CINWVL ,XBATCH,XMTLNO,DMLTCD   FROM  EMLIB.ADSTMP01 " +
                     "INNER JOIN EMLIB.XREFWFP ON DMFCID=XFCID AND DMASID=XASID AND DMDAMK=XAMKID " +
                     "LEFT JOIN   EMLIB.EMESLP04 ON DMFCID=CIFCID AND DMASID=CIASID AND DMDAMK=CIAMKR AND CICHFD = 'MSCAN'  " +
-                    " WHERE DMFCID=80 AND DMASID=1 AND DCPLNT = 'V1' AND DMSTN = 'DIEBANK' AND DMSTS2 IN ( 'ACTIVE',  'HOLD')" +
+                    " WHERE DMFCID=80 AND DMASID=1 AND DCPLNT = 'V1' AND DMSTN = 'DIEBANK' AND DMSTS2 IN ( 'ACTIVE')" +
                     " AND DMDAMK NOT IN (SELECT DISTINCT (SLAMKR) FROM EMLIB.EMESLP12 WHERE DMFCID=SLFCID AND DMASID=SLASID AND DMDAMK=SLAMKR  AND (SLLOCT='L' OR SLLOCT='T' )  )" +
                     "  AND DMCSCD  IN " + cus + " AND DMRLOC IN " + location + " ORDER  BY DMCSCD ";
 //
@@ -304,7 +332,7 @@ public class Data400Controller {
                     "  JOIN EMLIB.ASCHMP03 ON SSFCID=SMFCID AND SSASID=SMASID AND SSWAMK=SMWAMK AND SSSUB#=SMSUB#  " +
                     "  AND SSBZTP=CASE WHEN SMBUSN <>'A' THEN 'TEST' ELSE 'ASSY' END  " +
                     "  LEFT JOIN EMLIB.EMESLP04 ON SMFCID=CIFCID AND SMASID=CIASID AND SMWAMK=CIAMKR AND SMSUB#=CISUB# AND CICHFD = 'MSCAN' " +
-                    "  WHERE SMFCID=80 AND SMASID=1 AND SMPLNT='V1'  AND SMACDT<>0 AND SMISLF='Y' AND SMSTS1<>'CLOSE' AND SMSTN ='SHIPMENT'  AND SMSTS2 IN " + Status;
+                    "  WHERE SMFCID=80 AND SMASID=1 AND SMPLNT='V1'  AND SMACDT<>0 AND SMISLF='Y' AND SMSTS1<>'CLOSE' AND SMSTN IN ('SHIPMENT','D-CENTER')  AND SMSTS2 IN " + Status;
 
 
             if (Status.trim().equals("('ACTIVE')")) {
@@ -381,7 +409,7 @@ public class Data400Controller {
                     "  JOIN EMLIB.ASCHMP03 ON SSFCID=SMFCID AND SSASID=SMASID AND SSWAMK=SMWAMK AND SSSUB#=SMSUB#  " +
                     "  AND SSBZTP=CASE WHEN SMBUSN <>'A' THEN 'TEST' ELSE 'ASSY' END  " +
 
-                    "  WHERE SMFCID=80 AND SMASID=1 AND SMPLNT='V1'  AND SMSTS1<>'CLOSE' AND SMSTN ='SHIPMENT'  AND SMSTS2 IN ('ACTIVE','HOLD')";
+                    "  WHERE SMFCID=80 AND SMASID=1 AND SMPLNT='V1'  AND SMSTS1<>'CLOSE' AND SMSTN IN ('SHIPMENT','D-CENTER')  AND SMSTS2 IN ('ACTIVE','HOLD')";
 
 
             m_psmt = m_conn.prepareStatement(query);
@@ -1277,7 +1305,7 @@ public class Data400Controller {
 
     public long get400CurrentDate() {
         String current = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
-        long result = Long.parseLong(current) - 19000000000000L;
+        long result = Long.parseLong(current);
         return result;
     }
 
@@ -1334,5 +1362,119 @@ public class Data400Controller {
         return result;
     }
 
+    @RequestMapping(method = RequestMethod.GET, value = "checkExistLocationFull")
+    public String checkExistLocationFull( String location) {
 
+        String result = "Fail";
+        ResultSet m_rs = null;
+        PreparedStatement m_pstmt;
+        try {
+            Class.forName(DRIVER);
+            Connection m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
+
+
+            String sQuery = "  SELECT  * FROM EMLIB.EMISCELP e  WHERE  FACTORY_ID =80 AND TABLE_ID ='DIE_LOC' AND TABLE_CODE_01 =? ";
+            m_pstmt = m_conn.prepareStatement(sQuery);
+
+
+            m_pstmt.setString(1, location);
+
+            m_rs = m_pstmt.executeQuery();
+
+            if (m_rs.next()) {
+                result="True";
+            }
+
+
+            m_rs.close();
+            m_pstmt.close();
+            m_conn.close();
+            if (result.equals("Fail")){
+                result=countLotLocation(location);
+            }
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+
+
+
+        return result;
+    }
+
+    public String countLotLocation( String location) {
+
+        String result = "Fail";
+
+        ResultSet m_rs = null;
+        PreparedStatement m_pstmt;
+        try {
+            Class.forName(DRIVER);
+            Connection m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
+
+
+            String sQuery = "  SELECT  DMRLOC ,COUNT (DMRLOC) AS TOTAL FROM  EMLIB.ADSTMP01 a  WHERE DMRLOC=? GROUP BY DMRLOC ORDER BY DMRLOC   ";
+            m_pstmt = m_conn.prepareStatement(sQuery);
+
+
+            m_pstmt.setString(1, location);
+
+            m_rs = m_pstmt.executeQuery();
+
+            if (m_rs.next()) {
+                result=String.valueOf(m_rs.getInt("TOTAL"));
+            }
+
+            m_rs.close();
+            m_pstmt.close();
+            m_conn.close();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+
+
+
+        return result;
+    }
+
+
+    @RequestMapping(method = RequestMethod.GET, value = "createFullLocation")
+    public String createFullLocation( String location,String badge,String totalLot) {
+
+        String result = "Create Full Location Fail";
+        ResultSet m_rs = null;
+        PreparedStatement m_pstmt;
+        int update=0;
+        try {
+            Class.forName(DRIVER);
+            Connection m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
+
+
+            String sQuery = "  INSERT INTO EMLIB.EMISCELP (FACTORY_ID,TABLE_ID,TABLE_CODE_01,TABLE_CODE_02,LENGTH_01,LENGTH_02,SHORT_DESC,FULL_DESC,CREATE_DATETIME,CREATE_USER,MAINT_DATETIME,MAINT_USER) VALUES " +
+                    " (80,'DIE_LOC',?,?,0,0,'DIE_BANK','',?,?,0,'')   ";
+            m_pstmt = m_conn.prepareStatement(sQuery);
+
+
+            m_pstmt.setString(1, location);
+            m_pstmt.setString(2, totalLot);
+            m_pstmt.setLong(3, get400CurrentDate());
+            m_pstmt.setString(4, badge);
+
+            update = m_pstmt.executeUpdate();
+            if (update==1){
+                result = "Create Full Location Success";
+            }
+
+
+
+            m_rs.close();
+            m_pstmt.close();
+            m_conn.close();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+
+
+
+        return result;
+    }
 }
