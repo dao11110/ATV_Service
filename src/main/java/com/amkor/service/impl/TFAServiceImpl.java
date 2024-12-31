@@ -4,6 +4,7 @@ import com.amkor.common.utils.SharedConstValue;
 import com.amkor.models.AutoLabelModel;
 import com.amkor.models.OnLineScheduleSheetFileModel;
 import com.amkor.models.ProcessNoteModel;
+import com.amkor.models.ScheduleMasterModel;
 import com.amkor.service.iService.ITFAService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,11 +17,11 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
+import java.sql.*;
 import java.util.*;
+import java.util.Date;
+
+import com.amkor.common.utils.*;
 
 @Service
 public class TFAServiceImpl implements ITFAService {
@@ -327,9 +328,9 @@ public class TFAServiceImpl implements ITFAService {
 
     @Override
     public OnLineScheduleSheetFileModel getOnlineScheduleSheetMemoFileFromStationAndLotName(String station, String lotName) {
-        Connection m_conn;
-        PreparedStatement m_psmt;
-        ResultSet m_rs;
+        Connection m_conn = null;
+        PreparedStatement m_psmt = null;
+        ResultSet m_rs = null;
         OnLineScheduleSheetFileModel onLineScheduleSheetFileModel = null;
         try {
             String sQuery = "SELECT * FROM EMLIB.EMESTP032 " +
@@ -337,8 +338,7 @@ public class TFAServiceImpl implements ITFAService {
                     "WHERE FACTORY_ID = " + SharedConstValue.FACTORY_ID + " AND TYPE_ID = 'S' AND SMLOT# = '" + lotName + "' AND ( " +
                     "EXISTS (SELECT 1 FROM EMLIB.EMESTP032 WHERE SMLOT# = '" + lotName + "' AND FILE_X LIKE '%" + station + "%') " +
                     "OR FILE_X LIKE '%" + station + "%')";
-            Class.forName(this.getDriver());
-            m_conn = DriverManager.getConnection(getURL(SharedConstValue.AMKOR_SHORTNAME), getUserID(SharedConstValue.AMKOR_SHORTNAME), getPasswd(SharedConstValue.AMKOR_SHORTNAME));
+            m_conn = getConnection();
             m_psmt = m_conn.prepareStatement(sQuery);
             m_rs = m_psmt.executeQuery();
             if (m_rs.next()) {
@@ -355,12 +355,10 @@ public class TFAServiceImpl implements ITFAService {
                 onLineScheduleSheetFileModel.setMaintDateTime(m_rs.getLong(9));
                 onLineScheduleSheetFileModel.setMaintBadge(m_rs.getString(10));
             }
-
-            m_conn.close();
-            m_psmt.close();
-            m_rs.close();
         } catch (Exception ex) {
             log.error(ex.getMessage(), ex);
+        } finally {
+            cleanUp(m_conn, m_psmt, m_rs);
         }
 
         return onLineScheduleSheetFileModel;
@@ -370,14 +368,13 @@ public class TFAServiceImpl implements ITFAService {
     public boolean checkExistProcessNote(ProcessNoteModel model) {
 
         boolean result = false;
-        Connection m_conn;
-        PreparedStatement m_psmt;
-        ResultSet m_rs;
+        Connection m_conn = null;
+        PreparedStatement m_psmt = null;
+        ResultSet m_rs = null;
         try {
             String sQuery = "select * from EPLIB.EPENOTP where ENFCID = ? AND ENCLAS = ? AND ENCUST = ? AND ENPKGE = ? " +
                     "AND ENDMSN = ? AND ENLEAD = ? AND ENDEVC = ? AND ENOPID = ? AND ENOPER = ? AND ENSEQ# = ?";
-            Class.forName(this.getDriver());
-            m_conn = DriverManager.getConnection(getURL(SharedConstValue.AMKOR_SHORTNAME), getUserID(SharedConstValue.AMKOR_SHORTNAME), getPasswd(SharedConstValue.AMKOR_SHORTNAME));
+            m_conn = getConnection();
             m_psmt = m_conn.prepareStatement(sQuery);
             int i = 1;
             m_psmt.setInt(i++, model.getFactoryId());
@@ -394,12 +391,78 @@ public class TFAServiceImpl implements ITFAService {
             if (m_rs.next()) {
                 result = true;
             }
-
-            m_rs.close();
-            m_psmt.close();
-            m_conn.close();
         } catch (Exception ex) {
             log.error(ex.getMessage(), ex);
+        } finally {
+            cleanUp(m_conn, m_psmt, m_rs);
+        }
+
+        return result;
+    }
+
+    @Override
+    public String holdLot(String lotName, String lotDcc, String holdCode, String holdReason, String userBadge) {
+        Connection m_conn = null;
+        CallableStatement m_cstmt = null;
+        ResultSet m_rs = null;
+        String msg = "";
+        try {
+            ScheduleMasterModel model = getScheduleMasterByLotNameDcc(lotName, lotDcc);
+            if (model != null) {
+                m_conn = getConnection();
+                String sProcedure = "{call EMLIB.ESCHSP26 (?,?,?,?,?,?,?,?,?,?,?)}";
+                m_cstmt = m_conn.prepareCall(sProcedure);
+
+                m_cstmt.setString(1, CommonUtils.getString("H", 1));
+                m_cstmt.setString(2, CommonUtils.getString(model.getFactoryId(), 3));
+                m_cstmt.setString(3, CommonUtils.getString(model.getSiteId(), 3));
+                m_cstmt.setString(4, CommonUtils.getString(model.getAmkId(), 20));
+                m_cstmt.setString(5, CommonUtils.getString(model.getSubId(), 5));
+                m_cstmt.setString(6, CommonUtils.getString(holdCode, 4));
+                m_cstmt.setString(7, CommonUtils.getString(holdReason, 50));
+                m_cstmt.setString(8, CommonUtils.getString(0, 8));
+                m_cstmt.setString(9, CommonUtils.getString(userBadge, 7));
+                m_cstmt.setString(10, CommonUtils.getString(getDateTime(), 14));
+                m_cstmt.setString(11, CommonUtils.getString(holdReason, 50));
+                m_cstmt.execute();
+                msg = "success";
+            } else {
+                msg = "No lot found";
+            }
+        } catch (Exception ex) {
+            msg = "exception";
+        } finally {
+            cleanUp(m_conn, m_cstmt, m_rs);
+        }
+
+        return msg;
+    }
+
+    public ScheduleMasterModel getScheduleMasterByLotNameDcc(String lotName, String dcc) {
+        Connection m_conn = null;
+        PreparedStatement m_psmt = null;
+        ResultSet m_rs = null;
+        ScheduleMasterModel result = null;
+        try {
+            String sQuery = "SELECT * FROM EMLIB.ASCHMP02 WHERE SMLOT# = ? AND SMDCC = ?";
+            m_conn = getConnection();
+            m_psmt = m_conn.prepareStatement(sQuery);
+            m_psmt.setString(1, lotName);
+            m_psmt.setString(2, dcc);
+            m_rs = m_psmt.executeQuery();
+            while (m_rs.next()) {
+                result = new ScheduleMasterModel();
+                result.setFactoryId(m_rs.getInt("SMFCID"));
+                result.setSiteId(m_rs.getInt("SMASID"));
+                result.setAmkId(m_rs.getInt("SMWAMK"));
+                result.setSubId(m_rs.getInt("SMSUB#"));
+                result.setLotName(lotName);
+                result.setLotDcc(dcc);
+            }
+        } catch (Exception ex) {
+            log.error(ex.getMessage());
+        } finally {
+            cleanUp(m_conn, m_psmt, m_rs);
         }
 
         return result;

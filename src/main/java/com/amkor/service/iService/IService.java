@@ -1,12 +1,18 @@
 package com.amkor.service.iService;
 
+import com.amkor.common.utils.SharedConstValue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
 @Service
 public interface IService {
+
+    Logger log = LoggerFactory.getLogger(IService.class);
 
     default String getDriver() {
         return "com.ibm.as400.access.AS400JDBCDriver";
@@ -116,5 +122,43 @@ public interface IService {
     default long get400CurrentDate() {
         String current = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
         return Long.parseLong(current) - 19000000000000L;
+    }
+
+    default void cleanUp(Connection m_conn, Statement m_pstm, ResultSet m_rs) {
+        if (m_conn != null) {
+            try {
+                m_conn.close();
+            } catch (Exception e) {
+                log.error(e.getMessage());
+            }
+        }
+
+        if (m_pstm != null) {
+            try {
+                m_pstm.close();
+            } catch (Exception e) {
+                log.error(e.getMessage());
+            }
+        }
+
+        if (m_rs != null) {
+            try {
+                m_rs.close();
+            } catch (Exception e) {
+                log.error(e.getMessage());
+            }
+        }
+    }
+
+    default Connection getConnection() {
+        Connection m_conn = null;
+        try {
+            Class.forName(this.getDriver());
+            m_conn = DriverManager.getConnection(getURL(SharedConstValue.AMKOR_SHORTNAME), getUserID(SharedConstValue.AMKOR_SHORTNAME), getPasswd(SharedConstValue.AMKOR_SHORTNAME));
+        } catch (Exception ex) {
+            log.error(ex.getMessage());
+        }
+
+        return m_conn;
     }
 }

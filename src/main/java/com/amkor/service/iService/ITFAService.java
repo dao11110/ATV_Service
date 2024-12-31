@@ -26,4 +26,5 @@ public interface ITFAService extends IWriteService {
 
     OnLineScheduleSheetFileModel getOnlineScheduleSheetMemoFileFromStationAndLotName(String station, String lotName);
 
+    String holdLot(String lotName, String lotDcc, String holdCode, String holdReason, String userBadge);
 }

@@ -46,6 +46,7 @@ public class TFAController {
     private static final String UPDATE_FAIL_MESSAGE = "FAILED TO UPDATE";
     private static final String CREATE_FAIL_MESSAGE = "FAILED TO CREATE";
     private static final String SUCCESS_MESSAGE = "SUCCESS";
+    private static final String FAILED_MESSAGE = "FAILED";
 
     @RequestMapping(method = RequestMethod.POST, value = "/data400/{site}/custProductionInfoFgJson")
     @CrossOrigin(origins = "*")
@@ -518,5 +519,34 @@ public class TFAController {
         }
     }
 
+    @RequestMapping(method = RequestMethod.POST, value = "/data400/holdLot")
+    @CrossOrigin(origins = "*")
+    public ApiResponse<String> holdLot(@RequestBody HashMap<String, Object> body) {
+        String msg;
+        try {
+            String lotName = body.get("lotName").toString();
+            String lotDcc = body.get("lotDcc").toString();
+            String holdCode = body.get("holdCode").toString();
+            String holdReason = body.get("holdReason").toString();
+            String userBadge = body.get("userBadge").toString();
+            msg = ITFAService.holdLot(lotName, lotDcc, holdCode, holdReason, userBadge);
+            return ApiResponse.of(
+                    HttpStatus.OK,
+                    ApiResponse.Code.SUCCESS,
+                    SUCCESS_MESSAGE,
+                    msg
+            );
+        } catch (Exception ex) {
+            log.error(ex.getMessage());
+            msg = "exception";
+            return ApiResponse.of(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    ApiResponse.Code.FAILED,
+                    FAILED_MESSAGE,
+                    msg
+            );
+        }
+
+    }
 
 }

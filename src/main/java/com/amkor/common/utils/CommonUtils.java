@@ -16,4 +16,27 @@ public class CommonUtils {
     public <T> boolean ArrayContains(@NotNull T[] arr, @NotNull T value) {
         return Arrays.asList(arr).contains(value);
     }
+
+    public static String getString(String sString, int nTotalLength) {
+        StringBuilder sStringBuilder = new StringBuilder(sString);
+        while (sStringBuilder.length() < nTotalLength) sStringBuilder.insert(0, " ");
+        sString = sStringBuilder.toString();
+        return sString;
+    }
+
+    public static String getString(int nNumber, int nTotalLength) {
+        StringBuilder sNumber = new StringBuilder(Integer.toString(nNumber));
+        while (sNumber.length() < nTotalLength) {
+            sNumber.insert(0, "0");
+        }
+        return sNumber.toString();
+    }
+
+    public static String getString(long nNumber, int nTotalLength) {
+        StringBuilder sNumber = new StringBuilder(Long.toString(nNumber));
+        while (sNumber.length() < nTotalLength) {
+            sNumber.insert(0, "0");
+        }
+        return sNumber.toString();
+    }
 }

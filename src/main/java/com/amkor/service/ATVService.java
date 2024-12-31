@@ -320,9 +320,9 @@ public class ATVService implements IATVService {
 
     @Override
     public List<AlertForFGModel> getAlertForFGNotScheduledFor30Days(int factoryId, String plant, String cust) {
-        Connection m_conn;
-        PreparedStatement m_psmt;
-        ResultSet m_rs;
+        Connection m_conn = null;
+        PreparedStatement m_psmt = null;
+        ResultSet m_rs = null;
         List<AlertForFGModel> result = new ArrayList<>();
         try {
             long lToday = this.getDate();
@@ -348,8 +348,7 @@ public class ATVService implements IATVService {
                     "                   AND SSLTCD = '' " +
                     "                   AND CVMDUL='SCHEDULE' AND ((CVFLDN = 'NPIFLAG' AND CVFLDV = '') OR (CVFLDN = 'TNPIFLAG' AND CVFLDV = 'N')) " +
                     "                   AND ((SUBSTRING(SSBZTP,0,2) = 'A' AND (SSSCHD > " + lScheduledDate + " OR SSSCHD = 0)) OR (SUBSTRING(SSBZTP,0,2) = 'T' AND (SSWIDT > " + lScheduledDate + " OR SSWIDT = 0))))";
-            Class.forName(this.getDriver());
-            m_conn = DriverManager.getConnection(getURL(SharedConstValue.AMKOR_SHORTNAME), getUserID(SharedConstValue.AMKOR_SHORTNAME), getPasswd(SharedConstValue.AMKOR_SHORTNAME));
+            m_conn = getConnection();
             m_psmt = m_conn.prepareStatement(sQuery);
             m_rs = m_psmt.executeQuery();
             while (m_rs.next()) {
@@ -359,12 +358,10 @@ public class ATVService implements IATVService {
                 alert.setTargetDevice(m_rs.getString("SSDEVC").trim());
                 result.add(alert);
             }
-            m_rs.close();
-            m_psmt.close();
-            m_conn.close();
-
         } catch (Exception ex) {
             log.error(ex.getMessage(), ex);
+        } finally {
+            cleanUp(m_conn, m_psmt, m_rs);
         }
         return result;
     }
