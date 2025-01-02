@@ -17,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.hssf.usermodel.*;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
+import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.xmlbeans.impl.tool.Diff;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -502,9 +503,9 @@ public class Data400Controller {
             Class.forName(DRIVER);
             m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
             query = "SELECT A.FACTORY_ID,A.SITE_ID,A.CUSTOMER_NO,A.LOT_NO,A.LOT_DCC, A.AMKOR_ID, A.SUB_ID,A.EOH_QTY,A.OPERATION_NO,A.DEVICE,A.STATUS2,A.RACK_NO,A.SHELF_NO,B.CHANGE_BADGE,C.LOG_REMARK FROM EMLIB.ANGSTP01 AS A " +
-                    " JOIN  EMLIB.EMESLP30 AS B ON A.FACTORY_ID = B.FACTORY_ID AND A.SITE_ID = B.SITE_ID AND A.AMKOR_ID = B.AMKOR_ID AND A.SUB_ID =B.SUB_ID AND A.OPERATION_NO = B.SEQUENCE_NO " +
+                    " LEFT JOIN   EMLIB.EMESLP30 AS B ON A.FACTORY_ID = B.FACTORY_ID AND A.SITE_ID = B.SITE_ID AND A.AMKOR_ID = B.AMKOR_ID AND A.SUB_ID =B.SUB_ID AND A.OPERATION_NO = B.SEQUENCE_NO " +
                     "LEFT JOIN  EMLIB.EMESLP30 AS C ON A.FACTORY_ID = C.FACTORY_ID AND A.SITE_ID = C.SITE_ID AND A.AMKOR_ID = C.AMKOR_ID AND A.SUB_ID =C.SUB_ID AND A.OPERATION_NO = C.SEQUENCE_NO AND C.TRNX_MODE = 'BOXID'" +
-                    " WHERE B.FACTORY_ID =80 AND B.SITE_ID =1 AND FR_PLANT = 'V1' AND A.STATUS2 IN ('ACTIVE','HOLD')  AND B.TRNX_MODE ='INVENTORY' AND B.LOG_REMARK='CHECKED' AND B.CHANGE_DATETIME BETWEEN " + dateStart + " AND " + dateEnd + "  ORDER BY A.CUSTOMER_NO ";
+                    " WHERE B.FACTORY_ID =80 AND B.SITE_ID =1 AND FR_PLANT = 'V1' AND A.STATUS2 IN ('ACTIVE','HOLD')  AND B.TRNX_MODE ='INVENTORY' AND B.LOG_REMARK in('CHECKED', 'SUCCESS') AND  ( (B.CHANGE_DATETIME BETWEEN " + dateStart + " AND " + dateEnd + ") OR  ( B.NRCRDT BETWEEN  " + dateStart + " AND " + dateEnd +" AND B.NRCHDT = 0 ))  ORDER BY A.CUSTOMER_NO ";
 
 
             m_psmt = m_conn.prepareStatement(query);
@@ -523,7 +524,12 @@ public class Data400Controller {
                 lotInformationModel.setOperationNo(m_rs.getInt("OPERATION_NO"));
                 lotInformationModel.setTargetDevice(m_rs.getString("DEVICE").trim());
                 lotInformationModel.setStatus2(m_rs.getString("STATUS2").trim());
-                lotInformationModel.setBadge(Integer.parseInt(m_rs.getString("CHANGE_BADGE").trim()));
+                if (m_rs.getString("CHANGE_BADGE").trim().equals("")){
+                    lotInformationModel.setBadge(0);
+                }else {
+                    lotInformationModel.setBadge(Integer.parseInt(m_rs.getString("CHANGE_BADGE").trim()));
+                }
+
                 lotInformationModel.setStripMark(m_rs.getString("LOG_REMARK").trim());
                 lotInformationModel.setRackLocationCode(m_rs.getString("RACK_NO").trim());
                 lotInformationModel.setShelfLocationCode(m_rs.getString("SHELF_NO").trim());
@@ -1135,7 +1141,7 @@ public class Data400Controller {
 
 
             FileOutputStream fos = new FileOutputStream(fileName);
-            Workbook workbook = new HSSFWorkbook();
+            SXSSFWorkbook workbook = new SXSSFWorkbook ();
 
             Sheet sheet = workbook.createSheet("NG Inventory");
             CellStyle style = workbook.createCellStyle();
@@ -1187,7 +1193,7 @@ public class Data400Controller {
 
             for (int i = 0; i < 12; i++) {
                 row.getCell(i).setCellStyle(style);
-                sheet.autoSizeColumn(i);
+               // sheet.autoSizeColumn(i);
             }
 
             int rowCount = 5;
@@ -1214,7 +1220,7 @@ public class Data400Controller {
 
                 for (int i = 0; i < 12; i++) {
                     lotRow.getCell(i).setCellStyle(style);
-                    sheet.autoSizeColumn(i);
+                   // sheet.autoSizeColumn(i);
                 }
 
                 rowCount++;
