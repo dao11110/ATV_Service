@@ -70,6 +70,7 @@ public class ATVService implements IATVService {
 
     }
 
+
     private String currentDate() {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
         String currentDate = LocalDate.now().format(formatter);

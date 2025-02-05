@@ -1,7 +1,9 @@
 package com.amkor.controller.v1;
 
 import com.amkor.service.ATVService;
+import com.amkor.service.SAPService;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.io.FilenameUtils;
 import org.imgscalr.Scalr;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +20,8 @@ import java.io.*;
 import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -37,6 +41,10 @@ public class ApiControllerV1 {
     private String dataPathO;
     @Autowired
     private ATVService atvService;
+    @Autowired
+    private SAPService sapService;
+    @Autowired
+    Data400Controller data400Controller;
 
 
     @GetMapping("/test")
@@ -119,25 +127,25 @@ public class ApiControllerV1 {
     @RequestMapping(method = RequestMethod.POST, value = "/readeFileCSV")
     public String readFileCSV() {
         String result = "OK";
-        String csvFile="C:\\Users\\700063\\Downloads/ATV_GG01_20240610142500.csv";
-        String line="";
+        String csvFile = "C:\\Users\\700063\\Downloads/ATV_GG01_20240610142500.csv";
+        String line = "";
         String cvsSplitBy = ",";
         try (BufferedReader br = new BufferedReader(new FileReader(csvFile))) {
-            int i =0;
+            int i = 0;
             while ((line = br.readLine()) != null) {
 
                 // use comma as separator
                 String[] country = line.split(cvsSplitBy);
-                result=line;
+                result = line;
 //                System.out.println(country[15]); // This will print the second column value
 //                System.out.println(country[20]); // This will print the second column value
 //                System.out.println(country[25]); // This will print the second column value
                 i++;
-                int n=country.length/5;
+                int n = country.length / 5;
                 for (int j = 3; j < n; j++) {
-                    System.out.println(country[j*5]);
+                    System.out.println(country[j * 5]);
                 }
-                if (i==1){
+                if (i == 1) {
                     break;
                 }
             }
@@ -168,5 +176,37 @@ public class ApiControllerV1 {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
         String currentDate = LocalDate.now().format(formatter);
         return currentDate;
+    }
+
+    @RequestMapping(method = RequestMethod.GET, value = "/getFileName")
+    public String getFileName() {
+        List<CSVRecord> records = sapService.checkFTPFile();
+        String tableCode1 = "";
+        String tableCode2 = "";
+        String createTimeConvert = "";
+        String mainDateTime = "";
+        if (records.size() > 0) {
+            tableCode1 = records.get(0).get("table code 01");
+            tableCode2 = records.get(0).get("table code 02");
+            String createTime = records.get(0).get("Create time");
+            mainDateTime = records.get(0).get("Maint Date time");
+            SimpleDateFormat dt = new SimpleDateFormat("dd.MM.yyyy");
+            SimpleDateFormat dt1 = new SimpleDateFormat("yyyyMMdd");
+
+            try {
+                Date date = dt.parse(createTime);
+                createTimeConvert = dt1.format(date);
+
+            } catch (ParseException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        long timeMaxSAPCreate=data400Controller.getTimeSAPInsert();
+        if (Long.parseLong(mainDateTime)>timeMaxSAPCreate){
+            System.out.println("1234---1111");
+            data400Controller.insertSAPRate(tableCode1,tableCode2,Long.parseLong(createTimeConvert),Long.parseLong(mainDateTime));
+        }
+        return tableCode1 + "____" + tableCode2 + "____" + createTimeConvert + "____" + mainDateTime+"____"+timeMaxSAPCreate;
     }
 }

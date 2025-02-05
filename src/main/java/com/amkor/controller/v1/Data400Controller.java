@@ -66,7 +66,7 @@ public class Data400Controller {
                 result = "jdbc:as400://10.101.6.12";
                 break;
             case "ATV":
-                result = "jdbc:as400://10.201.6.11";
+                result = "jdbc:as400://10.201.6.21";
                 break;
         }
         return result;
@@ -888,7 +888,7 @@ public class Data400Controller {
             }
 
             FileOutputStream fos = new FileOutputStream(fileName);
-            Workbook workbook = new HSSFWorkbook();
+            SXSSFWorkbook workbook = new SXSSFWorkbook();
 
             Sheet sheet = workbook.createSheet("Inventory");
             CellStyle style = workbook.createCellStyle();
@@ -978,7 +978,7 @@ public class Data400Controller {
 
             if (!status.trim().equals("('ACTIVE')")) {
                 for (LotInformationModel lot : lotListInventory) {
-                    boolean check = lotListScanned.stream().anyMatch(e -> e.getWipAmkorID() == lot.getWipAmkorID() && e.getWipDcc() == lot.getWipDcc() && e.getWipAmkorSubID() == lot.getWipAmkorSubID());
+                    boolean check = lotListScanned.stream().anyMatch(e -> e.getWipAmkorID() == lot.getWipAmkorID() && e.getWipDcc() .equals( lot.getWipDcc()) && e.getWipAmkorSubID() == lot.getWipAmkorSubID());
                     if (!check) {
                         lot.setScanned(false);
                         lotListScanned.add(lot);
@@ -988,7 +988,7 @@ public class Data400Controller {
             }
 
             FileOutputStream fos = new FileOutputStream(fileName);
-            Workbook workbook = new HSSFWorkbook();
+            SXSSFWorkbook workbook = new SXSSFWorkbook();
 
             Sheet sheet = workbook.createSheet("Shipping");
             CellStyle style = workbook.createCellStyle();
@@ -1044,12 +1044,12 @@ public class Data400Controller {
                 row.createCell(14).setCellValue("Scanned");
                 for (int i = 0; i < 15; i++) {
                     row.getCell(i).setCellStyle(style);
-                    sheet.autoSizeColumn(i);
+//                    sheet.autoSizeColumn(i);
                 }
             } else {
                 for (int i = 0; i < 14; i++) {
                     row.getCell(i).setCellStyle(style);
-                    sheet.autoSizeColumn(i);
+//                    sheet.autoSizeColumn(i);
                 }
             }
 
@@ -1079,12 +1079,12 @@ public class Data400Controller {
                     lotRow.createCell(14).setCellValue(lot.isScanned() ? "Y" : "N");
                     for (int i = 0; i < 15; i++) {
                         lotRow.getCell(i).setCellStyle(style);
-                        sheet.autoSizeColumn(i);
+//                        sheet.autoSizeColumn(i);
                     }
                 } else {
                     for (int i = 0; i < 14; i++) {
                         lotRow.getCell(i).setCellStyle(style);
-                        sheet.autoSizeColumn(i);
+//                        sheet.autoSizeColumn(i);
                     }
                 }
 
@@ -1251,7 +1251,7 @@ public class Data400Controller {
 
 
             FileOutputStream fos = new FileOutputStream(fileName);
-            Workbook workbook = new HSSFWorkbook();
+            SXSSFWorkbook workbook = new SXSSFWorkbook();
 
             Sheet sheet = workbook.createSheet("Scrap");
             CellStyle style = workbook.createCellStyle();
@@ -1287,7 +1287,7 @@ public class Data400Controller {
 
             for (int i = 0; i < 12; i++) {
                 row.getCell(i).setCellStyle(style);
-                sheet.autoSizeColumn(i);
+//                sheet.autoSizeColumn(i);
             }
 
             int rowCount = 3;
@@ -1313,7 +1313,7 @@ public class Data400Controller {
 
                 for (int i = 0; i < 12; i++) {
                     lotRow.getCell(i).setCellStyle(style);
-                    sheet.autoSizeColumn(i);
+//                    sheet.autoSizeColumn(i);
                 }
 
                 rowCount++;
@@ -1533,6 +1533,7 @@ public class Data400Controller {
         return result;
     }
 
+
     public String countLotLocation( String location) {
 
         String result = "Fail";
@@ -1544,7 +1545,7 @@ public class Data400Controller {
             Connection m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
 
 
-            String sQuery = "  SELECT  DMRLOC ,COUNT (DMRLOC) AS TOTAL FROM  EMLIB.ADSTMP01 a  WHERE DMRLOC=? GROUP BY DMRLOC ORDER BY DMRLOC   ";
+            String sQuery = "  SELECT  DMRLOC ,COUNT (DMRLOC) AS TOTAL FROM  EMLIB.ADSTMP01 a  WHERE DMRLOC=? AND DMSTS2 IN ('ACTIVE','HOLD') AND DMSTS1='' GROUP BY DMRLOC ORDER BY DMRLOC   ";
             m_pstmt = m_conn.prepareStatement(sQuery);
 
 
@@ -1609,7 +1610,80 @@ public class Data400Controller {
 
         return result;
     }
+    @RequestMapping(method = RequestMethod.GET, value = "getTimeSAPInsert")
+    public long getTimeSAPInsert(){
+        long nTime=0;
 
+    ResultSet m_rs = null;
+    PreparedStatement m_pstmt;
+
+    try {
+        Class.forName(DRIVER);
+        Connection m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
+
+
+        String sQuery = "  SELECT MAX(MAINT_DATETIME) AS MAINT_DATETIME FROM EMLIB.EMISCELP WHERE FACTORY_ID=80 AND TABLE_ID='EX_RATE' " ;
+
+        m_pstmt = m_conn.prepareStatement(sQuery);
+
+
+
+        m_rs = m_pstmt.executeQuery();
+        if (m_rs.next()) {
+            nTime=m_rs.getLong(1);
+        }
+
+
+
+        m_rs.close();
+        m_pstmt.close();
+        m_conn.close();
+    } catch (Exception e) {
+        System.out.println(e.getMessage());
+    }
+        return nTime;
+
+
+}
+    public String insertSAPRate( String tableCode1,String tableCode2,long createTime,long maintDateTime) {
+
+        String result = "Create Full Location Fail";
+        ResultSet m_rs = null;
+        PreparedStatement m_pstmt;
+        int update=0;
+        try {
+            Class.forName(DRIVER);
+            Connection m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
+
+
+            String sQuery = "  INSERT INTO EMLIB.EMISCELP (FACTORY_ID,TABLE_ID,TABLE_CODE_01,TABLE_CODE_02,LENGTH_01,LENGTH_02,SHORT_DESC,FULL_DESC,CREATE_DATETIME,CREATE_USER,MAINT_DATETIME,MAINT_USER) VALUES " +
+                    " (80,'EX_RATE',?,?,0,0,'JPYUSD','USDJPY',?,'FI-BATCH',?,'FI-BATCH')   ";
+            m_pstmt = m_conn.prepareStatement(sQuery);
+
+
+            m_pstmt.setString(1, tableCode1);
+            m_pstmt.setString(2, tableCode2);
+            m_pstmt.setLong(3, createTime);
+            m_pstmt.setLong(4, maintDateTime);
+
+            update = m_pstmt.executeUpdate();
+            if (update==1){
+                result = "Insert SAP Exchange rate success";
+            }
+
+
+
+            m_rs.close();
+            m_pstmt.close();
+            m_conn.close();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+
+
+
+        return result;
+    }
 
 
 
