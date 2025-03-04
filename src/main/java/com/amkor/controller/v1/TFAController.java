@@ -1,23 +1,38 @@
 package com.amkor.controller.v1;
 
+import com.amkor.common.response.ApiResponse;
+import com.amkor.common.utils.SharedConstValue;
 import com.amkor.models.*;
 import com.amkor.service.APILoggingService;
 import com.amkor.service.ATVNetMiscTableService;
 import com.amkor.service.iService.IATVService;
-import com.amkor.service.iService.IATVThanhService;
+import com.amkor.service.iService.ITFAService;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.BufferedInputStream;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.sql.*;
+import java.text.DecimalFormat;
 import java.util.*;
 
 @Slf4j
 @RestController
-public class Data400ThanhController {
+public class TFAController {
 
     @Autowired
-    private IATVThanhService iatvThanhService;
+    private ITFAService ITFAService;
 
     @Autowired
     private IATVService iatvService;
@@ -31,6 +46,7 @@ public class Data400ThanhController {
     private static final String UPDATE_FAIL_MESSAGE = "FAILED TO UPDATE";
     private static final String CREATE_FAIL_MESSAGE = "FAILED TO CREATE";
     private static final String SUCCESS_MESSAGE = "SUCCESS";
+    private static final String FAILED_MESSAGE = "FAILED";
 
     @RequestMapping(method = RequestMethod.POST, value = "/data400/{site}/custProductionInfoFgJson")
     @CrossOrigin(origins = "*")
@@ -43,8 +59,8 @@ public class Data400ThanhController {
         long currentDateTime = this.iatvService.getDateTime();
         try {
             Map<String, Object> jFgChar = (Map<String, Object>) jsonObject.get("fg_char");
-            Class.forName(iatvThanhService.getDriver());
-            Connection conn = DriverManager.getConnection(iatvThanhService.getURL(site), iatvThanhService.getUserID(site), iatvThanhService.getPasswd(site));
+            Class.forName(ITFAService.getDriver());
+            Connection conn = DriverManager.getConnection(ITFAService.getURL(site), ITFAService.getUserID(site), ITFAService.getPasswd(site));
             Statement stmt = conn.createStatement();
 
             int cust = 78;
@@ -90,7 +106,7 @@ public class Data400ThanhController {
             logging.setCiogvl("API_custProductionInfoFgJson");
             logging.setCinwvl("FG CHAR Change");
             logging.setCirsn("logForAPI");
-            this.iatvThanhService.addApiLogging(logging);
+            this.ITFAService.addApiLogging(logging);
             this.apiLoggingService.insertLog(new ATVNetAPILoggingModel(
                     user,
                     currentDateTime,
@@ -279,8 +295,8 @@ public class Data400ThanhController {
             long current = iatvService.getDateTime();
             for (ProcessNoteModel processNoteModel : model) {
                 int record;
-                if (iatvService.checkExistProcessNote(processNoteModel)) {
-                    record = iatvThanhService.updateProcessNote(processNoteModel);
+                if (ITFAService.checkExistProcessNote(processNoteModel)) {
+                    record = ITFAService.updateProcessNote(processNoteModel);
                     logging.setCinwvl("Process Note update");
                     note = "Process Note update";
                     if (record == 0) {
@@ -288,7 +304,7 @@ public class Data400ThanhController {
                     }
 
                 } else {
-                    record = iatvThanhService.createProcessNote(processNoteModel);
+                    record = ITFAService.createProcessNote(processNoteModel);
                     logging.setCinwvl("Process Note create");
                     note = "Process Note create";
                     if (record == 0) {
@@ -298,12 +314,12 @@ public class Data400ThanhController {
 
                 // logging
                 logging.setCifcid(processNoteModel.getFactoryId());
-                logging.setCiasid(Integer.parseInt(iatvThanhService.getSiteID(site)));
+                logging.setCiasid(Integer.parseInt(ITFAService.getSiteID(site)));
                 logging.setCichdt(current++);
                 logging.setCichbg(Integer.parseInt(processNoteModel.getUserBadge()));
                 logging.setCiogvl("API_createProcessNote");
                 logging.setCirsn("logForAPI");
-                this.iatvThanhService.addApiLogging(logging);
+                this.ITFAService.addApiLogging(logging);
                 this.apiLoggingService.insertLog(new ATVNetAPILoggingModel(
                         String.valueOf(processNoteModel.getUserBadge()),
                         iatvService.getDateTime(),
@@ -340,15 +356,15 @@ public class Data400ThanhController {
         long currentDateTime = iatvService.getDateTime();
         ApiLoggingModel logging = new ApiLoggingModel();
         try {
-            if (iatvService.checkExistAutoLabel(model)) {
-                record = iatvThanhService.updateAutoLabel(model);
+            if (ITFAService.checkExistAutoLabel(model)) {
+                record = ITFAService.updateAutoLabel(model);
                 if (record == 0) {
                     msg = UPDATE_FAIL_MESSAGE;
                 }
                 logging.setCinwvl("Auto Label update");
                 note = "Auto Label update";
             } else {
-                record = iatvThanhService.createAutoLabelMaintenance(model);
+                record = ITFAService.createAutoLabelMaintenance(model);
                 if (record == 0) {
                     msg = CREATE_FAIL_MESSAGE;
                 }
@@ -363,7 +379,7 @@ public class Data400ThanhController {
             logging.setCichbg(model.getUserBadge());
             logging.setCiogvl("API_createAutoLabelMaintenance");
             logging.setCirsn("logForAPI");
-            this.iatvThanhService.addApiLogging(logging);
+            this.ITFAService.addApiLogging(logging);
             this.apiLoggingService.insertLog(new ATVNetAPILoggingModel(
                     String.valueOf(model.getUserBadge()),
                     currentDateTime,
@@ -380,5 +396,189 @@ public class Data400ThanhController {
         return result;
     }
 
+    @RequestMapping(method = RequestMethod.GET, value = "/data400/{site}/getScheduleSheetMemoFile")
+    @CrossOrigin(origins = "*")
+    public ApiResponse<List<HashMap<String, Object>>> getOnlineScheduleSheetMemoFileFromStationAndLotName(@PathVariable("site") String site,
+                                                                                                          @RequestParam("lotName") String lotName,
+                                                                                                          @RequestParam("station") String station,
+                                                                                                          @RequestParam("userBadge") String userBadge) {
+        InputStreamResource resource;
+        ApiLoggingModel logging = new ApiLoggingModel();
+        long currentDateTime = iatvService.getDateTime();
+        String note;
+        String msg;
+        List<HashMap<String, Object>> data;
+        try {
+            OnLineScheduleSheetFileModel fileModel = ITFAService.getOnlineScheduleSheetMemoFileFromStationAndLotName(lotName, station);
+            if (fileModel != null) {
+                String filePath = URLEncoder.encode(fileModel.getPath() + fileModel.getFile(), StandardCharsets.UTF_8.toString());
+                String domain = "";
+                List<ATVNetMiscTableModel> miscs = miscTableService.getList(
+                        SharedConstValue.FACTORY_ID,
+                        "EMES_DOMAIN",
+                        "PRD",
+                        "");
+                if (!miscs.isEmpty()) {
+                    domain = miscs.get(0).getLongDesc();
+                }
+
+                domain += "eMES/commons/fileDownloader.do?filePath=" + filePath;
+                URL url = new URL(domain);
+                BufferedInputStream in = new BufferedInputStream(url.openStream());
+                resource = new InputStreamResource(new BufferedInputStream(in));
+                note = "Get online schedule sheet memo file api";
+
+                // converting excel to json
+                Workbook workbook = new XSSFWorkbook(resource.getInputStream());
+                Sheet sheet = workbook.getSheetAt(0);
+
+                ObjectMapper mapper = new ObjectMapper();
+                ArrayNode arrayNode = mapper.createArrayNode();
+
+                Iterator<Row> rowIterator = sheet.iterator();
+                Row headerRow = rowIterator.next();
+                int colCount = headerRow.getPhysicalNumberOfCells();
+
+                while (rowIterator.hasNext()) {
+                    Row currentRow = rowIterator.next();
+                    ObjectNode objectNode = mapper.createObjectNode();
+                    for (int i = 0; i < colCount; i++) {
+                        Cell cell = currentRow.getCell(i);
+                        if (cell != null) {
+                            String header = headerRow.getCell(i).getStringCellValue();
+                            String value = getFormattedCellValue(cell);
+                            objectNode.put(header, value);
+                        }
+
+                    }
+                    arrayNode.add(objectNode);
+                }
+
+                // convert json string to result object
+                String jsonString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(arrayNode);
+                data = mapper.readValue(jsonString, new TypeReference<List<HashMap<String, Object>>>() {
+                });
+                msg = "SUCCESS";
+                workbook.close();
+
+                // logging
+                logging.setCifcid(fileModel.getFactoryID());
+                logging.setCiasid(SharedConstValue.SITE_ID);
+                logging.setCichdt(currentDateTime);
+                logging.setCichbg(Integer.parseInt(userBadge));
+                logging.setCiogvl("API_getMemoFile");
+                logging.setCirsn("logForAPI");
+                this.ITFAService.addApiLogging(logging);
+                this.apiLoggingService.insertLog(new ATVNetAPILoggingModel(
+                        userBadge,
+                        currentDateTime,
+                        "{lotName: " + lotName + ", station: " + station + "}",
+                        note
+                ));
+            } else {
+                msg = null;
+                data = null;
+            }
+        } catch (Exception ex) {
+            System.out.println(ex.getMessage());
+            msg = ex.getMessage();
+            data = null;
+        }
+        return ApiResponse.of(
+                data != null ? HttpStatus.OK : HttpStatus.BAD_REQUEST,
+                data != null ? ApiResponse.Code.SUCCESS : ApiResponse.Code.FAILED,
+                msg,
+                data);
+    }
+
+    private static String getFormattedCellValue(Cell cell) {
+        switch (cell.getCellType()) {
+            case NUMERIC:
+                if (DateUtil.isCellDateFormatted(cell)) {
+                    return cell.getDateCellValue().toString();
+                } else {
+                    DecimalFormat df = new DecimalFormat("#");
+                    return df.format(cell.getNumericCellValue());
+                }
+            case STRING:
+                return cell.getStringCellValue();
+            case BOOLEAN:
+                return String.valueOf(cell.getBooleanCellValue());
+            case FORMULA:
+                try {
+                    return String.valueOf(cell.getNumericCellValue());
+                } catch (IllegalStateException e) {
+                    return cell.getStringCellValue();
+                }
+            case BLANK:
+                return "";
+            case ERROR:
+                return "ERROR";
+            default:
+                return "";
+        }
+    }
+
+    @RequestMapping(method = RequestMethod.POST, value = "/data400/holdLot")
+    @CrossOrigin(origins = "*")
+    public ApiResponse<String> holdLot(@RequestBody HashMap<String, Object> body) {
+        String msg;
+        try {
+            String lotName = body.get("lotName").toString();
+            String lotDcc = body.get("lotDcc").toString();
+            String holdCode = body.get("holdCode").toString();
+            String holdReason = body.get("holdReason").toString();
+            String userBadge = body.get("userBadge").toString();
+            msg = ITFAService.holdLot(lotName, lotDcc, holdCode, holdReason, userBadge);
+            return ApiResponse.of(
+                    HttpStatus.OK,
+                    ApiResponse.Code.SUCCESS,
+                    SUCCESS_MESSAGE,
+                    msg
+            );
+        } catch (Exception ex) {
+            log.error(ex.getMessage());
+            msg = "exception";
+            return ApiResponse.of(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    ApiResponse.Code.FAILED,
+                    FAILED_MESSAGE,
+                    msg
+            );
+        }
+
+    }
+
+    @RequestMapping(method = RequestMethod.GET, value = "/data400/dateCodeDiscrepancyChecking")
+    public ApiResponse<List<DateCodeDiscrepancyModel>> dateCodeDiscrepancyChecking() {
+        List<DateCodeDiscrepancyModel> result = new ArrayList<>();
+        try {
+            result = this.ITFAService.getDateCodeDiscrepancy();
+        } catch (Exception ex) {
+            log.error(ex.getMessage());
+            ApiResponse.of(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    ApiResponse.Code.FAILED,
+                    FAILED_MESSAGE,
+                    null);
+        }
+        return ApiResponse.of(
+                HttpStatus.OK,
+                ApiResponse.Code.SUCCESS,
+                SUCCESS_MESSAGE,
+                result
+        );
+    }
+
+    @RequestMapping(method = RequestMethod.POST, value = "/data400/dateCodeDiscrepancyChecking/Y")
+    public String sendMailReportDateCodeDiscrepancyChecking(@RequestBody Map<String, Object> body) throws Exception {
+        try {
+            this.ITFAService.sendMailReportDateCodeDiscrepancyChecking(body);
+        } catch (Exception ex) {
+            log.error(ex.getMessage());
+            return FAILED_MESSAGE;
+        }
+        return SUCCESS_MESSAGE;
+    }
 
 }

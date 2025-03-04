@@ -7,7 +7,7 @@ import com.amkor.models.ATVNetMiscTableModel;
 import com.amkor.models.AlertForFGModel;
 import com.amkor.service.ATVNetMiscTableService;
 import com.amkor.service.iService.IATVService;
-import com.amkor.service.iService.IATVThanhService;
+import com.amkor.service.iService.ITFAService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,7 +17,6 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Component
 public class Scheduler {
@@ -27,7 +26,7 @@ public class Scheduler {
     private IATVService iatvService;
 
     @Autowired
-    private IATVThanhService iatvThanhService;
+    private ITFAService ITFAService;
 
     @Autowired
     private ATVNetMiscTableService miscTableService;
@@ -79,7 +78,7 @@ public class Scheduler {
                 }
                 contentBuilder.append("</table>");
 
-                iatvThanhService.sendMailProcess(title, contentBuilder.toString(), toPeople, ccPeople, new ArrayList<>());
+                ITFAService.sendMailProcess(title, contentBuilder.toString(), toPeople, ccPeople, new ArrayList<>());
             }
             log.info("end sending email to alert fg...");
         } catch (Exception ex) {
