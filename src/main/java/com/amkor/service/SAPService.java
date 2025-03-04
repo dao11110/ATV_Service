@@ -26,18 +26,60 @@ public class SAPService {
         List<CSVRecord> listResult=new ArrayList<>();
         String result="OK";
         FTPClient ftpClient = new FTPClient();
+        String pathFTP="/ExchangeRate";
         try {
             ftpClient.connect("10.201.11.45", 2121);
             ftpClient.login("ExchangeRate", "Amkor123!@#");
             ftpClient.enterLocalPassiveMode();
-            final FTPFile[] ftpFiles = ftpClient.listFiles("/ExchangeRate");
+            final FTPFile[] ftpFiles = ftpClient.listFiles(pathFTP);
             final FTPFile latestFile = Stream.of(ftpFiles).max(Comparator.comparing(FTPFile::getTimestamp))
                     .orElse(null);
             assert latestFile != null;
             result=latestFile.getName();
 
 
-            String filePath="/ExchangeRate/"+result;
+            String filePath=pathFTP+"/"+result;
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            ftpClient.retrieveFile(filePath, outputStream);
+
+
+
+            InputStream inputStream=new ByteArrayInputStream(outputStream.toByteArray());
+            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+            CSVParser csvParser = new CSVParser(reader, CSVFormat.DEFAULT.withFirstRecordAsHeader());
+//            List<CSVRecord> records = new ArrayList<>();
+            for (CSVRecord record : csvParser) {
+                System.out.println("aa---"+record);
+                listResult.add(record);
+            }
+
+            ftpClient.logout();
+            ftpClient.disconnect();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+
+        return listResult;
+    }
+
+    public List<CSVRecord> checkFTPFileQA(){
+        List<CSVRecord> listResult=new ArrayList<>();
+        String result="OK";
+        FTPClient ftpClient = new FTPClient();
+        String pathFTP="/ExchangeRate";
+        try {
+            ftpClient.connect("10.201.11.45", 2121);
+            ftpClient.login("ExchangeRate", "Amkor123!@#");
+            ftpClient.enterLocalPassiveMode();
+            final FTPFile[] ftpFiles = ftpClient.listFiles(pathFTP);
+            final FTPFile latestFile = Stream.of(ftpFiles).max(Comparator.comparing(FTPFile::getTimestamp))
+                    .orElse(null);
+            assert latestFile != null;
+            result=latestFile.getName();
+
+
+            String filePath=pathFTP+"/"+result;
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             ftpClient.retrieveFile(filePath, outputStream);
 

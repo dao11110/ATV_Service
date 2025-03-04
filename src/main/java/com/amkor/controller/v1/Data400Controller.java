@@ -37,6 +37,9 @@ public class Data400Controller {
                 result = "jdbc:as400://10.101.6.12";
                 break;
             case "ATV":
+                result = "jdbc:as400://10.201.6.11";
+                break;
+            case "QA":
                 result = "jdbc:as400://10.201.6.21";
                 break;
         }
@@ -136,7 +139,7 @@ public class Data400Controller {
         PreparedStatement m_psmt = null;
         CallableStatement m_cs = null;
         ResultSet m_rs = null;
-        Long dateStart = Long.parseLong(currentDate()+ "000000");
+        Long dateStart = Long.parseLong(currentDate() + "000000");
         Long dateEnd = Long.parseLong(currentDate() + "230000");
         String result = "Fail";
         List<String> locationList = new ArrayList<>();
@@ -185,7 +188,7 @@ public class Data400Controller {
 
 
             m_conn.close();
-            locationList=listLocationDiebank();
+            locationList = listLocationDiebank();
             if (dataSearch.size() > 0) {
                 List<LotInformationModel> listLotByLocation = new ArrayList<>();
                 listLotByLocation = checkLotByLocation(locationList, customer);
@@ -204,8 +207,9 @@ public class Data400Controller {
         }
         return result;
     }
-    private List<String>listLocationDiebank(){
-        List<String>listLocation=new ArrayList<>();
+
+    private List<String> listLocationDiebank() {
+        List<String> listLocation = new ArrayList<>();
         Connection m_conn = null;
         PreparedStatement m_psmt = null;
         CallableStatement m_cs = null;
@@ -218,7 +222,7 @@ public class Data400Controller {
 
             m_rs = m_psmt.executeQuery();
             while (m_rs != null && m_rs.next()) {
-                if (!m_rs.getString("DMRLOC").trim().equals("")){
+                if (!m_rs.getString("DMRLOC").trim().equals("")) {
                     listLocation.add(m_rs.getString("DMRLOC").trim());
                 }
 
@@ -226,7 +230,7 @@ public class Data400Controller {
             m_psmt.close();
             m_rs.close();
             m_conn.close();
-        }catch (Exception e) {
+        } catch (Exception e) {
             System.out.println(e);
         }
         return listLocation;
@@ -476,7 +480,7 @@ public class Data400Controller {
             query = "SELECT A.FACTORY_ID,A.SITE_ID,A.CUSTOMER_NO,A.LOT_NO,A.LOT_DCC, A.AMKOR_ID, A.SUB_ID,A.EOH_QTY,A.OPERATION_NO,A.DEVICE,A.STATUS2,A.RACK_NO,A.SHELF_NO,B.CHANGE_BADGE,C.LOG_REMARK FROM EMLIB.ANGSTP01 AS A " +
                     " LEFT JOIN   EMLIB.EMESLP30 AS B ON A.FACTORY_ID = B.FACTORY_ID AND A.SITE_ID = B.SITE_ID AND A.AMKOR_ID = B.AMKOR_ID AND A.SUB_ID =B.SUB_ID AND A.OPERATION_NO = B.SEQUENCE_NO " +
                     "LEFT JOIN  EMLIB.EMESLP30 AS C ON A.FACTORY_ID = C.FACTORY_ID AND A.SITE_ID = C.SITE_ID AND A.AMKOR_ID = C.AMKOR_ID AND A.SUB_ID =C.SUB_ID AND A.OPERATION_NO = C.SEQUENCE_NO AND C.TRNX_MODE = 'BOXID'" +
-                    " WHERE B.FACTORY_ID =80 AND B.SITE_ID =1 AND FR_PLANT = 'V1' AND A.STATUS2 IN ('ACTIVE','HOLD')  AND B.TRNX_MODE ='INVENTORY' AND B.LOG_REMARK in('CHECKED', 'SUCCESS') AND  ( (B.CHANGE_DATETIME BETWEEN " + dateStart + " AND " + dateEnd + ") OR  ( B.NRCRDT BETWEEN  " + dateStart + " AND " + dateEnd +" AND B.NRCHDT = 0 ))  ORDER BY A.CUSTOMER_NO ";
+                    " WHERE B.FACTORY_ID =80 AND B.SITE_ID =1 AND FR_PLANT = 'V1' AND A.STATUS2 IN ('ACTIVE','HOLD')  AND B.TRNX_MODE ='INVENTORY' AND B.LOG_REMARK in('CHECKED', 'SUCCESS') AND  ( (B.CHANGE_DATETIME BETWEEN " + dateStart + " AND " + dateEnd + ") OR  ( B.NRCRDT BETWEEN  " + dateStart + " AND " + dateEnd + " AND B.NRCHDT = 0 ))  ORDER BY A.CUSTOMER_NO ";
 
 
             m_psmt = m_conn.prepareStatement(query);
@@ -495,9 +499,9 @@ public class Data400Controller {
                 lotInformationModel.setOperationNo(m_rs.getInt("OPERATION_NO"));
                 lotInformationModel.setTargetDevice(m_rs.getString("DEVICE").trim());
                 lotInformationModel.setStatus2(m_rs.getString("STATUS2").trim());
-                if (m_rs.getString("CHANGE_BADGE").trim().equals("")){
+                if (m_rs.getString("CHANGE_BADGE").trim().equals("")) {
                     lotInformationModel.setBadge(0);
-                }else {
+                } else {
                     lotInformationModel.setBadge(Integer.parseInt(m_rs.getString("CHANGE_BADGE").trim()));
                 }
 
@@ -949,7 +953,7 @@ public class Data400Controller {
 
             if (!status.trim().equals("('ACTIVE')")) {
                 for (LotInformationModel lot : lotListInventory) {
-                    boolean check = lotListScanned.stream().anyMatch(e -> e.getWipAmkorID() == lot.getWipAmkorID() && e.getWipDcc() .equals( lot.getWipDcc()) && e.getWipAmkorSubID() == lot.getWipAmkorSubID());
+                    boolean check = lotListScanned.stream().anyMatch(e -> e.getWipAmkorID() == lot.getWipAmkorID() && e.getWipDcc().equals(lot.getWipDcc()) && e.getWipAmkorSubID() == lot.getWipAmkorSubID());
                     if (!check) {
                         lot.setScanned(false);
                         lotListScanned.add(lot);
@@ -1112,7 +1116,7 @@ public class Data400Controller {
 
 
             FileOutputStream fos = new FileOutputStream(fileName);
-            SXSSFWorkbook workbook = new SXSSFWorkbook ();
+            SXSSFWorkbook workbook = new SXSSFWorkbook();
 
             Sheet sheet = workbook.createSheet("NG Inventory");
             CellStyle style = workbook.createCellStyle();
@@ -1164,7 +1168,7 @@ public class Data400Controller {
 
             for (int i = 0; i < 12; i++) {
                 row.getCell(i).setCellStyle(style);
-               // sheet.autoSizeColumn(i);
+                // sheet.autoSizeColumn(i);
             }
 
             int rowCount = 5;
@@ -1191,7 +1195,7 @@ public class Data400Controller {
 
                 for (int i = 0; i < 12; i++) {
                     lotRow.getCell(i).setCellStyle(style);
-                   // sheet.autoSizeColumn(i);
+                    // sheet.autoSizeColumn(i);
                 }
 
                 rowCount++;
@@ -1371,7 +1375,7 @@ public class Data400Controller {
     }
 
     @RequestMapping(method = RequestMethod.GET, value = "checkExistLocationFull")
-    public String checkExistLocationFull( String location) {
+    public String checkExistLocationFull(String location) {
 
         String result = "Fail";
         ResultSet m_rs = null;
@@ -1390,27 +1394,24 @@ public class Data400Controller {
             m_rs = m_pstmt.executeQuery();
 
             if (m_rs.next()) {
-                result="True";
+                result = "True";
             }
 
 
             m_rs.close();
             m_pstmt.close();
             m_conn.close();
-            if (result.equals("Fail")){
-                result=countLotLocation(location);
+            if (result.equals("Fail")) {
+                result = countLotLocation(location);
             }
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
-
-
-
         return result;
     }
 
 
-    public String countLotLocation( String location) {
+    public String countLotLocation(String location) {
 
         String result = "Fail";
 
@@ -1430,7 +1431,7 @@ public class Data400Controller {
             m_rs = m_pstmt.executeQuery();
 
             if (m_rs.next()) {
-                result=String.valueOf(m_rs.getInt("TOTAL"));
+                result = String.valueOf(m_rs.getInt("TOTAL"));
             }
 
             m_rs.close();
@@ -1441,18 +1442,17 @@ public class Data400Controller {
         }
 
 
-
         return result;
     }
 
 
     @RequestMapping(method = RequestMethod.GET, value = "createFullLocation")
-    public String createFullLocation( String location,String badge,String totalLot) {
+    public String createFullLocation(String location, String badge, String totalLot) {
 
         String result = "Create Full Location Fail";
         ResultSet m_rs = null;
         PreparedStatement m_pstmt;
-        int update=0;
+        int update = 0;
         try {
             Class.forName(DRIVER);
             Connection m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
@@ -1469,10 +1469,9 @@ public class Data400Controller {
             m_pstmt.setString(4, badge);
 
             update = m_pstmt.executeUpdate();
-            if (update==1){
+            if (update == 1) {
                 result = "Create Full Location Success";
             }
-
 
 
             m_rs.close();
@@ -1483,50 +1482,49 @@ public class Data400Controller {
         }
 
 
-
         return result;
     }
+
     @RequestMapping(method = RequestMethod.GET, value = "getTimeSAPInsert")
-    public long getTimeSAPInsert(){
-        long nTime=0;
+    public String getTimeSAPInsert() {
+        String result = "";
 
-    ResultSet m_rs = null;
-    PreparedStatement m_pstmt;
+        ResultSet m_rs = null;
+        PreparedStatement m_pstmt;
 
-    try {
-        Class.forName(DRIVER);
-        Connection m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
-
-
-        String sQuery = "  SELECT MAX(MAINT_DATETIME) AS MAINT_DATETIME FROM EMLIB.EMISCELP WHERE FACTORY_ID=80 AND TABLE_ID='EX_RATE' " ;
-
-        m_pstmt = m_conn.prepareStatement(sQuery);
+        try {
+            Class.forName(DRIVER);
+            Connection m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
 
 
+            String sQuery = "  SELECT * FROM EMLIB.EMISCELP WHERE FACTORY_ID=80 AND TABLE_ID='EX_RATE' ORDER BY  MAINT_DATETIME DESC FETCH FIRST 1 ROW ONLY ";
 
-        m_rs = m_pstmt.executeQuery();
-        if (m_rs.next()) {
-            nTime=m_rs.getLong(1);
+            m_pstmt = m_conn.prepareStatement(sQuery);
+
+
+            m_rs = m_pstmt.executeQuery();
+            if (m_rs.next()) {
+                result = m_rs.getString("TABLE_CODE_01").trim() + ":" + m_rs.getString("TABLE_CODE_02").trim() + ":" + m_rs.getLong("CREATE_DATETIME") + ":" + m_rs.getLong("MAINT_DATETIME");
+            }
+
+
+            m_rs.close();
+            m_pstmt.close();
+            m_conn.close();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
         }
+        return result;
 
 
-
-        m_rs.close();
-        m_pstmt.close();
-        m_conn.close();
-    } catch (Exception e) {
-        System.out.println(e.getMessage());
     }
-        return nTime;
 
-
-}
-    public String insertSAPRate( String tableCode1,String tableCode2,long createTime,long maintDateTime) {
+    public String insertSAPRate(String tableCode1, String tableCode2, long createTime, long maintDateTime) {
 
         String result = "Create Full Location Fail";
         ResultSet m_rs = null;
         PreparedStatement m_pstmt;
-        int update=0;
+        int update = 0;
         try {
             Class.forName(DRIVER);
             Connection m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
@@ -1543,10 +1541,9 @@ public class Data400Controller {
             m_pstmt.setLong(4, maintDateTime);
 
             update = m_pstmt.executeUpdate();
-            if (update==1){
+            if (update == 1) {
                 result = "Insert SAP Exchange rate success";
             }
-
 
 
             m_rs.close();
@@ -1557,13 +1554,304 @@ public class Data400Controller {
         }
 
 
+        return result;
+    }
+
+
+    public String updateSAPRate(String tableCode1, String tableCode2, long newCreateTime, long newMainDateTime) {
+
+        String result = "Create Full Location Fail";
+        ResultSet m_rs = null;
+        PreparedStatement m_pstmt;
+        int update = 0;
+        try {
+            Class.forName(DRIVER);
+            Connection m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
+
+
+            String sQuery = "  UPDATE EMLIB.EMISCELP SET CREATE_DATETIME=?,MAINT_DATETIME=? WHERE FACTORY_ID=80 AND TABLE_ID= 'EX_RATE' AND TABLE_CODE_01= ? AND TABLE_CODE_02= ?   ";
+            m_pstmt = m_conn.prepareStatement(sQuery);
+
+            m_pstmt.setLong(1, newCreateTime);
+            m_pstmt.setLong(2, newMainDateTime);
+            m_pstmt.setString(3, tableCode1);
+            m_pstmt.setString(4, tableCode2);
+
+
+            update = m_pstmt.executeUpdate();
+            if (update == 1) {
+                result = "Insert SAP Exchange rate success";
+            }
+
+
+            m_rs.close();
+            m_pstmt.close();
+            m_conn.close();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+
+
+        return result;
+    }
+
+    public String updateSAPRate(String tableCode1, String tableCode2, long createTime, long maintDateTime, long newCreateTime, long newMainDateTime) {
+
+        String result = "Create Full Location Fail";
+        ResultSet m_rs = null;
+        PreparedStatement m_pstmt;
+        int update = 0;
+        try {
+            Class.forName(DRIVER);
+            Connection m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
+
+
+            String sQuery = "  UPDATE EMLIB.EMISCELP SET CREATE_DATETIME=?,MAINT_DATETIME=? WHERE FACTORY_ID=80 AND TABLE_ID= 'EX_RATE' AND TABLE_CODE_01= ? AND TABLE_CODE_02= ?  AND CREATE_DATETIME=? AND  MAINT_DATETIME=? ";
+            m_pstmt = m_conn.prepareStatement(sQuery);
+
+            m_pstmt.setLong(1, newCreateTime);
+            m_pstmt.setLong(2, newMainDateTime);
+            m_pstmt.setString(3, tableCode1);
+            m_pstmt.setString(4, tableCode2);
+            m_pstmt.setLong(5, createTime);
+            m_pstmt.setLong(6, maintDateTime);
+
+            update = m_pstmt.executeUpdate();
+            if (update == 1) {
+                result = "Insert SAP Exchange rate success";
+            }
+
+
+            m_rs.close();
+            m_pstmt.close();
+            m_conn.close();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+
+
+        return result;
+    }
+
+    public boolean checkExistedValue(String tableCode1, String tableCode2) {
+        boolean isExisted = false;
+
+        ResultSet m_rs = null;
+        PreparedStatement m_pstmt;
+
+        try {
+            Class.forName(DRIVER);
+            Connection m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
+
+
+            String sQuery = "  SELECT * FROM EMLIB.EMISCELP WHERE FACTORY_ID=80 AND TABLE_ID='EX_RATE' AND TABLE_CODE_01= ? AND TABLE_CODE_02= ?  ORDER BY  MAINT_DATETIME DESC FETCH FIRST 1 ROW ONLY ";
+
+            m_pstmt = m_conn.prepareStatement(sQuery);
+
+            m_pstmt.setString(1, tableCode1);
+            m_pstmt.setString(2, tableCode2);
+
+            m_rs = m_pstmt.executeQuery();
+            if (m_rs.next()) {
+                isExisted = true;
+            }
+
+
+            m_rs.close();
+            m_pstmt.close();
+            m_conn.close();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+
+
+        return isExisted;
+    }
+
+
+
+//    @RequestMapping(method = RequestMethod.GET, value = "getTimeSAPInsert")
+    public String getTimeSAPInsertQA() {
+        String result = "";
+
+        ResultSet m_rs = null;
+        PreparedStatement m_pstmt;
+
+        try {
+            Class.forName(DRIVER);
+            Connection m_conn = DriverManager.getConnection(getURL("QA"), getUserID("ATV"), getPasswd("ATV"));
+
+
+            String sQuery = "  SELECT * FROM EMLIB.EMISCELP WHERE FACTORY_ID=80 AND TABLE_ID='EX_RATE' ORDER BY  MAINT_DATETIME DESC FETCH FIRST 1 ROW ONLY ";
+
+            m_pstmt = m_conn.prepareStatement(sQuery);
+
+
+            m_rs = m_pstmt.executeQuery();
+            if (m_rs.next()) {
+                result = m_rs.getString("TABLE_CODE_01").trim() + ":" + m_rs.getString("TABLE_CODE_02").trim() + ":" + m_rs.getLong("CREATE_DATETIME") + ":" + m_rs.getLong("MAINT_DATETIME");
+            }
+
+
+            m_rs.close();
+            m_pstmt.close();
+            m_conn.close();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+        return result;
+
+
+    }
+
+    public String insertSAPRateQA(String tableCode1, String tableCode2, long createTime, long maintDateTime) {
+
+        String result = "Create Full Location Fail";
+        ResultSet m_rs = null;
+        PreparedStatement m_pstmt;
+        int update = 0;
+        try {
+            Class.forName(DRIVER);
+            Connection m_conn = DriverManager.getConnection(getURL("QA"), getUserID("ATV"), getPasswd("ATV"));
+
+
+            String sQuery = "  INSERT INTO EMLIB.EMISCELP (FACTORY_ID,TABLE_ID,TABLE_CODE_01,TABLE_CODE_02,LENGTH_01,LENGTH_02,SHORT_DESC,FULL_DESC,CREATE_DATETIME,CREATE_USER,MAINT_DATETIME,MAINT_USER) VALUES " +
+                    " (80,'EX_RATE',?,?,0,0,'JPYUSD','USDJPY',?,'FI-BATCH',?,'FI-BATCH')   ";
+            m_pstmt = m_conn.prepareStatement(sQuery);
+
+
+            m_pstmt.setString(1, tableCode1);
+            m_pstmt.setString(2, tableCode2);
+            m_pstmt.setLong(3, createTime);
+            m_pstmt.setLong(4, maintDateTime);
+
+            update = m_pstmt.executeUpdate();
+            if (update == 1) {
+                result = "Insert SAP Exchange rate success";
+            }
+
+
+            m_rs.close();
+            m_pstmt.close();
+            m_conn.close();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+
 
         return result;
     }
 
 
+    public String updateSAPRateQA(String tableCode1, String tableCode2, long newCreateTime, long newMainDateTime) {
+
+        String result = "Create Full Location Fail";
+        ResultSet m_rs = null;
+        PreparedStatement m_pstmt;
+        int update = 0;
+        try {
+            Class.forName(DRIVER);
+            Connection m_conn = DriverManager.getConnection(getURL("QA"), getUserID("ATV"), getPasswd("ATV"));
 
 
+            String sQuery = "  UPDATE EMLIB.EMISCELP SET CREATE_DATETIME=?,MAINT_DATETIME=? WHERE FACTORY_ID=80 AND TABLE_ID= 'EX_RATE' AND TABLE_CODE_01= ? AND TABLE_CODE_02= ?   ";
+            m_pstmt = m_conn.prepareStatement(sQuery);
+
+            m_pstmt.setLong(1, newCreateTime);
+            m_pstmt.setLong(2, newMainDateTime);
+            m_pstmt.setString(3, tableCode1);
+            m_pstmt.setString(4, tableCode2);
+
+
+            update = m_pstmt.executeUpdate();
+            if (update == 1) {
+                result = "Insert SAP Exchange rate success";
+            }
+
+
+            m_rs.close();
+            m_pstmt.close();
+            m_conn.close();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+
+
+        return result;
+    }
+
+    public String updateSAPRateQA(String tableCode1, String tableCode2, long createTime, long maintDateTime, long newCreateTime, long newMainDateTime) {
+
+        String result = "Create Full Location Fail";
+        ResultSet m_rs = null;
+        PreparedStatement m_pstmt;
+        int update = 0;
+        try {
+            Class.forName(DRIVER);
+            Connection m_conn = DriverManager.getConnection(getURL("QA"), getUserID("ATV"), getPasswd("ATV"));
+
+
+            String sQuery = "  UPDATE EMLIB.EMISCELP SET CREATE_DATETIME=?,MAINT_DATETIME=? WHERE FACTORY_ID=80 AND TABLE_ID= 'EX_RATE' AND TABLE_CODE_01= ? AND TABLE_CODE_02= ?  AND CREATE_DATETIME=? AND  MAINT_DATETIME=? ";
+            m_pstmt = m_conn.prepareStatement(sQuery);
+
+            m_pstmt.setLong(1, newCreateTime);
+            m_pstmt.setLong(2, newMainDateTime);
+            m_pstmt.setString(3, tableCode1);
+            m_pstmt.setString(4, tableCode2);
+            m_pstmt.setLong(5, createTime);
+            m_pstmt.setLong(6, maintDateTime);
+
+            update = m_pstmt.executeUpdate();
+            if (update == 1) {
+                result = "Insert SAP Exchange rate success";
+            }
+
+
+            m_rs.close();
+            m_pstmt.close();
+            m_conn.close();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+
+
+        return result;
+    }
+
+    public boolean checkExistedValueQA(String tableCode1, String tableCode2) {
+        boolean isExisted = false;
+
+        ResultSet m_rs = null;
+        PreparedStatement m_pstmt;
+
+        try {
+            Class.forName(DRIVER);
+            Connection m_conn = DriverManager.getConnection(getURL("QA"), getUserID("ATV"), getPasswd("ATV"));
+
+
+            String sQuery = "  SELECT * FROM EMLIB.EMISCELP WHERE FACTORY_ID=80 AND TABLE_ID='EX_RATE' AND TABLE_CODE_01= ? AND TABLE_CODE_02= ?  ORDER BY  MAINT_DATETIME DESC FETCH FIRST 1 ROW ONLY ";
+
+            m_pstmt = m_conn.prepareStatement(sQuery);
+
+            m_pstmt.setString(1, tableCode1);
+            m_pstmt.setString(2, tableCode2);
+
+            m_rs = m_pstmt.executeQuery();
+            if (m_rs.next()) {
+                isExisted = true;
+            }
+
+
+            m_rs.close();
+            m_pstmt.close();
+            m_conn.close();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+
+
+        return isExisted;
+    }
 
 
     private static String getFormattedCellValue(Cell cell) {

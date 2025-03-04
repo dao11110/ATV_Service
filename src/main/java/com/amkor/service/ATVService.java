@@ -2,15 +2,18 @@ package com.amkor.service;
 
 
 import com.amkor.common.utils.SharedConstValue;
+import com.amkor.controller.v1.ApiControllerV1;
 import com.amkor.models.AlertForFGModel;
 import com.amkor.models.AutoLabelModel;
 import com.amkor.models.OnLineScheduleSheetFileModel;
 import com.amkor.models.ProcessNoteModel;
 import com.amkor.service.iService.IATVService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
 
 import javax.activation.DataHandler;
 import javax.activation.FileDataSource;
@@ -36,6 +39,9 @@ import java.util.*;
 @EnableScheduling
 
 public class ATVService implements IATVService {
+
+    @Autowired
+    ApiControllerV1 apiControllerV1;
 
 
     //    @Scheduled(cron = "${batch.cron.auto-send-mail-mon-to-sat")
@@ -68,6 +74,13 @@ public class ATVService implements IATVService {
             throw new RuntimeException(e);
         }
 
+    }
+
+
+    @Scheduled(cron = "0 5 7 * * *")
+    private void autoGetExchangeRate(){
+        apiControllerV1.getFileName();
+        apiControllerV1.getFileNameQA();
     }
 
 

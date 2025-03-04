@@ -185,12 +185,12 @@ public class ApiControllerV1 {
         String tableCode2 = "";
         String createTimeConvert = "";
         String mainDateTime = "";
-        if (records.size() > 0) {
+        if (!records.isEmpty()) {
             tableCode1 = records.get(0).get("table code 01");
             tableCode2 = records.get(0).get("table code 02");
             String createTime = records.get(0).get("Create time");
             mainDateTime = records.get(0).get("Maint Date time");
-            SimpleDateFormat dt = new SimpleDateFormat("dd.MM.yyyy");
+            SimpleDateFormat dt = new SimpleDateFormat("yyyy.MM.dd");
             SimpleDateFormat dt1 = new SimpleDateFormat("yyyyMMdd");
 
             try {
@@ -202,11 +202,79 @@ public class ApiControllerV1 {
             }
         }
 
-        long timeMaxSAPCreate=data400Controller.getTimeSAPInsert();
-        if (Long.parseLong(mainDateTime)>timeMaxSAPCreate){
-            System.out.println("1234---1111");
-            data400Controller.insertSAPRate(tableCode1,tableCode2,Long.parseLong(createTimeConvert),Long.parseLong(mainDateTime));
+        String lastValue = data400Controller.getTimeSAPInsert();
+        if (!lastValue.equals("")){
+            long timeMaxSAPCreate = Long.parseLong(lastValue.split(":")[3]);
+            if (data400Controller.checkExistedValue(tableCode1, tableCode2)) {
+                data400Controller.updateSAPRate(tableCode1, tableCode2, Long.parseLong(createTimeConvert), Long.parseLong(mainDateTime));
+//                System.out.println("1234---1111---c");
+            } else {
+                if (Long.parseLong(mainDateTime) > timeMaxSAPCreate) {
+
+                    if (tableCode1.equals(lastValue.split(":")[0]) && tableCode2.equals(lastValue.split(":")[1])) {
+//                        System.out.println("1234---1111---a");
+                        data400Controller.updateSAPRate(tableCode1, tableCode2, Long.parseLong(lastValue.split(":")[2]), timeMaxSAPCreate, Long.parseLong(createTimeConvert), Long.parseLong(mainDateTime));
+                    } else {
+                        data400Controller.insertSAPRate(tableCode1, tableCode2, Long.parseLong(createTimeConvert), Long.parseLong(mainDateTime));
+//                        System.out.println("1234---1111---b");
+                    }
+                }
+            }
+        }else {
+            data400Controller.insertSAPRate(tableCode1, tableCode2, Long.parseLong(createTimeConvert), Long.parseLong(mainDateTime));
+//            System.out.println("1234---1111---d");
         }
-        return tableCode1 + "____" + tableCode2 + "____" + createTimeConvert + "____" + mainDateTime+"____"+timeMaxSAPCreate;
+
+        return tableCode1 + "____" + tableCode2 + "____" + createTimeConvert + "____" + mainDateTime  ;
+    }
+
+//    @RequestMapping(method = RequestMethod.GET, value = "/getFileName")
+    public String getFileNameQA() {
+        List<CSVRecord> records = sapService.checkFTPFileQA();
+        String tableCode1 = "";
+        String tableCode2 = "";
+        String createTimeConvert = "";
+        String mainDateTime = "";
+        if (!records.isEmpty()) {
+            tableCode1 = records.get(0).get("table code 01");
+            tableCode2 = records.get(0).get("table code 02");
+            String createTime = records.get(0).get("Create time");
+            mainDateTime = records.get(0).get("Maint Date time");
+            SimpleDateFormat dt = new SimpleDateFormat("yyyy.MM.dd");
+            SimpleDateFormat dt1 = new SimpleDateFormat("yyyyMMdd");
+
+            try {
+                Date date = dt.parse(createTime);
+                createTimeConvert = dt1.format(date);
+
+            } catch (ParseException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        String lastValue = data400Controller.getTimeSAPInsertQA();
+        if (!lastValue.equals("")){
+            long timeMaxSAPCreate = Long.parseLong(lastValue.split(":")[3]);
+            if (data400Controller.checkExistedValueQA(tableCode1, tableCode2)) {
+                data400Controller.updateSAPRateQA(tableCode1, tableCode2, Long.parseLong(createTimeConvert), Long.parseLong(mainDateTime));
+//                System.out.println("1234---1111---c");
+            } else {
+                if (Long.parseLong(mainDateTime) > timeMaxSAPCreate) {
+
+                    if (tableCode1.equals(lastValue.split(":")[0]) && tableCode2.equals(lastValue.split(":")[1])) {
+//                        System.out.println("1234---1111---a");
+                        data400Controller.updateSAPRateQA(tableCode1, tableCode2, Long.parseLong(lastValue.split(":")[2]), timeMaxSAPCreate, Long.parseLong(createTimeConvert), Long.parseLong(mainDateTime));
+                    } else {
+                        data400Controller.insertSAPRateQA(tableCode1, tableCode2, Long.parseLong(createTimeConvert), Long.parseLong(mainDateTime));
+//                        System.out.println("1234---1111---b");
+                    }
+                }
+            }
+        }else {
+            data400Controller.insertSAPRateQA(tableCode1, tableCode2, Long.parseLong(createTimeConvert), Long.parseLong(mainDateTime));
+//            System.out.println("1234---1111---d");
+        }
+
+        return tableCode1 + "____" + tableCode2 + "____" + createTimeConvert + "____" + mainDateTime  ;
     }
 }
