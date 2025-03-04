@@ -549,4 +549,36 @@ public class TFAController {
 
     }
 
+    @RequestMapping(method = RequestMethod.GET, value = "/data400/dateCodeDiscrepancyChecking")
+    public ApiResponse<List<DateCodeDiscrepancyModel>> dateCodeDiscrepancyChecking() {
+        List<DateCodeDiscrepancyModel> result = new ArrayList<>();
+        try {
+            result = this.ITFAService.getDateCodeDiscrepancy();
+        } catch (Exception ex) {
+            log.error(ex.getMessage());
+            ApiResponse.of(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    ApiResponse.Code.FAILED,
+                    FAILED_MESSAGE,
+                    null);
+        }
+        return ApiResponse.of(
+                HttpStatus.OK,
+                ApiResponse.Code.SUCCESS,
+                SUCCESS_MESSAGE,
+                result
+        );
+    }
+
+    @RequestMapping(method = RequestMethod.POST, value = "/data400/dateCodeDiscrepancyChecking/Y")
+    public String sendMailReportDateCodeDiscrepancyChecking(@RequestBody Map<String, Object> body) throws Exception {
+        try {
+            this.ITFAService.sendMailReportDateCodeDiscrepancyChecking(body);
+        } catch (Exception ex) {
+            log.error(ex.getMessage());
+            return FAILED_MESSAGE;
+        }
+        return SUCCESS_MESSAGE;
+    }
+
 }

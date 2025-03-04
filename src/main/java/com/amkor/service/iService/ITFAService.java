@@ -1,12 +1,10 @@
 package com.amkor.service.iService;
 
-import com.amkor.models.ApiLoggingModel;
-import com.amkor.models.AutoLabelModel;
-import com.amkor.models.OnLineScheduleSheetFileModel;
-import com.amkor.models.ProcessNoteModel;
+import com.amkor.models.*;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 public interface ITFAService extends IWriteService {
@@ -27,4 +25,8 @@ public interface ITFAService extends IWriteService {
     OnLineScheduleSheetFileModel getOnlineScheduleSheetMemoFileFromStationAndLotName(String station, String lotName);
 
     String holdLot(String lotName, String lotDcc, String holdCode, String holdReason, String userBadge);
+
+    List<DateCodeDiscrepancyModel> getDateCodeDiscrepancy();
+
+    String sendMailReportDateCodeDiscrepancyChecking(Map<String, Object> body);
 }

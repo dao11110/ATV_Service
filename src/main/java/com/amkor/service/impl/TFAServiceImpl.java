@@ -1,11 +1,10 @@
 package com.amkor.service.impl;
 
 import com.amkor.common.utils.SharedConstValue;
-import com.amkor.models.AutoLabelModel;
-import com.amkor.models.OnLineScheduleSheetFileModel;
-import com.amkor.models.ProcessNoteModel;
-import com.amkor.models.ScheduleMasterModel;
+import com.amkor.models.*;
 import com.amkor.service.iService.ITFAService;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -174,8 +173,7 @@ public class TFAServiceImpl implements ITFAService {
         PreparedStatement m_psmt;
         long currentDateTime = this.get400CurrentDate();
         try {
-            String sQuery = "update EPLIB.EPENOTP set ENNOTE = ?, ENMNDT = ?, ENTUSR = ? where ENFCID = ? AND ENCLAS = ? AND ENCUST = ? AND ENPKGE = ? " +
-                    "AND ENDMSN = ? AND ENLEAD = ? AND ENDEVC = ? AND ENOPID = ? AND ENOPER = ? AND ENSEQ# = ?";
+            String sQuery = "update EPLIB.EPENOTP set ENNOTE = ?, ENMNDT = ?, ENTUSR = ? where ENFCID = ? AND ENCLAS = ? AND ENCUST = ? AND ENPKGE = ? " + "AND ENDMSN = ? AND ENLEAD = ? AND ENDEVC = ? AND ENOPID = ? AND ENOPER = ? AND ENSEQ# = ?";
             Class.forName(this.getDriver());
             m_conn = DriverManager.getConnection(getURL(SharedConstValue.AMKOR_SHORTNAME), getUserID(SharedConstValue.AMKOR_SHORTNAME), getPasswd(SharedConstValue.AMKOR_SHORTNAME));
             m_psmt = m_conn.prepareStatement(sQuery);
@@ -252,9 +250,7 @@ public class TFAServiceImpl implements ITFAService {
         PreparedStatement m_psmt;
         long currentDateTime = this.getDateTime();
         try {
-            String sQuery = "update EMLIB.EAUTOLBLVP set FIELD_VALUE = ?, CHANGE_TIMESTAMO = ?, CHANGE_USER = ? where FACTORY_ID = ? AND SITE_ID = ? AND BUSINESS_TYPE = ? " +
-                    "AND CUSTOMER = ? AND PACKAGE = ? AND DIMENSION = ? AND LEAD = ? AND TARGET_DEVICE = ? " +
-                    "AND KEY_FIELD1 = ? AND KEY_FIELD2 = ? AND FIELD_NAME = ?";
+            String sQuery = "update EMLIB.EAUTOLBLVP set FIELD_VALUE = ?, CHANGE_TIMESTAMO = ?, CHANGE_USER = ? where FACTORY_ID = ? AND SITE_ID = ? AND BUSINESS_TYPE = ? " + "AND CUSTOMER = ? AND PACKAGE = ? AND DIMENSION = ? AND LEAD = ? AND TARGET_DEVICE = ? " + "AND KEY_FIELD1 = ? AND KEY_FIELD2 = ? AND FIELD_NAME = ?";
             Class.forName(this.getDriver());
             m_conn = DriverManager.getConnection(getURL(SharedConstValue.AMKOR_SHORTNAME), getUserID(SharedConstValue.AMKOR_SHORTNAME), getPasswd(SharedConstValue.AMKOR_SHORTNAME));
             m_psmt = m_conn.prepareStatement(sQuery);
@@ -291,9 +287,7 @@ public class TFAServiceImpl implements ITFAService {
         PreparedStatement m_psmt;
         ResultSet m_rs;
         try {
-            String sQuery = "select * from EMLIB.EAUTOLBLVP where FACTORY_ID = ? AND SITE_ID = ? AND BUSINESS_TYPE = ? " +
-                    "AND CUSTOMER = ? AND PACKAGE = ? AND DIMENSION = ? AND LEAD = ? AND TARGET_DEVICE = ? " +
-                    "AND KEY_FIELD1 = ? AND KEY_FIELD2 = ? AND FIELD_NAME = ?";
+            String sQuery = "select * from EMLIB.EAUTOLBLVP where FACTORY_ID = ? AND SITE_ID = ? AND BUSINESS_TYPE = ? " + "AND CUSTOMER = ? AND PACKAGE = ? AND DIMENSION = ? AND LEAD = ? AND TARGET_DEVICE = ? " + "AND KEY_FIELD1 = ? AND KEY_FIELD2 = ? AND FIELD_NAME = ?";
             Class.forName(this.getDriver());
             m_conn = DriverManager.getConnection(getURL(SharedConstValue.AMKOR_SHORTNAME), getUserID(SharedConstValue.AMKOR_SHORTNAME), getPasswd(SharedConstValue.AMKOR_SHORTNAME));
             m_psmt = m_conn.prepareStatement(sQuery);
@@ -333,11 +327,7 @@ public class TFAServiceImpl implements ITFAService {
         ResultSet m_rs = null;
         OnLineScheduleSheetFileModel onLineScheduleSheetFileModel = null;
         try {
-            String sQuery = "SELECT * FROM EMLIB.EMESTP032 " +
-                    "join EMLIB.ASCHMP02 on FACTORY_ID = SMFCID AND RECORD_ID = SMSCH# " +
-                    "WHERE FACTORY_ID = " + SharedConstValue.FACTORY_ID + " AND TYPE_ID = 'S' AND SMLOT# = '" + lotName + "' AND ( " +
-                    "EXISTS (SELECT 1 FROM EMLIB.EMESTP032 WHERE SMLOT# = '" + lotName + "' AND FILE_X LIKE '%" + station + "%') " +
-                    "OR FILE_X LIKE '%" + station + "%')";
+            String sQuery = "SELECT * FROM EMLIB.EMESTP032 " + "join EMLIB.ASCHMP02 on FACTORY_ID = SMFCID AND RECORD_ID = SMSCH# " + "WHERE FACTORY_ID = " + SharedConstValue.FACTORY_ID + " AND TYPE_ID = 'S' AND SMLOT# = '" + lotName + "' AND ( " + "EXISTS (SELECT 1 FROM EMLIB.EMESTP032 WHERE SMLOT# = '" + lotName + "' AND FILE_X LIKE '%" + station + "%') " + "OR FILE_X LIKE '%" + station + "%')";
             m_conn = getConnection();
             m_psmt = m_conn.prepareStatement(sQuery);
             m_rs = m_psmt.executeQuery();
@@ -372,8 +362,7 @@ public class TFAServiceImpl implements ITFAService {
         PreparedStatement m_psmt = null;
         ResultSet m_rs = null;
         try {
-            String sQuery = "select * from EPLIB.EPENOTP where ENFCID = ? AND ENCLAS = ? AND ENCUST = ? AND ENPKGE = ? " +
-                    "AND ENDMSN = ? AND ENLEAD = ? AND ENDEVC = ? AND ENOPID = ? AND ENOPER = ? AND ENSEQ# = ?";
+            String sQuery = "select * from EPLIB.EPENOTP where ENFCID = ? AND ENCLAS = ? AND ENCUST = ? AND ENPKGE = ? " + "AND ENDMSN = ? AND ENLEAD = ? AND ENDEVC = ? AND ENOPID = ? AND ENOPER = ? AND ENSEQ# = ?";
             m_conn = getConnection();
             m_psmt = m_conn.prepareStatement(sQuery);
             int i = 1;
@@ -466,5 +455,171 @@ public class TFAServiceImpl implements ITFAService {
         }
 
         return result;
+    }
+
+    @Override
+    public List<DateCodeDiscrepancyModel> getDateCodeDiscrepancy() {
+        List<DateCodeDiscrepancyModel> result = new ArrayList<>();
+        PreparedStatement m_pstmt = null;
+        ResultSet m_rs = null;
+        Connection m_conn = null;
+        try {
+            m_conn = getConnection();
+            m_pstmt = m_conn.prepareStatement("WITH \n" + "DateCode AS (\n" + "    SELECT LDLOT#, LDDCC, LDDATA AS date_code\n" + "    FROM PRMSLIB.LMDWNLPW\n" + "    WHERE LDSEQ# = 2\n" + ")\n" + "SELECT \n" + "    A.SSWAMK, \n" + "    B.SMLOT#, \n" + "    B.SMDCC,\n" + "    A.SSSUB#,\n" + "    A.SSDTCD AS date_code_emes,\n" + "    DC.date_code AS date_code_min\n" + "FROM \n" + "    EMLIB.ASCHMP03 A\n" + "JOIN \n" + "    EMLIB.ASCHMP02 B ON A.SSWAMK = B.SMWAMK AND B.SMCSCD = 78\n" + "JOIN \n" + "    DateCode DC ON B.SMLOT# = DC.LDLOT# AND B.SMDCC = DC.LDDCC\n" + "LEFT JOIN\n" + "    EMLIB.AWIPMP01 W ON W.WMWAMK = A.SSWAMK\n" + "WHERE \n" + "    A.SSSCHD != 0 \n" + "    AND SSBZTP in ('ASSY', 'WFBG')\n" + "    AND (A.SSDTCD <> DC.date_code)\n" + "GROUP BY \n" + "    A.SSWAMK, A.SSSUB#, B.SMLOT#, B.SMDCC, A.SSDTCD, DC.date_code\n" + "HAVING \n" + "    SUM(CASE WHEN W.WMOPR# = 295 THEN 1 ELSE 0 END) = 0");
+            m_rs = m_pstmt.executeQuery();
+            while (m_rs.next()) {
+                DateCodeDiscrepancyModel model = new DateCodeDiscrepancyModel();
+                model.setWipAmkorId(getTrimmedString(m_rs, "SSWAMK"));
+                model.setWipAmkorSubId(getTrimmedString(m_rs, "SSSUB#"));
+                model.setLotName(getTrimmedString(m_rs, "SMLOT#"));
+                model.setLotDcc(getTrimmedString(m_rs, "SMDCC"));
+                model.setMesDateCode(getTrimmedString(m_rs, "date_code_emes"));
+                model.setMinDateCode(getTrimmedString(m_rs, "date_code_min"));
+                result.add(model);
+            }
+        } catch (Exception ex) {
+            log.error(ex.getMessage());
+        } finally {
+            cleanUp(m_conn, m_pstmt, m_rs);
+        }
+
+        return result;
+    }
+
+    public String getTrimmedString(ResultSet rs, String columnLabel) throws SQLException {
+        String value = rs.getString(columnLabel);
+        return (value != null) ? value.trim() : null;
+    }
+
+    public String getCurrentDateCode(String wipAmkorId, String wipAmkorSubId) {
+        String result = "";
+        PreparedStatement m_pstmt = null;
+        ResultSet m_rs = null;
+        Connection m_conn = null;
+        try {
+            m_conn = getConnection();
+            m_pstmt = m_conn.prepareStatement("SELECT SSDTCD FROM EMLIB.ASCHMP03 WHERE SSWAMK = ? AND SSSUB# = ?");
+            m_pstmt.setString(1, wipAmkorId);
+            m_pstmt.setString(2, wipAmkorSubId);
+            m_rs = m_pstmt.executeQuery();
+            while (m_rs.next()) {
+                result = getTrimmedString(m_rs, "SSDTCD");
+            }
+        } catch (Exception ex) {
+            log.error(ex.getMessage());
+        } finally {
+            cleanUp(m_conn, m_pstmt, m_rs);
+        }
+        return result;
+    }
+
+    public String getMinDateCode(String lotName, String dcc) {
+        String result = "";
+        PreparedStatement m_pstmt = null;
+        ResultSet m_rs = null;
+        Connection m_conn = null;
+        try {
+            m_conn = getConnection();
+            m_pstmt = m_conn.prepareStatement("SELECT LDDATA FROM PRMSLIB.LMDWNLPW WHERE LDLOT# = ? AND LDDCC = ?");
+            m_pstmt.setString(1, lotName);
+            m_pstmt.setString(2, dcc);
+            m_rs = m_pstmt.executeQuery();
+            while (m_rs.next()) {
+                result = getTrimmedString(m_rs, "LDDATA");
+            }
+        } catch (Exception ex) {
+            log.error(ex.getMessage());
+        } finally {
+            cleanUp(m_conn, m_pstmt, m_rs);
+        }
+        return result;
+    }
+
+    public String sendMailReportDateCodeDiscrepancyChecking(Map<String, Object> body) {
+        String result = "failed";
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            List<String> toList = Arrays.asList("Thanh.Truongcong@amkor.com", "Richard.Lacbay@amkor.com", "Chi.HoLinh@amkor.com", "Hai.TranThi@amkor.com");
+            List<DateCodeDiscrepancyModel> listData = objectMapper.convertValue(body.get("result"), new TypeReference<List<DateCodeDiscrepancyModel>>() {
+            });
+            String title = "No Date Code Discrepancy";
+            String content = "<h2>Dear Team, </br> There is no date code discrepancy. </br></h2>";
+            if (!listData.isEmpty()) {
+                title = "Alert: Date Code Discrepancy Checking";
+                content = createMailBody(listData);
+            }
+            sendMailProcess(title, content, toList, new ArrayList<>(), new ArrayList<>());
+            result = "success";
+        } catch (Exception ex) {
+            log.error(ex.getMessage());
+        }
+        return result;
+    }
+
+    public String createMailBody(List<DateCodeDiscrepancyModel> discrepancies) {
+        StringBuilder mailBody = new StringBuilder();
+        mailBody.append("<!DOCTYPE html>");
+        mailBody.append("<html lang=\"en\">");
+        mailBody.append("<head>");
+        mailBody.append("<meta charset=\"UTF-8\">");
+        mailBody.append("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">");
+        mailBody.append("<title>Date Code Comparison</title>");
+        mailBody.append("<style>");
+        mailBody.append("table { width: 100%; border-collapse: collapse; }");
+        mailBody.append("th, td { border: 1px solid #ddd; padding: 8px; }");
+        mailBody.append("th { background-color: #f2f2f2; text-align: left; }");
+        mailBody.append("</style>");
+        mailBody.append("</head>");
+        mailBody.append("<body>");
+        mailBody.append("<h2>Dear Team, </br> Here is Lot# list have date code discrepancy. </br></h2>");
+        mailBody.append("<h3>Date Code Comparison</h3>");
+        mailBody.append("<table>");
+        mailBody.append("<thead>");
+        mailBody.append("<tr>");
+        mailBody.append("<th>No</th>");
+        mailBody.append("<th>Lot Name</th>");
+        mailBody.append("<th>Lot Dcc</th>");
+        mailBody.append("<th>Wip Amkor Id</th>");
+        mailBody.append("<th>Wip Amkor Sub Id</th>");
+        mailBody.append("<th>Before eMES Date Code</th>");
+        mailBody.append("<th>After eMES Date Code</th>");
+        mailBody.append("<th>Before MIN Date Code</th>");
+        mailBody.append("<th>After MIN Date Code</th>");
+        mailBody.append("<th>Result</th>");
+        mailBody.append("</tr>");
+        mailBody.append("</thead>");
+        mailBody.append("<tbody>");
+
+        for (int i = 0; i < discrepancies.size(); i++) {
+            DateCodeDiscrepancyModel discrepancy = discrepancies.get(i);
+            String result = "Passed";
+            String currentDateCode = getCurrentDateCode(discrepancy.getWipAmkorId(), discrepancy.getWipAmkorSubId());
+            String minDateCode = getMinDateCode(discrepancy.getLotName(), discrepancy.getLotDcc());
+            if (discrepancy.getMesDateCode().equals(currentDateCode) &&
+                    discrepancy.getMinDateCode().equals(minDateCode)) {
+                result = "Failed";
+                holdLot(discrepancy.getLotName(), discrepancy.getLotDcc(), "5D", "Date Code discrepancy", "0");
+            }
+
+            mailBody.append("<tr>");
+            mailBody.append("<td>").append(i + 1).append("</td>");
+            mailBody.append("<td>").append(discrepancy.getLotName()).append("</td>");
+            mailBody.append("<td>").append(discrepancy.getLotDcc()).append("</td>");
+            mailBody.append("<td>").append(discrepancy.getWipAmkorId()).append("</td>");
+            mailBody.append("<td>").append(discrepancy.getWipAmkorSubId()).append("</td>");
+            mailBody.append("<td>").append(discrepancy.getMesDateCode()).append("</td>");
+            mailBody.append("<td>").append(currentDateCode).append("</td>");
+            mailBody.append("<td>").append(discrepancy.getMinDateCode()).append("</td>");
+            mailBody.append("<td>").append(minDateCode).append("</td>");
+            mailBody.append("<td>").append(result).append("</td>");
+            mailBody.append("</tr>");
+        }
+
+        mailBody.append("</tbody>");
+        mailBody.append("</table>");
+        mailBody.append("</body>");
+        mailBody.append("</html>");
+
+        return mailBody.toString();
     }
 }
