@@ -2,11 +2,13 @@ package com.amkor.service.impl;
 
 import com.amkor.common.utils.SharedConstValue;
 import com.amkor.models.*;
+import com.amkor.service.ATVNetMiscTableService;
 import com.amkor.service.iService.ITFAService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.activation.DataHandler;
@@ -19,12 +21,16 @@ import javax.mail.internet.MimeMultipart;
 import java.sql.*;
 import java.util.*;
 import java.util.Date;
+import java.util.stream.Collectors;
 
 import com.amkor.common.utils.*;
 
 @Service
 public class TFAServiceImpl implements ITFAService {
     private static final Logger log = LoggerFactory.getLogger(TFAServiceImpl.class);
+
+    @Autowired
+    private ATVNetMiscTableService miscTableService;
 
     @Override
     public boolean sendMailProcess(String title, String sContent, List<String> toPeople, List<String> ccPeople, List<String> fileNames) {
@@ -539,7 +545,24 @@ public class TFAServiceImpl implements ITFAService {
         String result = "failed";
         try {
             ObjectMapper objectMapper = new ObjectMapper();
-            List<String> toList = Arrays.asList("Thanh.Truongcong@amkor.com", "Richard.Lacbay@amkor.com", "Chi.HoLinh@amkor.com", "Hai.TranThi@amkor.com");
+            List<String> toList = new ArrayList<>();
+            List<String> ccList = Arrays.asList("Thanh.Truongcong@amkor.com", "Richard.Lacbay@amkor.com");
+
+            List<ATVNetMiscTableModel> records = miscTableService.getList(
+                    SharedConstValue.FACTORY_ID,
+                    "MAIL_ALERT_DATECODE",
+                    SharedConstValue.PLANT,
+                    SharedConstValue.CUST_CODE_KIOXIA);
+
+            for (ATVNetMiscTableModel record : records) {
+                String[] recipients = record.getLongDesc().split(";");
+                if (record.getShortDesc().equals("to")) {
+                    toList.addAll(Arrays.asList(recipients));
+                } else {
+                    ccList.addAll(Arrays.asList(recipients));
+                }
+            }
+
             List<DateCodeDiscrepancyModel> listData = objectMapper.convertValue(body.get("result"), new TypeReference<List<DateCodeDiscrepancyModel>>() {
             });
             String title = "No Date Code Discrepancy";
@@ -548,7 +571,7 @@ public class TFAServiceImpl implements ITFAService {
                 title = "Alert: Date Code Discrepancy Checking";
                 content = createMailBody(listData);
             }
-            sendMailProcess(title, content, toList, new ArrayList<>(), new ArrayList<>());
+//            sendMailProcess(title, content, toList, ccList, new ArrayList<>());
             result = "success";
         } catch (Exception ex) {
             log.error(ex.getMessage());

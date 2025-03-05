@@ -1670,8 +1670,7 @@ public class Data400Controller {
     }
 
 
-
-//    @RequestMapping(method = RequestMethod.GET, value = "getTimeSAPInsert")
+    //    @RequestMapping(method = RequestMethod.GET, value = "getTimeSAPInsert")
     public String getTimeSAPInsertQA() {
         String result = "";
 
@@ -1852,34 +1851,5 @@ public class Data400Controller {
 
 
         return isExisted;
-    }
-
-
-    private static String getFormattedCellValue(Cell cell) {
-        switch (cell.getCellType()) {
-            case NUMERIC:
-                if (DateUtil.isCellDateFormatted(cell)) {
-                    return cell.getDateCellValue().toString();
-                } else {
-                    DecimalFormat df = new DecimalFormat("#");
-                    return df.format(cell.getNumericCellValue());
-                }
-            case STRING:
-                return cell.getStringCellValue();
-            case BOOLEAN:
-                return String.valueOf(cell.getBooleanCellValue());
-            case FORMULA:
-                try {
-                    return String.valueOf(cell.getNumericCellValue());
-                } catch (IllegalStateException e) {
-                    return cell.getStringCellValue();
-                }
-            case BLANK:
-                return "";
-            case ERROR:
-                return "ERROR";
-            default:
-                return "";
-        }
     }
 }
