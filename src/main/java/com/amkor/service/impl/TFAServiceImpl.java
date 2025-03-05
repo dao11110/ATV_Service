@@ -571,7 +571,7 @@ public class TFAServiceImpl implements ITFAService {
                 title = "Alert: Date Code Discrepancy Checking";
                 content = createMailBody(listData);
             }
-//            sendMailProcess(title, content, toList, ccList, new ArrayList<>());
+            sendMailProcess(title, content, toList, ccList, new ArrayList<>());
             result = "success";
         } catch (Exception ex) {
             log.error(ex.getMessage());
