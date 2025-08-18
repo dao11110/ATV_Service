@@ -12,4 +12,5 @@ public class DateCodeDiscrepancyModel {
     public String lotDcc = "";
     public String mesDateCode = "";
     public String minDateCode = "";
+    public String correctDateCode = "";
 }
