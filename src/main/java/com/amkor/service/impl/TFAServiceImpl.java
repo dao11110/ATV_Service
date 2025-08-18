@@ -471,7 +471,52 @@ public class TFAServiceImpl implements ITFAService {
         Connection m_conn = null;
         try {
             m_conn = getConnection();
-            m_pstmt = m_conn.prepareStatement("WITH \n" + "DateCode AS (\n" + "    SELECT LDLOT#, LDDCC, LDDATA AS date_code\n" + "    FROM PRMSLIB.LMDWNLPW\n" + "    WHERE LDSEQ# = 2\n" + ")\n" + "SELECT \n" + "    A.SSWAMK, \n" + "    B.SMLOT#, \n" + "    B.SMDCC,\n" + "    A.SSSUB#,\n" + "    A.SSDTCD AS date_code_emes,\n" + "    DC.date_code AS date_code_min\n" + "FROM \n" + "    EMLIB.ASCHMP03 A\n" + "JOIN \n" + "    EMLIB.ASCHMP02 B ON A.SSWAMK = B.SMWAMK AND B.SMCSCD = 78\n" + "JOIN \n" + "    DateCode DC ON B.SMLOT# = DC.LDLOT# AND B.SMDCC = DC.LDDCC\n" + "LEFT JOIN\n" + "    EMLIB.AWIPMP01 W ON W.WMWAMK = A.SSWAMK\n" + "WHERE \n" + "    A.SSSCHD != 0 \n" + "    AND SSBZTP in ('ASSY', 'WFBG')\n" + "    AND (A.SSDTCD <> DC.date_code)\n" + "GROUP BY \n" + "    A.SSWAMK, A.SSSUB#, B.SMLOT#, B.SMDCC, A.SSDTCD, DC.date_code\n" + "HAVING \n" + "    SUM(CASE WHEN W.WMOPR# = 295 THEN 1 ELSE 0 END) = 0");
+            m_pstmt = m_conn.prepareStatement(
+                    "WITH \n" +
+                            "DateCode AS (\n" +
+                            "    SELECT LDLOT#, LDDCC, LDDATA AS date_code\n" +
+                            "    FROM PRMSLIB.LMDWNLPW\n" +
+                            "    WHERE LDSEQ# = 2\n" +
+                            "),\n" +
+                            "MainData AS (\n" +
+                            "    SELECT \n" +
+                            "        A.SSWAMK, \n" +
+                            "        B.SMLOT#, \n" +
+                            "        A.SSSUB#, \n" +
+                            "        B.SMDCC,\n" +
+                            "        A.SSDTCD AS date_code_emes,\n" +
+                            "        DC.date_code AS date_code_min,\n" +
+                            "        A.SSSCHD,\n" +
+                            "        (\n" +
+                            "            SELECT SUBSTRING(SDWW, 2)\n" +
+                            "            FROM CSCLIB.CCCDTMP\n" +
+                            "            WHERE SDCUST = 78 \n" +
+                            "              AND SDFRDT <= CONCAT('1', SUBSTRING(A.SSSCHD, 3, 6)) \n" +
+                            "              AND SDTODT >= CONCAT('1', SUBSTRING(A.SSSCHD, 3, 6))\n" +
+                            "        ) AS CORRECT_WW\n" +
+                            "    FROM \n" +
+                            "        EMLIB.ASCHMP03 A\n" +
+                            "    JOIN \n" +
+                            "        EMLIB.ASCHMP02 B ON A.SSWAMK = B.SMWAMK AND B.SMCSCD = 78\n" +
+                            "    JOIN \n" +
+                            "        DateCode DC ON B.SMLOT# = DC.LDLOT# AND B.SMDCC = DC.LDDCC\n" +
+                            "    LEFT JOIN \n" +
+                            "        EMLIB.AWIPMP01 W ON W.WMWAMK = A.SSWAMK\n" +
+                            "    WHERE \n" +
+                            "        A.SSSCHD != 0 \n" +
+                            "        AND A.SSBZTP = 'ASSY'\n" +
+                            "    GROUP BY \n" +
+                            "        A.SSWAMK, B.SMLOT#, A.SSSUB#, B.SMDCC, A.SSDTCD, DC.date_code, A.SSSCHD\n" +
+                            "    HAVING \n" +
+                            "        SUM(CASE WHEN W.WMOPR# = 295 THEN 1 ELSE 0 END) = 0\n" +
+                            ")\n" +
+                            "SELECT *\n" +
+                            "FROM MainData\n" +
+                            "WHERE \n" +
+                            "    date_code_emes <> date_code_min\n" +
+                            "    OR CORRECT_WW <> date_code_emes\n" +
+                            "    OR CORRECT_WW <> date_code_min"
+            );
             m_rs = m_pstmt.executeQuery();
             while (m_rs.next()) {
                 DateCodeDiscrepancyModel model = new DateCodeDiscrepancyModel();
@@ -481,7 +526,15 @@ public class TFAServiceImpl implements ITFAService {
                 model.setLotDcc(getTrimmedString(m_rs, "SMDCC"));
                 model.setMesDateCode(getTrimmedString(m_rs, "date_code_emes"));
                 model.setMinDateCode(getTrimmedString(m_rs, "date_code_min"));
+                model.setCorrectDateCode(getTrimmedString(m_rs, "CORRECT_WW"));
                 result.add(model);
+
+                if (!model.getCorrectDateCode().isEmpty()) {
+                    int record = this.updateSchSubMasterDateCode(model.getWipAmkorId(), model.getWipAmkorSubId(), model.getCorrectDateCode());
+                    if (record == 0) {
+                        log.error("failed to update sch sub master date code");
+                    }
+                }
             }
         } catch (Exception ex) {
             log.error(ex.getMessage());
@@ -495,6 +548,27 @@ public class TFAServiceImpl implements ITFAService {
     public String getTrimmedString(ResultSet rs, String columnLabel) throws SQLException {
         String value = rs.getString(columnLabel);
         return (value != null) ? value.trim() : null;
+    }
+
+    public int updateSchSubMasterDateCode(String wipAmkorId, String subId, String dateCode) {
+        int result = 0;
+        Connection m_conn = null;
+        PreparedStatement m_pstmt = null;
+        try {
+            m_conn = getConnection();
+            m_pstmt = m_conn.prepareStatement("UPDATE EMLIB.ASCHMP03 SET SSDTCD = ? WHERE SSWAMK = ? AND SSSUB# = ?");
+            m_pstmt.setString(1, dateCode);
+            m_pstmt.setString(2, wipAmkorId);
+            m_pstmt.setString(3, subId);
+            result = m_pstmt.executeUpdate();
+            m_pstmt.close();
+            m_conn.close();
+        } catch (Exception ex) {
+            log.error(ex.getMessage());
+        } finally {
+            cleanUp(m_conn, m_pstmt, null);
+        }
+        return result;
     }
 
     public String getCurrentDateCode(String wipAmkorId, String wipAmkorSubId) {
@@ -571,7 +645,7 @@ public class TFAServiceImpl implements ITFAService {
                 title = "Alert: Date Code Discrepancy Checking";
                 content = createMailBody(listData);
             }
-            sendMailProcess(title, content, toList, ccList, new ArrayList<>());
+            sendMailProcess(title, content, new ArrayList<>(), ccList, new ArrayList<>());
             result = "success";
         } catch (Exception ex) {
             log.error(ex.getMessage());
@@ -604,6 +678,7 @@ public class TFAServiceImpl implements ITFAService {
         mailBody.append("<th>Lot Dcc</th>");
         mailBody.append("<th>Wip Amkor Id</th>");
         mailBody.append("<th>Wip Amkor Sub Id</th>");
+        mailBody.append("<th>Should be</th>");
         mailBody.append("<th>Before eMES Date Code</th>");
         mailBody.append("<th>After eMES Date Code</th>");
         mailBody.append("<th>Before MIN Date Code</th>");
@@ -630,6 +705,7 @@ public class TFAServiceImpl implements ITFAService {
             mailBody.append("<td>").append(discrepancy.getLotDcc()).append("</td>");
             mailBody.append("<td>").append(discrepancy.getWipAmkorId()).append("</td>");
             mailBody.append("<td>").append(discrepancy.getWipAmkorSubId()).append("</td>");
+            mailBody.append("<td>").append(discrepancy.getCorrectDateCode()).append("</td>");
             mailBody.append("<td>").append(discrepancy.getMesDateCode()).append("</td>");
             mailBody.append("<td>").append(currentDateCode).append("</td>");
             mailBody.append("<td>").append(discrepancy.getMinDateCode()).append("</td>");

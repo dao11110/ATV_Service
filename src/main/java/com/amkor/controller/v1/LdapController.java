@@ -242,7 +242,7 @@ public class LdapController {
                     userVO.setPlant(getPlantBySite(site));
                 }
             }
-            if (!getDomainName().equals("localhost")) {
+            if (!getDomainName().equals("localhost1")) {
                 if (results_flag)
                     ret = String.valueOf(
                             isAuthenticatedUser(site, login_id, login_pwd)); //userVO.getSAMAccountName().trim(), new String(decoded_pw, "UTF-8")));
