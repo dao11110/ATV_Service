@@ -498,7 +498,7 @@ public class TFAServiceImpl implements ITFAService {
                             "        EMLIB.ASCHMP03 A\n" +
                             "    JOIN \n" +
                             "        EMLIB.ASCHMP02 B ON A.SSWAMK = B.SMWAMK AND B.SMCSCD = 78\n" +
-                            "    JOIN \n" +
+                            "    LEFT JOIN \n" +
                             "        DateCode DC ON B.SMLOT# = DC.LDLOT# AND B.SMDCC = DC.LDDCC\n" +
                             "    LEFT JOIN \n" +
                             "        EMLIB.AWIPMP01 W ON W.WMWAMK = A.SSWAMK\n" +
@@ -527,12 +527,16 @@ public class TFAServiceImpl implements ITFAService {
                 model.setMesDateCode(getTrimmedString(m_rs, "date_code_emes"));
                 model.setMinDateCode(getTrimmedString(m_rs, "date_code_min"));
                 model.setCorrectDateCode(getTrimmedString(m_rs, "CORRECT_WW"));
-                result.add(model);
+                if (model.getMinDateCode() != null) {
+                    result.add(model);
+                }
 
                 if (!model.getCorrectDateCode().isEmpty()) {
                     int record = this.updateSchSubMasterDateCode(model.getWipAmkorId(), model.getWipAmkorSubId(), model.getCorrectDateCode());
                     if (record == 0) {
-                        log.error("failed to update sch sub master date code");
+                        log.error(model.getWipAmkorId());
+                        log.error(model.getWipAmkorSubId());
+                        log.error("failed to update sch sub master date code: ");
                     }
                 }
             }
@@ -645,7 +649,7 @@ public class TFAServiceImpl implements ITFAService {
                 title = "Alert: Date Code Discrepancy Checking";
                 content = createMailBody(listData);
             }
-            sendMailProcess(title, content, new ArrayList<>(), ccList, new ArrayList<>());
+            sendMailProcess(title, content, toList, ccList, new ArrayList<>());
             result = "success";
         } catch (Exception ex) {
             log.error(ex.getMessage());
