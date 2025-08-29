@@ -18,7 +18,7 @@ public class MobileController {
 
 
     @RequestMapping(method = RequestMethod.GET, value = "/getListVehiclePre")
-    public ArrayList<VehicleHeaderModel> getListVehiclePre()throws Exception {
+    public ArrayList<VehicleHeaderModel> getListVehiclePre() throws Exception {
         return vehicleServiceImpl.getListVehicle();
     }
 
@@ -59,11 +59,10 @@ public class MobileController {
             model.setStatus(1);
             if (checkExistedData(model.getVisitor(), model.getInvoice(), model.getFwdr()) > 0) {
                 result = "The data is existed";
-            }
-            else {
-                if (checkExistedData(model.getInvoice(),model.getFwdr()).size()>0){
-                    for (VehicleHeaderModel modelVe:checkExistedData(model.getInvoice(),model.getFwdr())) {
-                        updateVehiclePre("230041",modelVe.getId());
+            } else {
+                if (checkExistedData(model.getInvoice(), model.getFwdr()).size() > 0) {
+                    for (VehicleHeaderModel modelVe : checkExistedData(model.getInvoice(), model.getFwdr())) {
+                        updateVehiclePre("230041", modelVe.getId());
                     }
                 }
                 idHeader = vehicleServiceImpl.saveVehiclePre(model);
@@ -81,7 +80,7 @@ public class MobileController {
     }
 
     @RequestMapping(method = RequestMethod.POST, value = "/updateVehiclePre")
-    public String updateVehiclePre(@RequestParam("userUpdate") String userUpdate, @RequestParam("id") int id)  throws Exception {
+    public String updateVehiclePre(@RequestParam("userUpdate") String userUpdate, @RequestParam("id") int id) throws Exception {
         String result = "Update Vehicle Pre Fail";
         int update = vehicleServiceImpl.updateVehiclePre(userUpdate, id);
         if (update > 0) {
@@ -91,11 +90,12 @@ public class MobileController {
     }
 
     @RequestMapping(method = RequestMethod.GET, value = "/checkExistedData")
-    public int checkExistedData(String visitor, String invoice, String fwdr) throws Exception  {
+    public int checkExistedData(String visitor, String invoice, String fwdr) throws Exception {
         return vehicleServiceImpl.checkExistedData(visitor, invoice, fwdr).size();
     }
-    public ArrayList<VehicleHeaderModel> checkExistedData( String invoice, String fwdr) throws Exception  {
-        return vehicleServiceImpl.checkExistedData( invoice, fwdr);
+
+    public ArrayList<VehicleHeaderModel> checkExistedData(String invoice, String fwdr) throws Exception {
+        return vehicleServiceImpl.checkExistedData(invoice, fwdr);
     }
 
     public static Date getTimeDateCurrent() {
