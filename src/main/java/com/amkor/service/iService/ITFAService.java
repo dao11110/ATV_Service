@@ -26,7 +26,10 @@ public interface ITFAService extends IWriteService {
 
     String holdLot(String lotName, String lotDcc, String holdCode, String holdReason, String userBadge);
 
+    String releaseLot(String lotName, String lotDcc, String holdCode, String releaseReason, String userBadge, int holdOpr, long shipBackDate);
+
     List<DateCodeDiscrepancyModel> getDateCodeDiscrepancy();
 
     String sendMailReportDateCodeDiscrepancyChecking(Map<String, Object> body);
+
 }

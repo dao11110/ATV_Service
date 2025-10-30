@@ -21,7 +21,6 @@ import javax.mail.internet.MimeMultipart;
 import java.sql.*;
 import java.util.*;
 import java.util.Date;
-import java.util.stream.Collectors;
 
 import com.amkor.common.utils.*;
 
@@ -433,6 +432,82 @@ public class TFAServiceImpl implements ITFAService {
         return msg;
     }
 
+    @Override
+    public String releaseLot(String lotName, String lotDcc, String holdCode, String releaseReason, String userBadge, int holdOpr, long shipBackDate) {
+        String msg = "";
+        try {
+            ScheduleMasterModel model = getScheduleMasterByLotNameDcc(lotName, lotDcc);
+
+            if (model != null) {
+                eMESUserModel user = getEMESUserInformation(model.getFactoryId(), userBadge.trim());
+                HoldReleaseLogModel holdRecord = getHoldReleaseLog(model.getFactoryId(), model.getSiteId(), model.getAmkId(), model.getSubId(), holdOpr);
+                ScheduleSubMasterModel subMasterModel = getScheduleSubMasterById(model.getAmkId(), model.getSubId(), "ASSY");
+                if (subMasterModel == null) {
+                    subMasterModel = getScheduleSubMasterById(model.getAmkId(), model.getSubId(), "TEST");
+                }
+
+                if (subMasterModel == null) {
+                    msg = "No sub master record found";
+                    return msg;
+                }
+
+                // validation before release
+                // 1. get hold record and user
+                if (holdRecord == null) {
+                    msg = "No hold record found";
+                    return msg;
+                }
+                if (user == null) {
+                    msg = "Not found user with badge: " + userBadge;
+                    return msg;
+                }
+
+                String holdRemark = holdRecord.getHoldRemark().trim();
+                String userGroup = user.getUserGroup().trim();
+
+                // 7C release must be released in eMES
+                if (holdCode.equals("7C")) {
+                    msg = "7C release must be released in eMES due to rfmd request authorization";
+                    return msg;
+                }
+
+                // validate ship back date
+                if (shipBackDate <= 0 || !validateDB2DateTime(holdRecord.getFactoryID(), shipBackDate)) {
+                    msg = "shipBackDate is invalid";
+                    return msg;
+                }
+
+                // WA release must be with release reason
+                if (holdCode.equals("WA") && releaseReason.trim().isEmpty()) {
+                    msg = "WA release must be with release reason";
+                    return msg;
+                }
+
+                // QMR hold code cannot be released by user
+                if (holdCode.equals("QMR")) {
+                    msg = "QMR hold code cannot be released by user";
+                    return msg;
+                }
+
+                // check user badge
+                if ((holdRemark.startsWith("F*") || holdRemark.startsWith("Q*")) && !userGroup.equals("QA")) {
+                    msg = "F*/Q* hold only be released by QA user";
+                    return msg;
+                }
+
+                // perform release
+                releaseLot(model.getFactoryId(), model.getSiteId(), model.getAmkId(), model.getSubId(), holdCode, holdRemark, releaseReason, Integer.parseInt(userBadge), subMasterModel.getShipBackDate(), holdRecord.getHoldDateTime());
+            } else {
+                msg = "No lot found";
+            }
+        } catch (Exception ex) {
+            msg = ex.getMessage();
+            log.error(msg);
+        }
+
+        return msg;
+    }
+
     public ScheduleMasterModel getScheduleMasterByLotNameDcc(String lotName, String dcc) {
         Connection m_conn = null;
         PreparedStatement m_psmt = null;
@@ -453,6 +528,38 @@ public class TFAServiceImpl implements ITFAService {
                 result.setSubId(m_rs.getInt("SMSUB#"));
                 result.setLotName(lotName);
                 result.setLotDcc(dcc);
+            }
+        } catch (Exception ex) {
+            log.error(ex.getMessage());
+        } finally {
+            cleanUp(m_conn, m_psmt, m_rs);
+        }
+
+        return result;
+    }
+
+    public ScheduleSubMasterModel getScheduleSubMasterById(long amkorId, int subId, String bizType) {
+        Connection m_conn = null;
+        PreparedStatement m_psmt = null;
+        ResultSet m_rs = null;
+        ScheduleSubMasterModel result = null;
+        try {
+            String sQuery = "SELECT * FROM EMLIB.ASCHMP03 WHERE SSWAMK = ? AND SSSUB# = ? AND SSBZTP = ?";
+            m_conn = getConnection();
+            m_psmt = m_conn.prepareStatement(sQuery);
+            m_psmt.setLong(1, amkorId);
+            m_psmt.setInt(2, subId);
+            m_psmt.setString(3, bizType);
+            m_rs = m_psmt.executeQuery();
+            while (m_rs.next()) {
+                result = new ScheduleSubMasterModel();
+                result.setFactoryId(m_rs.getInt("SSFCID"));
+                result.setSiteId(m_rs.getInt("SSASID"));
+                result.setAmkId(m_rs.getInt("SSWAMK"));
+                result.setSubId(m_rs.getInt("SSSUB#"));
+                result.setShipBackDate(m_rs.getLong("SSPJSB"));
+                result.setDateCode(m_rs.getInt("SSDTCD"));
+                result.setRvShipBackDate(m_rs.getLong("SSRVSB"));
             }
         } catch (Exception ex) {
             log.error(ex.getMessage());
@@ -724,5 +831,152 @@ public class TFAServiceImpl implements ITFAService {
         mailBody.append("</html>");
 
         return mailBody.toString();
+    }
+
+    public HoldReleaseLogModel getHoldReleaseLog(int factoryId, int siteId, long amkorId, int amkorSubId, int holdOpr) {
+        HoldReleaseLogModel setVO = null;
+        Connection m_conn = null;
+        PreparedStatement m_pstmt = null;
+        ResultSet m_rs = null;
+        try {
+            m_conn = getConnection();
+            String sQuery = "SELECT * FROM EMLIB.EMESLP01 WHERE HRFCID = ? AND HRASID = ? AND HRAMKR = ? AND HRSUB# = ? " +
+                    "AND HROPR# = ? AND HRSTS = 'HOLD'";
+            m_pstmt = m_conn.prepareStatement(sQuery);
+
+            m_pstmt.setInt(1, factoryId);
+            m_pstmt.setInt(2, siteId);
+            m_pstmt.setLong(3, amkorId);
+            m_pstmt.setInt(4, amkorSubId);
+            m_pstmt.setInt(5, holdOpr);
+
+            m_rs = m_pstmt.executeQuery();
+            if (m_rs.next()) {
+                setVO = new HoldReleaseLogModel();
+                int nCol = 0;
+                setVO.setFactoryID(m_rs.getInt(++nCol));
+                setVO.setSiteID(m_rs.getInt(++nCol));
+                setVO.setStationCode(m_rs.getString(++nCol));
+                setVO.setAmkorID(m_rs.getLong(++nCol));
+                setVO.setAmkorSubID(m_rs.getInt(++nCol));
+                setVO.setStatus(m_rs.getString(++nCol));
+                setVO.setFutureHoldRequested(m_rs.getString(++nCol));
+                setVO.setOperationStep(m_rs.getFloat(++nCol));
+                setVO.setOperation(m_rs.getInt(++nCol));
+                setVO.setHoldReason(m_rs.getString(++nCol));
+                setVO.setHoldRemark(m_rs.getString(++nCol));
+                setVO.setHoldDateTime(m_rs.getLong(++nCol));
+                setVO.setHoldProgramStamp(m_rs.getString(++nCol));
+                setVO.setHoldBadge(m_rs.getInt(++nCol));
+                setVO.setFutureHoldDateTime(m_rs.getLong(++nCol));
+                setVO.setReleaseRemark(m_rs.getString(++nCol));
+                setVO.setReleaseDateTime(m_rs.getLong(++nCol));
+                setVO.setReleaseProgramStamp(m_rs.getString(++nCol));
+                setVO.setReleaseBadge(m_rs.getInt(++nCol));
+            }
+        } catch (Exception ex) {
+            log.error(ex.getMessage());
+        } finally {
+            cleanUp(m_conn, m_pstmt, m_rs);
+        }
+
+        return setVO;
+    }
+
+    public boolean validateDB2DateTime(int factoryId, long dateTime) {
+        boolean result = false;
+        Connection m_conn = null;
+        PreparedStatement m_pstmt = null;
+        ResultSet m_rs = null;
+        try {
+            m_conn = getConnection();
+            String sQuery = "SELECT * FROM DPTBLB.ETBDATE WHERE TDFCID = ? AND TDDAT1 = ? ";
+            m_pstmt = m_conn.prepareStatement(sQuery);
+
+            m_pstmt.setInt(1, factoryId);
+            m_pstmt.setLong(2, dateTime);
+
+            m_rs = m_pstmt.executeQuery();
+            if (m_rs.next()) {
+                result = true;
+            }
+        } catch (Exception ex) {
+            log.error(ex.getMessage());
+        }
+        return result;
+    }
+
+    public eMESUserModel getEMESUserInformation(int factoryId, String badge) {
+        eMESUserModel user = null;
+        Connection m_conn = null;
+        PreparedStatement m_pstmt = null;
+        ResultSet rs = null;
+        try {
+            m_conn = getConnection();
+            String sQuery = "SELECT * FROM DPTBLB.ETBUSR01 WHERE UPFCID = ? AND UPBADG = ?";
+            m_pstmt = m_conn.prepareStatement(sQuery);
+
+            m_pstmt.setInt(1, factoryId);
+            m_pstmt.setString(2, badge);
+
+            rs = m_pstmt.executeQuery();
+            if (rs.next()) {
+                user = new eMESUserModel();
+
+                user.setFactoryID(rs.getInt("UPFCID"));
+                user.setUserID(rs.getString("UPUSER"));
+                user.setPassword(rs.getString("UPPASS"));
+                user.setPassExpireDate(rs.getLong("UPPSED"));
+                user.setPlant(rs.getString("UPPLNT"));
+                user.setLineCode(rs.getString("UPLINE"));
+                user.setOutQ(rs.getString("UPOUTQ"));
+                user.setUserGroup(rs.getString("UPUSRG"));
+                user.setName(rs.getString("UPNAME"));
+                user.setBadge(rs.getInt("UPBADG"));
+                user.setEmail(rs.getString("UPMAIL"));
+                user.setOfficeTel(rs.getLong("UPPHON"));
+                user.setCellTel(rs.getLong("UPCELL"));
+                user.setLastLoginDateTime(rs.getLong("UPLOGI"));
+                user.setLastLogoutDateTime(rs.getLong("UPLOGO"));
+                user.setRemark(rs.getString("UPREMK"));
+                user.setCreatedDateTime(rs.getLong("UPENDT"));
+                user.setChangedDateTime(rs.getLong("UPCHDT"));
+            }
+        } catch (Exception ex) {
+            log.error(ex.getMessage());
+        } finally {
+            cleanUp(m_conn, m_pstmt, rs);
+        }
+
+        return user;
+    }
+
+    public void releaseLot(int factoryId, int siteId, long amkId, int subId, String holdCode, String holdReason, String releaseReason, int userBadge, long shipBackDate, long holdDatetime) {
+        Connection m_conn = null;
+        CallableStatement m_cstmt = null;
+        ResultSet m_rs = null;
+        try {
+            m_conn = getConnection();
+            String sProcedure = "{call EMLIB.ESCHSP26 (?,?,?,?,?,?,?,?,?,?,?)}";
+            m_cstmt = m_conn.prepareCall(sProcedure);
+
+            m_cstmt.setString(1, CommonUtils.getString("R", 1));
+            m_cstmt.setString(2, CommonUtils.getString(factoryId, 3));
+            m_cstmt.setString(3, CommonUtils.getString(siteId, 3));
+            m_cstmt.setString(4, CommonUtils.getString(amkId, 20));
+            m_cstmt.setString(5, CommonUtils.getString(subId, 5));
+            m_cstmt.setString(6, CommonUtils.getString(holdCode, 4));
+            m_cstmt.setString(7, CommonUtils.getString(releaseReason, 50));
+            m_cstmt.setString(8, CommonUtils.getString(shipBackDate, 8));
+            m_cstmt.setString(9, CommonUtils.getString(userBadge, 7));
+            m_cstmt.setString(10, CommonUtils.getString(holdDatetime, 14));
+            m_cstmt.setString(11, CommonUtils.getString(holdReason, 50));
+            m_cstmt.execute();
+            m_cstmt.close();
+        } catch (Exception ex) {
+            log.error(ex.getMessage());
+        } finally {
+            cleanUp(m_conn, m_cstmt, m_rs);
+        }
     }
 }

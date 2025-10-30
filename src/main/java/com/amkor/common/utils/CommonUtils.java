@@ -19,7 +19,7 @@ public class CommonUtils {
 
     public static String getString(String sString, int nTotalLength) {
         StringBuilder sStringBuilder = new StringBuilder(sString);
-        while (sStringBuilder.length() < nTotalLength) sStringBuilder.insert(0, " ");
+        while (sStringBuilder.length() < nTotalLength) sStringBuilder.append(" ");
         sString = sStringBuilder.toString();
         return sString;
     }

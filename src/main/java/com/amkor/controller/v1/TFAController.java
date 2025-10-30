@@ -520,35 +520,36 @@ public class TFAController {
         }
     }
 
-    @RequestMapping(method = RequestMethod.POST, value = "/data400/holdLot")
-    @CrossOrigin(origins = "*")
-    public ApiResponse<String> holdLot(@RequestBody HashMap<String, Object> body) {
-        String msg;
-        try {
-            String lotName = body.get("lotName").toString();
-            String lotDcc = body.get("lotDcc").toString();
-            String holdCode = body.get("holdCode").toString();
-            String holdReason = body.get("holdReason").toString();
-            String userBadge = body.get("userBadge").toString();
-            msg = ITFAService.holdLot(lotName, lotDcc, holdCode, holdReason, userBadge);
-            return ApiResponse.of(
-                    HttpStatus.OK,
-                    ApiResponse.Code.SUCCESS,
-                    SUCCESS_MESSAGE,
-                    msg
-            );
-        } catch (Exception ex) {
-            log.error(ex.getMessage());
-            msg = "exception";
-            return ApiResponse.of(
-                    HttpStatus.INTERNAL_SERVER_ERROR,
-                    ApiResponse.Code.FAILED,
-                    FAILED_MESSAGE,
-                    msg
-            );
-        }
+//    @RequestMapping(method = RequestMethod.POST, value = "/data400/holdLot")
+//    @CrossOrigin(origins = "*")
+//    public ApiResponse<String> holdLot(@RequestBody HashMap<String, Object> body) {
+//        String msg;
+//        try {
+//            String lotName = body.get("lotName").toString();
+//            String lotDcc = body.get("lotDcc").toString();
+//            String holdCode = body.get("holdCode").toString();
+//            String holdReason = body.get("holdReason").toString();
+//            String userBadge = body.get("userBadge").toString();
+//            msg = ITFAService.holdLot(lotName, lotDcc, holdCode, holdReason, userBadge);
+//            return ApiResponse.of(
+//                    HttpStatus.OK,
+//                    ApiResponse.Code.SUCCESS,
+//                    SUCCESS_MESSAGE,
+//                    msg
+//            );
+//        } catch (Exception ex) {
+//            log.error(ex.getMessage());
+//            msg = "exception";
+//            return ApiResponse.of(
+//                    HttpStatus.INTERNAL_SERVER_ERROR,
+//                    ApiResponse.Code.FAILED,
+//                    FAILED_MESSAGE,
+//                    msg
+//            );
+//        }
+//
+//    }
 
-    }
 
     @RequestMapping(method = RequestMethod.GET, value = "/data400/dateCodeDiscrepancyChecking")
     public ApiResponse<List<DateCodeDiscrepancyModel>> dateCodeDiscrepancyChecking() {
@@ -580,6 +581,48 @@ public class TFAController {
             return FAILED_MESSAGE;
         }
         return SUCCESS_MESSAGE;
+    }
+
+    @RequestMapping(method = RequestMethod.POST, value = "/data400/releaseLot")
+    @CrossOrigin(origins = "*")
+    public ApiResponse<String> releaseLot(@RequestBody HashMap<String, Object> body) {
+        String msg = "";
+
+        try {
+            String lotName = body.get("lotName").toString();
+            String lotDcc = body.get("lotDcc").toString();
+            String holdCode = body.get("holdCode").toString();
+            String releaseReason = body.get("releaseReason").toString();
+            String userBadge = body.get("userBadge").toString();
+            int holdOpr = (int) body.get("holdOpr");
+            Integer shipBackDateInt = (Integer) body.get("shipBackDate");
+            long shipBackDate = shipBackDateInt.longValue();
+            msg = ITFAService.releaseLot(lotName, lotDcc, holdCode, releaseReason, userBadge, holdOpr, shipBackDate);
+            String logBody = "{lotName: " + lotName + ", lotDcc: " + lotDcc + ", holdCode: " + holdCode + ", releaseReason: " + releaseReason + ", userBadge: " + userBadge + "}";
+            // init api logging
+            this.apiLoggingService.insertLog(new ATVNetAPILoggingModel(
+                    userBadge,
+                    this.iatvService.getDateTime(),
+                    logBody,
+                    "API release lot called by " + userBadge
+            ));
+            return ApiResponse.of(
+                    HttpStatus.OK,
+                    ApiResponse.Code.SUCCESS,
+                    SUCCESS_MESSAGE,
+                    msg
+            );
+        } catch (Exception ex) {
+            log.error(ex.getMessage());
+            msg = "exception";
+            return ApiResponse.of(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    ApiResponse.Code.FAILED,
+                    FAILED_MESSAGE,
+                    msg
+            );
+        }
+
     }
 
 }
