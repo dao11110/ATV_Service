@@ -441,6 +441,15 @@ public class TFAServiceImpl implements ITFAService {
             if (model != null) {
                 eMESUserModel user = getEMESUserInformation(model.getFactoryId(), userBadge.trim());
                 HoldReleaseLogModel holdRecord = getHoldReleaseLog(model.getFactoryId(), model.getSiteId(), model.getAmkId(), model.getSubId(), holdOpr);
+                ScheduleSubMasterModel subMasterModel = getScheduleSubMasterById(model.getAmkId(), model.getSubId(), "ASSY");
+                if (subMasterModel == null) {
+                    subMasterModel = getScheduleSubMasterById(model.getAmkId(), model.getSubId(), "TEST");
+                }
+
+                if (subMasterModel == null) {
+                    msg = "No sub master record found";
+                    return msg;
+                }
 
                 // validation before release
                 // 1. get hold record and user
@@ -487,7 +496,7 @@ public class TFAServiceImpl implements ITFAService {
                 }
 
                 // perform release
-                releaseLot(model.getFactoryId(), model.getSiteId(), model.getAmkId(), model.getSubId(), holdCode, holdRemark, releaseReason, Integer.parseInt(userBadge), shipBackDate, holdRecord.getHoldDateTime());
+                releaseLot(model.getFactoryId(), model.getSiteId(), model.getAmkId(), model.getSubId(), holdCode, holdRemark, releaseReason, Integer.parseInt(userBadge), subMasterModel.getShipBackDate(), holdRecord.getHoldDateTime());
             } else {
                 msg = "No lot found";
             }
@@ -517,9 +526,40 @@ public class TFAServiceImpl implements ITFAService {
                 result.setSiteId(m_rs.getInt("SMASID"));
                 result.setAmkId(m_rs.getInt("SMWAMK"));
                 result.setSubId(m_rs.getInt("SMSUB#"));
-                result.setShipBackDate(m_rs.getInt("SMPJSB"));
                 result.setLotName(lotName);
                 result.setLotDcc(dcc);
+            }
+        } catch (Exception ex) {
+            log.error(ex.getMessage());
+        } finally {
+            cleanUp(m_conn, m_psmt, m_rs);
+        }
+
+        return result;
+    }
+
+    public ScheduleSubMasterModel getScheduleSubMasterById(long amkorId, int subId, String bizType) {
+        Connection m_conn = null;
+        PreparedStatement m_psmt = null;
+        ResultSet m_rs = null;
+        ScheduleSubMasterModel result = null;
+        try {
+            String sQuery = "SELECT * FROM EMLIB.ASCHMP03 WHERE SSWAMK = ? AND SSSUB# = ? AND SSBZTP = ?";
+            m_conn = getConnection();
+            m_psmt = m_conn.prepareStatement(sQuery);
+            m_psmt.setLong(1, amkorId);
+            m_psmt.setInt(2, subId);
+            m_psmt.setString(3, bizType);
+            m_rs = m_psmt.executeQuery();
+            while (m_rs.next()) {
+                result = new ScheduleSubMasterModel();
+                result.setFactoryId(m_rs.getInt("SSFCID"));
+                result.setSiteId(m_rs.getInt("SSASID"));
+                result.setAmkId(m_rs.getInt("SSWAMK"));
+                result.setSubId(m_rs.getInt("SSSUB#"));
+                result.setShipBackDate(m_rs.getLong("SSPJSB"));
+                result.setDateCode(m_rs.getInt("SSDTCD"));
+                result.setRvShipBackDate(m_rs.getLong("SSRVSB"));
             }
         } catch (Exception ex) {
             log.error(ex.getMessage());

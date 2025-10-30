@@ -5,12 +5,12 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class ScheduleMasterModel {
-
+public class ScheduleSubMasterModel {
     private int factoryId;
     private int siteId;
     private long amkId;
     private int subId;
-    private String lotName;
-    private String lotDcc;
+    private long shipBackDate;
+    private long rvShipBackDate;
+    private int dateCode;
 }
