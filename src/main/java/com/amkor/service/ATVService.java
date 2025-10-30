@@ -3,6 +3,7 @@ package com.amkor.service;
 
 import com.amkor.common.utils.SharedConstValue;
 import com.amkor.controller.v1.ApiControllerV1;
+import com.amkor.controller.v1.Data400Controller;
 import com.amkor.models.AlertForFGModel;
 import com.amkor.models.AutoLabelModel;
 import com.amkor.models.OnLineScheduleSheetFileModel;
@@ -42,10 +43,19 @@ public class ATVService implements IATVService {
 
     @Autowired
     ApiControllerV1 apiControllerV1;
+    @Autowired
+    Data400Controller data400Controller;
+
 
 
     //    @Scheduled(cron = "${batch.cron.auto-send-mail-mon-to-sat")
 //    @Scheduled(cron = "0 0 10 * * MON-SAT")
+    @Scheduled(cron = "0 0 08 * * *")
+    public void sendOverDay(){
+        data400Controller.sendMailOverDays();
+    }
+
+
     public void sendMailDaily(String fileName, String fileNameString, String title) {
 
 
@@ -61,6 +71,9 @@ public class ATVService implements IATVService {
                 listTo.add("V1NG@amkor.com");
             } else if (title.equals("NG Store Scrap Daily")) {
                 listTo.add("V1NG@amkor.com");
+
+            }else if (title.equals("OverDays Every Week")) {
+                listTo.add("V1Bank@amkor.com");
 
             } else {
                 listTo.add("V1SHIP@amkor.com");
@@ -379,4 +392,6 @@ public class ATVService implements IATVService {
         }
         return result;
     }
+
+
 }

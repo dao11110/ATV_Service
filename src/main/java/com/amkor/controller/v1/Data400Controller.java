@@ -2,6 +2,7 @@ package com.amkor.controller.v1;
 
 import com.amkor.models.*;
 import com.amkor.service.ATVService;
+import lombok.extern.java.Log;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.hssf.usermodel.*;
 import org.apache.poi.ss.usermodel.*;
@@ -144,7 +145,7 @@ public class Data400Controller {
         Long dateEnd = Long.parseLong(currentDate() + "230000");
         String result = "Fail";
         List<String> locationList = new ArrayList<>();
-        String customer = "( 948,78  )";
+        String customer = "( 948,575,78,504,379,734,453  )";
         try {
             Class.forName(DRIVER);
             m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
@@ -323,11 +324,12 @@ public class Data400Controller {
         ResultSet m_rs = null;
         Long dateStart = Long.parseLong(currentDate());
 //        Long dateStart = Long.parseLong("20240918");
-
+        String statusSendEmail="";
+        statusSendEmail=Status;
         String result = "Fail";
         String query = "";
         if (Status.trim().equals("ACTIVE")) {
-            Status = "('ACTIVE')";
+            Status = "('ACTIVE','HOLD')";
         } else if (Status.trim().equals("WAIT SHIPPING")) {
             Status = "('WAIT SHIPPING')";
         } else {
@@ -343,7 +345,7 @@ public class Data400Controller {
                     "  WHERE SMFCID=80 AND SMASID=1 AND SMPLNT='V1'  AND SMACDT<>0 AND SMISLF='Y' AND SMSTS1<>'CLOSE' AND SMSTN IN ('SHIPMENT','D-CENTER')  AND SMSTS2 IN " + Status;
 
 
-            if (Status.trim().equals("('ACTIVE')")) {
+            if (statusSendEmail.trim().equals("ACTIVE")) {
                 query += "AND SMACDT = " + dateStart;
             } else {
                 query += "AND     CINWVL LIKE '" + currentDate() + "%'";
@@ -388,9 +390,9 @@ public class Data400Controller {
                 result = "Send Email Success";
                 String fileName = "C:\\Dao\\SendMail\\";
 
-                String fileNameString = Status.trim().equals("('ACTIVE')") ? "ShippingEntry" + currentDate() + ".xls" : "ShippingInventory" + currentDate() + ".xls";
+                String fileNameString = statusSendEmail.trim().equals("ACTIVE") ? "ShippingEntry" + currentDate() + ".xls" : "ShippingInventory" + currentDate() + ".xls";
                 fileName = fileName + fileNameString;
-                createWorkbookShipmentEntry(new File(fileName), listData, getListShippingInventory(), fileNameString, Status);
+                createWorkbookShipmentEntry(new File(fileName), listData, getListShippingInventory(), fileNameString, statusSendEmail);
             } else {
                 result = "There is no data Shipment ";
             }
@@ -952,7 +954,7 @@ public class Data400Controller {
             }
             int nNotScanned = 0;
 
-            if (!status.trim().equals("('ACTIVE')")) {
+            if (!status.trim().equals("ACTIVE")) {
                 for (LotInformationModel lot : lotListInventory) {
                     boolean check = lotListScanned.stream().anyMatch(e -> e.getWipAmkorID() == lot.getWipAmkorID() && e.getWipDcc().equals(lot.getWipDcc()) && e.getWipAmkorSubID() == lot.getWipAmkorSubID());
                     if (!check) {
@@ -1016,7 +1018,7 @@ public class Data400Controller {
             row.createCell(11).setCellValue("Location");
             row.createCell(12).setCellValue("Checked User");
             row.createCell(13).setCellValue("Status");
-            if (!status.trim().equals("('ACTIVE')")) {
+            if (!status.trim().equals("ACTIVE")) {
                 row.createCell(14).setCellValue("Scanned");
                 for (int i = 0; i < 15; i++) {
                     row.getCell(i).setCellStyle(style);
@@ -1050,7 +1052,7 @@ public class Data400Controller {
                 lotRow.createCell(11).setCellValue(lot.getRackLocationCode());
                 lotRow.createCell(12).setCellValue(lot.getBadge());
                 lotRow.createCell(13).setCellValue(lot.getStatus2());
-                if (!status.trim().equals("('ACTIVE')")) {
+                if (!status.trim().equals("ACTIVE")) {
 
                     lotRow.createCell(14).setCellValue(lot.isScanned() ? "Y" : "N");
                     for (int i = 0; i < 15; i++) {
@@ -1082,7 +1084,7 @@ public class Data400Controller {
             workbook.write(fos);
             fos.flush();
             fos.close();
-            atvService.sendMailDaily(fileName.getPath(), fileNameString, status.trim().equals("('ACTIVE')") ? "Shipping Entry Daily " : "Shipping Inventory Daily ");
+            atvService.sendMailDaily(fileName.getPath(), fileNameString, status.trim().equals("ACTIVE") ? "Shipping Entry Daily " : "Shipping Inventory Daily ");
 //            for (LotInformationModel lot : listLotByLocation) {
 //                System.out.println("aaaa" + lot.isScanned());
 //            }
@@ -1852,4 +1854,264 @@ public class Data400Controller {
 
         return isExisted;
     }
-}
+    @RequestMapping(method = RequestMethod.GET, value = "/autoLoadingGetDieData")
+    public Map<String,Object>autoLoadingGetDieData(@RequestParam(value = "cust")int cust ){
+        Connection m_conn = null;
+        PreparedStatement m_psmt = null;
+        CallableStatement m_cs = null;
+        ResultSet m_rs = null;
+        ArrayList<Map<String,Object>>listData=new ArrayList<>();
+        Map<String,Object>result=new HashMap<>();
+//        log.info("aaa"+cust);
+        try {
+            Class.forName(DRIVER);
+            m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
+            String query = "SELECT DMFCID, DMASID, DMDAMK, DMSTN, DMSTS1,DMLOT#, DMDCC, DMSTS2,DMCSCD,DMRVDT,DMWLOT,DMEOHQ, DMNONQ,DMSDEV,XMTLNO,XBATCH,DMMOO#,DMWNON FROM EMLIB.ADSTMP01 \n" +
+                    " LEFT JOIN EMLIB.XREFWFP ON DMFCID=XFCID AND DMASID=XASID AND DMDAMK=XAMKID " +
+                    " where DMFCID=80 AND DMASID=1  and DCPLNT='V1' and DMCSCD=? and (DMEOHQ > 0)  order BY DMDAMK ";
+            m_psmt = m_conn.prepareStatement(query);
+            m_psmt.setInt(1, cust);
+
+            m_rs = m_psmt.executeQuery();
+            while (m_rs != null && m_rs.next()) {
+                Map<String,Object>data=new HashMap<>();
+                data.put("FactoryId",m_rs.getInt("DMASID"));
+                data.put("SideID",m_rs.getInt("DMFCID"));
+                data.put("AmkorID",m_rs.getInt("DMDAMK"));
+                data.put("CustomerLot",m_rs.getString("DMLOT#").trim());
+                data.put("WaferLot",m_rs.getString("DMWLOT").trim());
+                data.put("DCC",m_rs.getString("DMDCC").trim());
+                data.put("SourceDevice",m_rs.getString("DMSDEV").trim());
+                data.put("ReceivedDate",m_rs.getLong("DMRVDT"));
+                data.put("Status",m_rs.getString("DMSTS2").trim());
+                data.put("Material#",m_rs.getString("XMTLNO").trim());
+                data.put("Batch",m_rs.getString("XBATCH").trim());
+                data.put("NonQTY",m_rs.getLong("DMNONQ"));
+                data.put("Moo#",m_rs.getString("DMMOO#"));
+                data.put("NonSchWaferQty",m_rs.getLong("DMWNON"));
+                listData.add(data);
+
+
+
+
+            }
+
+
+            m_psmt.close();
+            m_rs.close();
+
+
+            m_conn.close();
+            result.put("Total",listData.size());
+            result.put("Data",listData);
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+        return result;
+    }
+
+
+
+    @RequestMapping(method = RequestMethod.GET, value = "/sendMailOverDays")
+    public   String sendMailOverDays() {
+        ArrayList<LotInformationModel> dataSearch = new ArrayList<>();
+        LotInformationModel lotInformationModel = new LotInformationModel();
+        Connection m_conn = null;
+        PreparedStatement m_psmt = null;
+        CallableStatement m_cs = null;
+        ResultSet m_rs = null;
+
+        String result = "Fail";
+        List<String> locationList = new ArrayList<>();
+        int nRecordCurrentNo=getRecordDateNo();
+        try {
+            Class.forName(DRIVER);
+            m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
+            String query = "SELECT DMFCID, DMASID, DMDAMK,DMCSCD,DMPKG,DMDMS,DMLEAD,DCPLNT,DMSDEV,DMLOT#,DMDCC,DMSTS2,DMEOHQ,DMRCVQ,DMWRCV, DMWEOH,DMRLOC, DMRVDT,TDRCNO FROM EMLIB.ADSTMP01 a " +
+                    " LEFT JOIN DPTBLB.ETBDATE ON TDFCID = DMFCID AND int(SUBSTR(char(A.DMRVDT), 1, 8))=TDDAT1 " +
+                    " WHERE DMSTS2 IN ('ACTIVE','HOLD','TRANSFER') ORDER  BY DMCSCD,DMWRCV "+
+                    " AND DMDAMK NOT IN (SELECT DISTINCT (SLAMKR) FROM EMLIB.EMESLP12 WHERE DMFCID=SLFCID AND DMASID=SLASID AND DMDAMK=SLAMKR AND (SLLOCT='L' OR SLLOCT='T' )   )" ;
+            m_psmt = m_conn.prepareStatement(query);
+
+            m_rs = m_psmt.executeQuery();
+            while (m_rs != null && m_rs.next()) {
+                lotInformationModel = new LotInformationModel();
+                lotInformationModel.setCustCode(m_rs.getInt("DMCSCD"));
+                lotInformationModel.setCustLot(m_rs.getString("DMLOT#").trim());
+                lotInformationModel.setCustDcc(m_rs.getString("DMDCC").trim());
+                lotInformationModel.setSourceDevice(m_rs.getString("DMSDEV").trim());
+                lotInformationModel.setCustAmkorID(m_rs.getInt("DMDAMK"));
+                lotInformationModel.setEohQty(m_rs.getInt("DMEOHQ"));
+                lotInformationModel.setEohWaferQty(m_rs.getInt("DMWEOH"));
+                lotInformationModel.setRackLocationCode(m_rs.getString("DMRLOC").trim());
+//                locationList.add(m_rs.getString("DMRLOC").trim());
+//                lotInformationModel.setFgsNo(m_rs.getString("XBATCH").trim());
+//                lotInformationModel.setBinNo(m_rs.getString("XMTLNO").trim());
+                lotInformationModel.setTransferInDateTime(m_rs.getLong("DMRVDT"));
+                lotInformationModel.setStatus2(m_rs.getString("DMSTS2").trim());
+
+                int nRecordNo=m_rs.getInt("TDRCNO");
+                lotInformationModel.setEohWaferQty(nRecordCurrentNo - nRecordNo);
+                if (nRecordCurrentNo - nRecordNo == 364)
+                    dataSearch.add(lotInformationModel);
+
+
+            }
+
+
+            m_psmt.close();
+            m_rs.close();
+
+
+            m_conn.close();
+//
+            if (dataSearch.size() > 0) {
+
+                result = "Send Email Success";
+                String fileName = "C:\\Dao\\SendMail\\";
+                String fileNameString = "OVerDay" + currentDate() + ".xls";
+                fileName = fileName + fileNameString;
+                createWorkbookOVerDay(new File(fileName), dataSearch, fileNameString);
+            } else {
+                result = "There is no data inventory";
+            }
+
+
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+        return result;
+    }
+    private void createWorkbookOVerDay(File fileName, ArrayList<LotInformationModel> lotList, String fileNameString) {
+        try {
+
+
+            if (fileName.exists()) {
+                fileName.delete();
+            }
+
+
+            FileOutputStream fos = new FileOutputStream(fileName);
+            SXSSFWorkbook workbook = new SXSSFWorkbook();
+
+            Sheet sheet = workbook.createSheet("OVerDay");
+            CellStyle style = workbook.createCellStyle();
+            style.setBorderBottom(BorderStyle.THIN);
+            style.setBottomBorderColor(IndexedColors.BLACK.getIndex());
+            style.setBorderLeft(BorderStyle.THIN);
+            style.setLeftBorderColor(IndexedColors.GREEN.getIndex());
+            style.setBorderRight(BorderStyle.THIN);
+            style.setRightBorderColor(IndexedColors.BLUE.getIndex());
+            style.setBorderTop(BorderStyle.MEDIUM);
+            style.setTopBorderColor(IndexedColors.BLACK.getIndex());
+//            style.setWrapText(true);
+            style.setVerticalAlignment(VerticalAlignment.CENTER);
+//            if (lotList.size() > 1) {
+//                sheet.addMergedRegion(new CellRangeAddress(3, lotList.size() + 2, 0, 0));
+//            }
+
+
+            Row row = sheet.createRow(2);
+
+            row.createCell(0).setCellValue("No");
+            row.createCell(1).setCellValue("CustomerCode");
+            row.createCell(2).setCellValue("Device");
+            row.createCell(3).setCellValue("Lot#");
+            row.createCell(4).setCellValue("Dcc");
+            row.createCell(5).setCellValue("Qty");
+            row.createCell(6).setCellValue("Location");
+            row.createCell(7).setCellValue("Status");
+            row.createCell(8).setCellValue("ReceiveDate");
+            row.createCell(9).setCellValue("OverDays");
+
+
+            for (int i = 0; i < 10; i++) {
+                row.getCell(i).setCellStyle(style);
+//                sheet.autoSizeColumn(i);
+            }
+
+            int rowCount = 3;
+
+
+            for (LotInformationModel lot : lotList) {
+
+                Row lotRow = sheet.createRow(rowCount);
+
+
+                lotRow.createCell(0).setCellValue(rowCount - 2);
+                lotRow.createCell(1).setCellValue(lot.getCustCode());
+                lotRow.createCell(2).setCellValue(lot.getSourceDevice());
+                lotRow.createCell(3).setCellValue(lot.getCustLot());
+                lotRow.createCell(4).setCellValue(lot.getCustDcc());
+                lotRow.createCell(5).setCellValue(lot.getEohQty());
+                lotRow.createCell(6).setCellValue(lot.getRackLocationCode());
+                lotRow.createCell(7).setCellValue(lot.getStatus2());
+                lotRow.createCell(8).setCellValue(lot.getTransferInDateTime());
+                lotRow.createCell(9).setCellValue(lot.getEohWaferQty());
+
+
+                for (int i = 0; i < 10; i++) {
+                    lotRow.getCell(i).setCellStyle(style);
+//                    sheet.autoSizeColumn(i);
+                }
+
+                rowCount++;
+            }
+
+
+            workbook.write(fos);
+            fos.flush();
+            fos.close();
+            atvService.sendMailDaily(fileName.getPath(), fileNameString, "OverDays Every Week");
+
+
+        } catch (FileNotFoundException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+    @RequestMapping(method = RequestMethod.GET, value = "/getRecordDateNo")
+    public int getRecordDateNo(){
+        int result =0;
+        Connection m_conn = null;
+        PreparedStatement m_psmt = null;
+        CallableStatement m_cs = null;
+        ResultSet m_rs = null;
+
+
+
+
+        try {
+            Class.forName(DRIVER);
+            m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
+            String query = "select TDRCNO from  DPTBLB.ETBDATE where TDFCID=? and TDDAT1=? ";
+            m_psmt = m_conn.prepareStatement(query);
+            m_psmt.setInt(1,80);
+            m_psmt.setLong(2, Long.parseLong(currentDate()));
+
+            m_rs = m_psmt.executeQuery();
+            while (m_rs != null && m_rs.next()) {
+
+                result=m_rs.getInt(1);
+
+
+
+
+            }
+
+
+            m_psmt.close();
+            m_rs.close();
+
+
+            m_conn.close();
+//
+
+
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+        return result;
+    }}
