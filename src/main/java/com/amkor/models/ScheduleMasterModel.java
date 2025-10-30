@@ -13,4 +13,5 @@ public class ScheduleMasterModel {
     private int subId;
     private String lotName;
     private String lotDcc;
+    private long shipBackDate;
 }
