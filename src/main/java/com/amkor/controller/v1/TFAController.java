@@ -598,7 +598,7 @@ public class TFAController {
             Integer shipBackDateInt = (Integer) body.get("shipBackDate");
             long shipBackDate = shipBackDateInt.longValue();
             msg = ITFAService.releaseLot(lotName, lotDcc, holdCode, releaseReason, userBadge, holdOpr, shipBackDate);
-            String logBody = "{lotName: " + lotName + ", lotDcc: " + lotDcc + ", holdCode: " + holdCode + ", releaseReason: " + releaseReason + ", userBadge: " + userBadge + "}";
+            String logBody = "{lotName: " + lotName + ", lotDcc: " + lotDcc + ", holdCode: " + holdCode + ", holdOpr: " + holdOpr + ", releaseReason: " + releaseReason + ", userBadge: " + userBadge + "}";
             // init api logging
             this.apiLoggingService.insertLog(new ATVNetAPILoggingModel(
                     userBadge,

@@ -497,6 +497,23 @@ public class TFAServiceImpl implements ITFAService {
 
                 // perform release
                 releaseLot(model.getFactoryId(), model.getSiteId(), model.getAmkId(), model.getSubId(), holdCode, holdRemark, releaseReason, Integer.parseInt(userBadge), subMasterModel.getShipBackDate(), holdRecord.getHoldDateTime());
+
+                if (model.getStation().trim().equals("WIP") && model.getStatus1().trim().equals("TEST") && !releaseReason.trim().equals("")) {
+                    int serial = getMaxWipProcessNoteSerial(model.getFactoryId(), model.getSiteId(), model.getAmkId(), model.getSubId());
+                    WipProcessNoteModel noteModel = new WipProcessNoteModel();
+                    noteModel.setFactoryId(model.getFactoryId());
+                    noteModel.setSiteId(model.getSiteId());
+                    noteModel.setAmkorId(model.getAmkId());
+                    noteModel.setAmkorSubId(model.getSubId());
+                    noteModel.setClassify("H");
+                    noteModel.setEngNote(releaseReason);
+                    noteModel.setSerial(serial);
+                    noteModel.setCreateDateTime(this.getDateTime());
+                    noteModel.setCreateBadge(Integer.parseInt(userBadge));
+                    createWipProcessNote(noteModel);
+                }
+
+                realTimeShipback(model.getFactoryId(), model.getSiteId(), model.getAmkId(), model.getSubId());
             } else {
                 msg = "No lot found";
             }
@@ -526,6 +543,9 @@ public class TFAServiceImpl implements ITFAService {
                 result.setSiteId(m_rs.getInt("SMASID"));
                 result.setAmkId(m_rs.getInt("SMWAMK"));
                 result.setSubId(m_rs.getInt("SMSUB#"));
+                result.setStation(m_rs.getString("SMSTN"));
+                result.setStatus1(m_rs.getString("SMSTS1"));
+                result.setStatus2(m_rs.getString("SMSTS2"));
                 result.setLotName(lotName);
                 result.setLotDcc(dcc);
             }
@@ -977,6 +997,103 @@ public class TFAServiceImpl implements ITFAService {
             log.error(ex.getMessage());
         } finally {
             cleanUp(m_conn, m_cstmt, m_rs);
+        }
+    }
+
+    public int createWipProcessNote(WipProcessNoteModel model) {
+        int nResult = 0;
+
+        Connection m_conn = null;
+        PreparedStatement m_pstmt = null;
+        ResultSet m_rs = null;
+
+        try {
+            m_conn = getConnection();
+            String sQuery = "INSERT  INTO EMLIB.ENOTESP VALUES(?,?,?,?,?,?,?,?,?)";
+            m_pstmt = m_conn.prepareStatement(sQuery);
+
+            int i = 0;
+            m_pstmt.setInt(++i, model.getFactoryId());
+            m_pstmt.setInt(++i, model.getSiteId());
+            m_pstmt.setLong(++i, model.getAmkorId());
+            m_pstmt.setInt(++i, model.getAmkorSubId());
+            m_pstmt.setInt(++i, model.getSerial());
+            m_pstmt.setString(++i, model.getClassify());
+            m_pstmt.setString(++i, model.getEngNote());
+            m_pstmt.setLong(++i, model.getCreateDateTime());
+            m_pstmt.setInt(++i, model.getCreateBadge());
+
+            nResult = m_pstmt.executeUpdate();
+
+        } catch (Exception e) {
+            String sMsg = e.getMessage();
+            log.error(sMsg);
+            System.out.println(sMsg);
+        } finally {
+            cleanUp(m_conn, m_pstmt, m_rs);
+        }
+
+        return nResult;
+    }
+
+    public int getMaxWipProcessNoteSerial(int factoryId, int siteId, long wipAmkorId, int wipAmkorSubId) {
+        int result = 0;
+        Connection m_conn = null;
+        PreparedStatement m_psmt = null;
+        ResultSet m_rs = null;
+        try {
+            Class.forName(this.getDriver());
+            m_conn = DriverManager.getConnection(this.getURL(SharedConstValue.AMKOR_SHORTNAME), this.getUserID(SharedConstValue.AMKOR_SHORTNAME), this.getPasswd(SharedConstValue.AMKOR_SHORTNAME));
+
+            String sQuery = "select MAX(NTSRL#) as NTMAX from EMLIB.ENOTESP where NTFCID = ? AND NTASID = ? AND NTWAMK = ? AND NTSUB# = ?";
+            m_psmt = m_conn.prepareStatement(sQuery);
+            int i = 1;
+            m_psmt.setInt(i++, factoryId);
+            m_psmt.setInt(i++, siteId);
+            m_psmt.setLong(i++, wipAmkorId);
+            m_psmt.setInt(i, wipAmkorSubId);
+
+            m_rs = m_psmt.executeQuery();
+            if (m_rs.next()) {
+                result = m_rs.getInt("NTMAX") + 1;
+            }
+
+            m_psmt.close();
+            m_conn.close();
+        } catch (Exception ex) {
+            log.error(ex.getMessage(), ex);
+        } finally {
+            cleanUp(m_conn, m_psmt, m_rs);
+        }
+
+        return result;
+    }
+
+    public void realTimeShipback(int nFactoryId, int nSiteId, long nAmkorId, int nSub) {
+        Connection m_conn = null;
+        CallableStatement m_cstmt = null;
+        try {
+            m_conn = getConnection();
+
+            String sProcedure = "{call EMLIB.EMESFODSP (?,?,?,?)}";
+
+            m_cstmt = m_conn.prepareCall(sProcedure);
+
+            m_cstmt.setString(1, CommonUtils.getString(nFactoryId, 3));
+            m_cstmt.setString(2, CommonUtils.getString(nSiteId, 3));
+            m_cstmt.setString(3, CommonUtils.getString(nAmkorId, 20));
+            m_cstmt.setString(4, CommonUtils.getString(nSub, 5));
+
+            m_cstmt.execute();
+
+            m_cstmt.close();
+
+        } catch (Exception e) {
+            String sMsg = e.getMessage();
+            log.error(sMsg);
+            System.out.println(sMsg);
+        } finally {
+            cleanUp(m_conn, m_cstmt, null);
         }
     }
 }
