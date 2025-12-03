@@ -7,9 +7,9 @@ server:
 # db
 spring:
   datasource:
-    url: jdbc:sqlserver://10.201.11.21:50150;databaseName=ATVNET
+    url: jdbc:sqlserver://10.201.21.95:51122;databaseName=ATVNET
     username: atvnetadm
-    password: '@3e%#95kMdFF25Mt'
+    password: ggJ5tp?SfvAd_4@U
     hibernate.dialect: org.hibernate.dialect.SQLServer2008Dialect
     configuration:
       connectionTimeout: 30000
