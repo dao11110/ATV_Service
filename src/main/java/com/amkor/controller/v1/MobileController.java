@@ -1,6 +1,8 @@
 package com.amkor.controller.v1;
 
 
+import com.amkor.common.repository.SplitLogAMMHistoryRepository;
+import com.amkor.models.SplitLogAMMHistoryModel;
 import com.amkor.models.VehicleHeaderModel;
 import com.amkor.models.VehicleItemModel;
 
@@ -17,6 +19,8 @@ public class MobileController {
     @Autowired
     VehicleServiceImpl vehicleServiceImpl;
 
+    @Autowired
+    SplitLogAMMHistoryRepository splitLogAMMHistoryRepository;
 
     @RequestMapping(method = RequestMethod.GET, value = "/getListVehiclePre")
     public ArrayList<VehicleHeaderModel> getListVehiclePre() throws Exception {
@@ -95,12 +99,23 @@ public class MobileController {
         return vehicleServiceImpl.checkExistedData(visitor, invoice, fwdr).size();
     }
 
+
+    @RequestMapping(method = RequestMethod.GET, value = "/addSplitLogAMMToHistory")
+    public int addSplitLogAMMToHistory(String lotSelected, String badge,String stage) throws Exception {
+        SplitLogAMMHistoryModel splitLogAMMHistoryModel=new SplitLogAMMHistoryModel();
+        splitLogAMMHistoryModel.setLotSelected(lotSelected);
+        splitLogAMMHistoryModel.setBadge(badge);
+        splitLogAMMHistoryModel.setStage(stage);
+//        splitLogAMMHistoryModel.setCreatedAt(getTimeDateCurrent());
+        return splitLogAMMHistoryRepository.save(splitLogAMMHistoryModel).getId();
+    }
     public ArrayList<VehicleHeaderModel> checkExistedData(String invoice, String fwdr) throws Exception {
         return vehicleServiceImpl.checkExistedData(invoice, fwdr);
     }
-
+    @RequestMapping(method = RequestMethod.GET, value = "/getTimeDateCurrent")
     public static Date getTimeDateCurrent() {
         Calendar calendar = Calendar.getInstance();
+        calendar.setTimeZone(TimeZone.getTimeZone("Asia/Ho_Chi_Minh"));
         return calendar.getTime();
     }
 }

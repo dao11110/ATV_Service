@@ -54,7 +54,14 @@ public class ATVService implements IATVService {
     public void sendOverDay(){
         data400Controller.sendMailOverDays();
     }
-
+    @Scheduled(cron = "0 0 6 * * *")
+    public void sendMailQTIReport(){
+        data400Controller.sendAutoReportQTI();
+    }
+    @Scheduled(cron = "0 0 8 * * *")
+    public void sendQTIReportToFTP(){
+        data400Controller.sendQTIReportToFTP();
+    }
 
     public void sendMailDaily(String fileName, String fileNameString, String title) {
 
@@ -62,6 +69,7 @@ public class ATVService implements IATVService {
         try {
 
             List<String> listTo = new ArrayList<>();
+            List<String> listCC = new ArrayList<>();
             listTo.add("Dao.Nguyenvan@amkor.com");
             if (title.equals("Diebank Inventory Daily")) {
                 listTo.add("V1BANK@amkor.com");
@@ -72,16 +80,29 @@ public class ATVService implements IATVService {
             } else if (title.equals("NG Store Scrap Daily")) {
                 listTo.add("V1NG@amkor.com");
 
-            }else if (title.equals("OverDays Every Week")) {
+            }
+            else if (title.equals("OverDays Every Week")) {
                 listTo.add("V1Bank@amkor.com");
 
-            } else {
+            } else if (title.equals("QTI Diebank Inventory Daily")) {
+                listTo.add("Trang.Manthu@amkor.com");
+//                listTo.add("Lien.Buithi@amkor.com");
+//                listCC.add("MaryAngelie.Erguiza@amkor.com");
+                listCC.add("ATVQTIPCS@amkor.com");
+                title="Die Bank inventory report & In-transit report";
+            }else if (title.equals("Kioxia List Issue")) {
+
+            }
+            else {
                 listTo.add("V1SHIP@amkor.com");
             }
 
             List<String> listFileName = new ArrayList<>();
             listFileName.add(fileName);
-            sendMailProcess2(title + currentDate(), listTo, new ArrayList<>(), listFileName, fileNameString, true);
+            if (title.equals("Die Bank inventory report & In-transit report")) {
+                sendMailProcess2(title + "_" + currentDate() , listTo, listCC, listFileName, fileNameString, true);
+            } else
+                sendMailProcess2(title + "( " + currentDate() + " )", listTo, listCC, listFileName, fileNameString, true);
 
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -226,8 +247,8 @@ public class ATVService implements IATVService {
         String ENCODE = "UTF8";
         String MIME_PLAIN = "text/plain";
         String MIME_HTML = "text/html";
-        String user = "atvzabbix";
-        String password = "XR}1Y,S3NmQ]J({s#4o_#hJCuqB%fo";
+        String user = "atv_prdrpt";
+        String password = "94A]Gq[~&-3!,Ay'W4zKesyGAg6gL7";
 
 //		SendMail sendMail  = new SendMail();
 
@@ -305,8 +326,13 @@ public class ATVService implements IATVService {
 //            content.append("<br><font fact=Arial size=-1><b>[ATV Service Auto Sendmail]</b></font>");
 //            content.append(
 //                    "<br><font color=black face=Arial size=-1>This is the notification of data transfer to ATI</font><br><br>");
-            content.append("<br></br>" + title);
-
+            if (title.contains("Die Bank inventory report")){
+                content.append("<br><font fact=Arial size=-1><b>Dear QTI Team,</b></font>");
+                content.append("<br><font fact=Arial size=-1>Please refer to Die Bank inventory report</font>");
+                content.append("<br><font fact=Arial size=-1>Thank you</font>");
+            }else {
+                content.append("<br></br>" + title);
+            }
             String body = content.toString();
             contentPart.setContent(body, totalMime);
             mp.addBodyPart(contentPart);

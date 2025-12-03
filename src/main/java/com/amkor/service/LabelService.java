@@ -45,20 +45,20 @@ public class LabelService {
     @RequestMapping(method = RequestMethod.GET, value = "/printKioxiaInternalLabel")
     public String printKioxiaInternalLabel(){
         String result="fail";
-        String ipAddress="10.201.137.207";
+        String ipAddress="10.201.137.173";
         String zCode="";
                  zCode+="^XA\n";
                  zCode+="^MCY\n";
                  zCode+="^XZ\n";
                  zCode+="^XA\n";
                  zCode+="^LH000,000^BY2,6,60^FS\n";
-                 zCode+="^FO040,15^GB620,430,2^FS\n";
-                 zCode+="^FO040,70^GB620,0,2^FS\n";
-                 zCode+="^FO040,130^GB620,0,2^FS\n";
-                 zCode+="^FO040,195^GB620,0,2^FS\n";
-                 zCode+="^FO040,260^GB620,0,2^FS\n";
-                 zCode+="^FO040,320^GB620,0,2^FS\n";
-                 zCode+="^FO040,380^GB620,0,2^FS\n";
+                 zCode+="^FO040,20^GB610,430,2^FS\n";
+                 zCode+="^FO040,70^GB610,0,2^FS\n";
+                 zCode+="^FO040,130^GB610,0,2^FS\n";
+                 zCode+="^FO040,195^GB610,0,2^FS\n";
+                 zCode+="^FO040,260^GB610,0,2^FS\n";
+                 zCode+="^FO040,320^GB610,0,2^FS\n";
+                 zCode+="^FO040,380^GB610,0,2^FS\n";
                  zCode+="^FO0200,130^GB0,315,2^FS\n";
                  zCode+="^FO0540,130^GB0,315,2^FS\n";
                  zCode+="^FO110,35^A0,25,25^FDLabel for Internal use only.Do not use for shipping^FS\n";

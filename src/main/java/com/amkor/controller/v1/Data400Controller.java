@@ -1,9 +1,12 @@
 package com.amkor.controller.v1;
 
+import com.amkor.common.utils.Utils;
 import com.amkor.models.*;
 import com.amkor.service.ATVService;
 import lombok.extern.java.Log;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.net.ftp.FTP;
+import org.apache.commons.net.ftp.FTPClient;
 import org.apache.poi.hssf.usermodel.*;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
@@ -12,6 +15,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.xmlbeans.impl.tool.Diff;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
 import java.sql.*;
@@ -145,14 +149,14 @@ public class Data400Controller {
         Long dateEnd = Long.parseLong(currentDate() + "230000");
         String result = "Fail";
         List<String> locationList = new ArrayList<>();
-        String customer = "( 948,575,78,504,379,734,453  )";
+        String customer = "( 948,575,78,504,379,734,453,699,700  )";
         try {
             Class.forName(DRIVER);
             m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
-            String query = "SELECT DISTINCT  DMCSCD, DMLOT#,DMDCC,DMSDEV,DMDAMK,DMEOHQ,DMWEOH,DMRLOC,CICHDT,CICHFD,CIOGVL,CINWVL,XBATCH,XMTLNO,DMLTCD  FROM  EMLIB.ADSTMP01\n" +
+            String query = "SELECT DISTINCT  DMCSCD, DMLOT#,DMDCC,DMSDEV,DMDAMK,DMEOHQ,DMWEOH,DMRLOC,CICHDT,CICHFD,CIOGVL,CINWVL,XBATCH,XMTLNO,DMLTCD,DMSTS2  FROM  EMLIB.ADSTMP01\n" +
                     "INNER JOIN EMLIB.XREFWFP ON DMFCID=XFCID AND DMASID=XASID AND DMDAMK=XAMKID " +
                     "LEFT JOIN   EMLIB.EMESLP04 ON DMFCID=CIFCID AND DMASID=CIASID AND DMDAMK=CIAMKR AND CICHFD = 'MSCAN' \n" +
-                    " WHERE DMFCID=80 AND DMASID=1 AND DCPLNT = 'V1' AND DMSTN = 'DIEBANK' AND DMSTS2 IN ( 'ACTIVE')" +
+                    " WHERE DMFCID=80 AND DMASID=1 AND DCPLNT = 'V1' AND DMSTN = 'DIEBANK' AND DMSTS2 IN ( 'ACTIVE','HOLD')" +
                     " AND DMDAMK NOT IN (SELECT DISTINCT (SLAMKR) FROM EMLIB.EMESLP12 WHERE DMFCID=SLFCID AND DMASID=SLASID AND DMDAMK=SLAMKR AND (SLLOCT='L' OR SLLOCT='T' )   )" +
                     " AND  DMCSCD IN " + customer
                     + " AND CICHDT >=" + dateStart + " AND CICHDT <=" + dateEnd + " ORDER  BY DMCSCD ";
@@ -173,6 +177,7 @@ public class Data400Controller {
                 lotInformationModel.setFgsNo(m_rs.getString("XBATCH").trim());
                 lotInformationModel.setBinNo(m_rs.getString("XMTLNO").trim());
                 lotInformationModel.setLotType(m_rs.getString("DMLTCD").trim());
+                lotInformationModel.setStatus2(m_rs.getString("DMSTS2").trim());
 
                 if (m_rs.getString("CIOGVL") != null) {
                     lotInformationModel.setResponseMessage(m_rs.getString("CIOGVL").trim());
@@ -264,10 +269,10 @@ public class Data400Controller {
         try {
             Class.forName(DRIVER);
             m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
-            query = "SELECT DISTINCT  DMCSCD, DMLOT#,DMDCC,DMSDEV,DMDAMK,DMEOHQ,DMWEOH,DMRLOC,CICHDT,CICHFD,CIOGVL,CINWVL ,XBATCH,XMTLNO,DMLTCD   FROM  EMLIB.ADSTMP01 " +
+            query = "SELECT DISTINCT  DMCSCD, DMLOT#,DMDCC,DMSDEV,DMDAMK,DMEOHQ,DMWEOH,DMRLOC,CICHDT,CICHFD,CIOGVL,CINWVL ,XBATCH,XMTLNO,DMLTCD,DMSTS2   FROM  EMLIB.ADSTMP01 " +
                     "INNER JOIN EMLIB.XREFWFP ON DMFCID=XFCID AND DMASID=XASID AND DMDAMK=XAMKID " +
                     "LEFT JOIN   EMLIB.EMESLP04 ON DMFCID=CIFCID AND DMASID=CIASID AND DMDAMK=CIAMKR AND CICHFD = 'MSCAN'  " +
-                    " WHERE DMFCID=80 AND DMASID=1 AND DCPLNT = 'V1' AND DMSTN = 'DIEBANK' AND DMSTS2 IN ( 'ACTIVE')" +
+                    " WHERE DMFCID=80 AND DMASID=1 AND DCPLNT = 'V1' AND DMSTN = 'DIEBANK' AND DMSTS2 IN ( 'ACTIVE','HOLD')" +
                     " AND DMDAMK NOT IN (SELECT DISTINCT (SLAMKR) FROM EMLIB.EMESLP12 WHERE DMFCID=SLFCID AND DMASID=SLASID AND DMDAMK=SLAMKR  AND (SLLOCT='L' OR SLLOCT='T' )  )" +
                     "  AND DMCSCD  IN " + cus + " AND DMRLOC IN " + location + " ORDER  BY DMCSCD ";
 //
@@ -288,6 +293,7 @@ public class Data400Controller {
 
                 lotInformationModel.setFgsNo(m_rs.getString("XBATCH").trim());
                 lotInformationModel.setBinNo(m_rs.getString("XMTLNO").trim());
+                lotInformationModel.setStatus2(m_rs.getString("DMSTS2").trim());
                 if (m_rs.getString("CIOGVL") != null) {
                     lotInformationModel.setResponseMessage(m_rs.getString("CIOGVL").trim());
                     lotInformationModel.setResponseMessageDesc(m_rs.getString("CINWVL").trim());
@@ -901,7 +907,8 @@ public class Data400Controller {
 
             row.createCell(9).setCellValue("Device");
             row.createCell(10).setCellValue("Location");
-            row.createCell(11).setCellValue("Scanned");
+            row.createCell(11).setCellValue("Status");
+            row.createCell(12).setCellValue("Scanned");
 
             int rowCount = 5;
 
@@ -921,7 +928,8 @@ public class Data400Controller {
                 lotRow.createCell(8).setCellValue(lot.getLotType());
                 lotRow.createCell(9).setCellValue(lot.getSourceDevice());
                 lotRow.createCell(10).setCellValue(lot.getRackLocationCode());
-                lotRow.createCell(11).setCellValue(lot.isScanned() ? "Y" : "N");
+                lotRow.createCell(11).setCellValue(lot.getStatus2());
+                lotRow.createCell(12).setCellValue(lot.isScanned() ? "Y" : "N");
 
 
                 rowCount++;
@@ -2114,4 +2122,1112 @@ public class Data400Controller {
             System.out.println(e);
         }
         return result;
-    }}
+    }
+
+    @RequestMapping(path = "/addReelID", method = RequestMethod.POST)
+    public String  AddReelId(@RequestParam MultipartFile file){
+        StringBuffer resultReturn=new StringBuffer();
+        int count=0;
+        Workbook workbook = Utils.getWorkBook(file);
+        if (workbook == null) {
+            return "Fail";
+        }
+        Sheet sheet = workbook.getSheetAt(0);
+        int totalRow = Math.max(sheet.getLastRowNum(), sheet.getPhysicalNumberOfRows());
+        if (totalRow < 1) {
+            return "Fail";
+        }
+        for (int i = 153; i < totalRow; i++) {
+            Row row = sheet.getRow(i);
+            if (row == null) {
+                continue;
+            }
+            String lotNo="";
+            String lotDcc="";
+            String qty="";
+            String reelID="";
+            if (Utils.getCellStringValue(row.getCell(2))==null){
+                continue;
+            }
+            int nCust=Integer.parseInt(Utils.getCellStringValue(row.getCell(2)));
+            if (nCust==504 || nCust==379){
+                 lotNo=Utils.getCellStringValue(row.getCell(6));
+                 lotDcc=Utils.getCellStringValue(row.getCell(8));
+                if (lotDcc==null){
+                    lotDcc="";
+                }
+                 qty=Utils.getCellStringValue(row.getCell(9));
+                 reelID=Utils.getCellStringValue(row.getCell(7));
+            }else {
+                 lotNo=Utils.getCellStringValue(row.getCell(6));
+                 lotDcc=Utils.getCellStringValue(row.getCell(7));
+                if (lotDcc==null){
+                    lotDcc="";
+                }
+                reelID=Utils.getCellStringValue(row.getCell(8));
+//                reelID=Utils.getCellStringValue(row.getCell(9));;
+                 qty=Utils.getCellStringValue(row.getCell(9));
+            }
+
+
+            Connection m_conn = null;
+            PreparedStatement m_psmt = null;
+            CallableStatement m_cs = null;
+            ResultSet m_rs = null;
+
+
+            Connection m_conn1 = null;
+            PreparedStatement m_psmt1 = null;
+            CallableStatement m_cs1 = null;
+            ResultSet m_rs1 = null;
+
+            long lAmkorId=0L;
+            long currentTime=get400CurrentDate();
+            try {
+                Class.forName(DRIVER);
+                //getAmkor ID
+                m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
+                String query = " SELECT DMDAMK  FROM EMLIB.ADSTMP01  WHERE \"DMLOT#\" ='"+lotNo +"' AND DMDCC =  '"+lotDcc+"' ";
+                m_psmt = m_conn.prepareStatement(query);
+
+                m_rs = m_psmt.executeQuery();
+                while (m_rs != null && m_rs.next()) {
+
+                lAmkorId=m_rs.getLong("DMDAMK");
+
+                }
+
+                query=" INSERT INTO EMLIB.EDBREELP (FCID,ASID,DAMK,REELID,REELDCC,GRQTY,EOH,CRTON,CRTBY,CHGON,CHGBY) VALUES " +
+                        " (80,1,"+lAmkorId+",'"+reelID+"','"+lotDcc+"',"+Integer.valueOf(qty)+","+Integer.valueOf(qty)+","+currentTime+",'MIGRATION',"+currentTime+",'') ";
+                m_psmt = m_conn.prepareStatement(query);
+
+                int nReelID = m_psmt.executeUpdate();
+                if (nReelID>0){
+                    query="INSERT INTO EMLIB.EDBREELPL (FCID,ASID,DAMK,REELID,REELDCC,TXN,QTY,REJRSN,\"TAMK#\",\"TSUB#\",RMK,MVT,CLOSEFLG,CLOSETYPE,LOGON,LOGBY,QTYTYP) VALUES\n" +
+                            " (80,1,"+lAmkorId+",'"+reelID+"','"+lotDcc+"','GR',"+Integer.valueOf(qty)+",'',0,0,'','501','','',"+currentTime+",'MIGRATION','')";
+                    m_psmt = m_conn.prepareStatement(query);
+                    int nReelIDLog = m_psmt.executeUpdate();
+                    count ++;
+                }
+                m_psmt.close();
+                m_rs.close();
+                m_conn.close();
+
+
+                resultReturn.append(i).append("\t");
+                resultReturn.append(lotNo).append("\t");
+                resultReturn.append(lotDcc).append("\t");
+                resultReturn.append(reelID).append("\t");
+                resultReturn.append(qty).append("\t");
+                resultReturn.append(lAmkorId).append("\t");
+                resultReturn.append("Count:").append(count).append("\t");
+                resultReturn.append("\r\n");
+
+
+
+            } catch (Exception e) {
+                System.out.println(e);
+            }
+
+
+
+
+        }
+//        return "Read success " + count + "row";
+        return resultReturn.toString();
+    }
+
+    @RequestMapping(method = RequestMethod.GET, value = "/sendAutoReportQTI")
+    public   List<Map<String,Object>>  sendAutoReportQTI() {
+
+        Connection m_conn = null;
+        PreparedStatement m_psmt = null;
+        CallableStatement m_cs = null;
+        ResultSet m_rs = null;
+
+        String result = "Fail";
+        List<Map<String,Object>> dataQuery = new ArrayList<>();
+
+        try {
+            Class.forName(DRIVER);
+            m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
+            String query = "SELECT DISTINCT  DMCSCD, DMLOT#,DMDCC,DMSTN,DMSTS2,DMRVDT,DMSDEV,DMRCVQ,DMEOHQ,DMNONQ, CASE  WHEN  DMCSCD = 734 THEN 'E' ELSE 'P' END  AS PROD_TYPE  " +
+                    " ,c.CVFLDV AS FABSITE,d.CVFLDV AS BUMPSITE,e.HRFHLD AS HOLD_FLAG, " +
+                    " e.HRHRSN AS HOLD_CODE,e.HRHDTM AS HOLD_COMMENT, e.HRHDTM as HOLD_DATE,DMINV# AS PACKING_SLIP  ,CUSMS4  " +
+                    " FROM  EMLIB.ADSTMP01 " +
+                    " LEFT JOIN   EMLIB.EMESTP02 c ON   DMFCID=c.CVFCID AND DMASID=c.CVASID AND DMDAMK=c.CVAMKR AND c.CVFLDN='QCTFSITE' " +
+                    " LEFT JOIN   EMLIB.EMESTP02 d ON   DMFCID=d.CVFCID AND DMASID=d.CVASID AND DMDAMK=d.CVAMKR AND d.CVFLDN='QCTBSITE' " +
+                    " LEFT JOIN   EMLIB.EMESLP01 e ON   DMFCID=e.HRFCID AND DMASID=e.HRASID AND DMDAMK=e.HRAMKR AND e.HRSTN='DIEBANK' " +
+                    " LEFT JOIN   DPTBLB.CSINTCP f ON   DMFCID=f.FACID  AND DMINV#=f.\"SHINV#\"  AND DMLOT#=f.INCLOT  " +
+                    " WHERE DMFCID=80 AND DMASID=1 AND DCPLNT = 'V1' AND DMSTN = 'DIEBANK' AND DMSTS2 IN ( 'ACTIVE',  'HOLD')  AND  DMCSCD IN ( 734,453 ) AND DMLTCD!='DD' AND DMNONQ>0   ORDER  BY DMCSCD ";
+            m_psmt = m_conn.prepareStatement(query);
+
+            m_rs = m_psmt.executeQuery();
+            while (m_rs != null && m_rs.next()) {
+                Map<String,Object> mapData=new HashMap<>();
+                mapData.put("Cust Device",m_rs.getString("DMSDEV").trim());
+                mapData.put("Lot#",m_rs.getString("DMLOT#").trim());
+                mapData.put("Received Date",m_rs.getLong("DMRVDT"));
+                if (m_rs.getString("CUSMS4")!=null){
+                    mapData.put("Date Code",m_rs.getString("CUSMS4").trim());
+                }else {
+                    mapData.put("Date Code","");
+                }
+                mapData.put("Received Qty",m_rs.getInt("DMRCVQ"));
+                mapData.put("Current Qty",m_rs.getInt("DMNONQ"));
+                mapData.put("Prod Type",m_rs.getString("PROD_TYPE").trim());
+                mapData.put("Fab Site",m_rs.getString("FABSITE").trim());
+                mapData.put("Bump Site",m_rs.getString("BUMPSITE").trim());
+
+
+                if (m_rs.getString("HOLD_FLAG")!=null){
+                    mapData.put("Hold Flag",m_rs.getString("HOLD_FLAG").trim());
+                }else {
+                    mapData.put("Hold Flag","");
+                }
+                if (m_rs.getString("HOLD_CODE")!=null){
+                    mapData.put("Hold Code",m_rs.getString("HOLD_CODE").trim());
+                }else {
+                    mapData.put("Hold Code","");
+                }
+                if (m_rs.getString("HOLD_COMMENT")!=null){
+                    mapData.put("Hold Comment",m_rs.getString("HOLD_COMMENT").trim());
+                }else {
+                    mapData.put("Hold Comment","");
+                }
+                m_rs.getLong("HOLD_DATE");
+                mapData.put("Hold Date", m_rs.getLong("HOLD_DATE"));
+                mapData.put("Packing Slip#",m_rs.getString("PACKING_SLIP").trim());
+
+                dataQuery.add(mapData);
+
+            }
+
+
+            m_psmt.close();
+            m_rs.close();
+
+
+            m_conn.close();
+
+            if (!dataQuery.isEmpty()) {
+
+                result = "Send Email Success";
+                String fileName = "C:\\Dao\\SendMail\\";
+                String fileNameString = "QTI Inventory Daily" + currentDate() + ".xls";
+                fileName = fileName + fileNameString;
+                createWorkbookQTI(new File(fileName), dataQuery, fileNameString );
+            } else {
+                result = "There is no data inventory";
+            }
+
+
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+        return dataQuery;
+    }
+
+    public void createWorkbookQTI(File fileName, List<Map<String,Object>> lotList, String fileNameString) throws IOException {
+        try {
+
+            List<Map<String,Object>>listDataB2B=getListB2BQTI();
+            if (fileName.exists()) {
+                fileName.delete();
+            }
+            List<String>listHoldCodeInternal=new ArrayList<>();
+            listHoldCodeInternal.add("HS");
+            listHoldCodeInternal.add("EC");
+            listHoldCodeInternal.add("EA");
+            listHoldCodeInternal.add("YC");
+            listHoldCodeInternal.add("DC");
+            listHoldCodeInternal.add("VC");
+            listHoldCodeInternal.add("JA");
+            listHoldCodeInternal.add("0H");
+            listHoldCodeInternal.add("HB");
+            listHoldCodeInternal.add("UA");
+            listHoldCodeInternal.add("WA");
+            listHoldCodeInternal.add("LC");
+            listHoldCodeInternal.add("PV");
+            listHoldCodeInternal.add("MH");
+            listHoldCodeInternal.add("IF");
+
+            FileOutputStream fos = new FileOutputStream(fileName);
+            SXSSFWorkbook workbook = new SXSSFWorkbook();
+
+            Sheet sheet = workbook.createSheet(" QTI Inventory Daily");
+            CellStyle style = workbook.createCellStyle();
+
+            style.setBorderBottom(BorderStyle.THIN);
+            style.setBottomBorderColor(IndexedColors.BLACK.getIndex());
+            style.setBorderLeft(BorderStyle.THIN);
+            style.setLeftBorderColor(IndexedColors.BLACK.getIndex());
+            style.setBorderRight(BorderStyle.THIN);
+            style.setRightBorderColor(IndexedColors.BLACK.getIndex());
+            style.setBorderTop(BorderStyle.THIN);
+            style.setTopBorderColor(IndexedColors.BLACK.getIndex());
+            style.setVerticalAlignment(VerticalAlignment.CENTER);
+//            style.setWrapText(true);
+
+
+            Row row = sheet.createRow(0);
+//            row.createCell(0).setCellValue("STT");
+            row.createCell(0).setCellValue("Cust Device");
+            row.createCell(1).setCellValue("Lot#");
+            row.createCell(2).setCellValue("Received Date");
+            row.createCell(3).setCellValue("Date Code");
+            row.createCell(4).setCellValue("Receive Qty");
+            row.createCell(5).setCellValue("Current Qty");
+            row.createCell(6).setCellValue("Prod Type");
+            row.createCell(7).setCellValue("Fab Site");
+            row.createCell(8).setCellValue("Bump Site");
+
+            row.createCell(9).setCellValue("Hold Flag");
+            row.createCell(10).setCellValue("Hold Code");
+            row.createCell(11).setCellValue("Hold Comment");
+            row.createCell(12).setCellValue("Hold Date");
+            row.createCell(13).setCellValue("Packing Slip#");
+
+            for (int i =0 ;i < 14; i++) {
+                row.getCell(i).setCellStyle(style);
+//                sheet.autoSizeColumn(1);
+                sheet.setColumnWidth(i, 15 * 256);
+            }
+            sheet.setColumnWidth(0, 25 * 256);
+            sheet.setColumnWidth(1, 30 * 256);
+            sheet.setColumnWidth(2, 25 * 256);
+            sheet.setColumnWidth(3, 15 * 256);
+            sheet.setColumnWidth(13, 25 * 256);
+            int rowCount = 1;
+
+
+            for (Map<String, Object> lot : lotList) {
+
+                Row lotRow = sheet.createRow(rowCount);
+                String dateCode=(String) lot.get("Date Code");
+                if (dateCode.contains(",")){
+                    dateCode=dateCode.split(",")[0];
+                }
+                String sHoldCode=(String) lot.get("Hold Code");
+                Date date =new SimpleDateFormat("yyyyMMddhhmmss").parse(String.valueOf((Long) lot.get("Received Date")));
+
+                String sConvertReceiveDate=new SimpleDateFormat("yyyy-MM-dd").format(date);
+                boolean isInternalHoldCode=false;
+                if (listHoldCodeInternal.contains(sHoldCode)){
+                    isInternalHoldCode=true;
+                }
+                String sHoldDate=String.valueOf((Long) lot.get("Hold Date"));
+                if (sHoldDate.equals(0)){
+                    sHoldDate="";
+                }
+//                lotRow.createCell(0).setCellValue(rowCount-1);
+                lotRow.createCell(0).setCellValue((String) lot.get("Cust Device"));
+                lotRow.createCell(1).setCellValue((String) lot.get("Lot#"));
+                lotRow.createCell(2).setCellValue(sConvertReceiveDate);
+                lotRow.createCell(3).setCellValue(dateCode);
+                lotRow.createCell(4).setCellValue((int) lot.get("Received Qty"));
+                lotRow.createCell(5).setCellValue((int) lot.get("Current Qty"));
+                lotRow.createCell(6).setCellValue((String) lot.get("Prod Type"));
+                lotRow.createCell(7).setCellValue((String) lot.get("Fab Site"));
+                lotRow.createCell(8).setCellValue((String) lot.get("Bump Site"));
+                lotRow.createCell(9).setCellValue(isInternalHoldCode?"":(String) lot.get("Hold Flag"));
+                lotRow.createCell(10).setCellValue(isInternalHoldCode?"":(String) lot.get("Hold Code"));
+                lotRow.createCell(11).setCellValue(isInternalHoldCode?"":(String) lot.get("Hold Comment"));
+                lotRow.createCell(12).setCellValue(isInternalHoldCode?"":sHoldCode);
+                lotRow.createCell(13).setCellValue((String) lot.get("Packing Slip#"));
+                for (int i = 0; i < 14; i++) {
+                    lotRow.getCell(i).setCellStyle(style);
+//                    sheet.autoSizeColumn(i);
+//                    sheet.setColumnWidth(i, 30 * 256);
+                }
+
+
+                rowCount++;
+            }
+
+            Sheet sheet1 = workbook.createSheet("3B2");
+            Row row1 = sheet1.createRow(0);
+            row1.createCell(0).setCellValue("Cust Device");
+            row1.createCell(1).setCellValue("Lot#");
+            row1.createCell(2).setCellValue("Received Date");
+            row1.createCell(3).setCellValue("Qty");
+            row1.createCell(4).setCellValue("Fab Site");
+            row1.createCell(5).setCellValue("Bump Site");
+            row1.createCell(6).setCellValue("Packslip");
+            for (int i =0 ;i < 7; i++) {
+                row1.getCell(i).setCellStyle(style);
+                sheet1.setColumnWidth(i, 15 * 256);
+
+
+
+            }
+            int rowCount1=1;
+            for (Map<String, Object> lot : listDataB2B) {
+                String sBumpSite="";
+                String sCum3=(String) lot.get("Bump Site");
+                if (!sCum3.isEmpty() &&  sCum3.split(",").length>1){
+                   if(sCum3.split(",")[1].trim().equals("YYWW") || sCum3.split(",")[1].trim().equals("N/A")){
+                       sBumpSite="";
+                   }else {
+                       sBumpSite=sCum3.split(",")[1].trim();
+                   }
+                }
+                Row lotRow = sheet1.createRow(rowCount1);
+                lotRow.createCell(0).setCellValue((String) lot.get("Cust Device"));
+                lotRow.createCell(1).setCellValue((String) lot.get("Lot#"));
+                lotRow.createCell(2).setCellValue((String) lot.get("Received Date"));
+                lotRow.createCell(3).setCellValue((Integer) lot.get("Qty"));
+                lotRow.createCell(4).setCellValue((String) lot.get("Fab Site"));
+                lotRow.createCell(5).setCellValue(sBumpSite);
+                lotRow.createCell(6).setCellValue((String) lot.get("Packslip"));
+
+                for (int i =0 ;i < 7; i++) {
+                    lotRow.getCell(i).setCellStyle(style);
+                    sheet1.setColumnWidth(i, 15 * 256);
+
+
+
+                }
+                rowCount1++;
+            }
+
+
+            workbook.write(fos);
+            fos.flush();
+            fos.close();
+            atvService.sendMailDaily(fileName.getPath(), fileNameString, "QTI Diebank Inventory Daily");
+//
+
+
+        } catch (FileNotFoundException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+
+
+    public String uploadToFTP(File file,String fileName) throws IOException {
+        String result="";
+        String ftpHost = "10.201.11.46"; // FTP server IP
+        int ftpPort = 21;                // FTP port (default is 21)
+        String ftpUser = "qtireport";
+        String ftpPass = "HiATV2025!@#";
+
+        FTPClient ftpClient = new FTPClient();
+        try {
+            ftpClient.connect(ftpHost, ftpPort); // Connect using IP and port
+            ftpClient.login(ftpUser, ftpPass);
+            ftpClient.enterLocalPassiveMode();
+            ftpClient.setFileType(FTP.BINARY_FILE_TYPE);
+
+            try (InputStream inputStream = new FileInputStream(file)) {
+                boolean done = ftpClient.storeFile("/QTI_Report/"+fileName, inputStream);
+                if (done) {
+                    result="File uploaded successfully.";
+                } else {
+                    result="Upload failed.";
+                }
+            }
+        } finally {
+            ftpClient.logout();
+            ftpClient.disconnect();
+        }
+        return result;
+    }
+
+
+    @RequestMapping(path = "/updateLotType", method = RequestMethod.POST)
+    public String  updateLotType(@RequestParam MultipartFile file){
+        StringBuffer resultReturn=new StringBuffer();
+        int count=0;
+        Workbook workbook = Utils.getWorkBook(file);
+        if (workbook == null) {
+            return "Fail";
+        }
+        Sheet sheet = workbook.getSheetAt(0);
+        int totalRow = Math.max(sheet.getLastRowNum(), sheet.getPhysicalNumberOfRows());
+        if (totalRow < 1) {
+            return "Fail";
+        }
+        for (int i = 2; i <= totalRow; i++) {
+            Row row = sheet.getRow(i);
+            if (row == null) {
+                continue;
+            }
+            String lotNo="";
+            String lotDcc="";
+            String sCOO="";
+            String reelID="";
+//            if (Utils.getCellStringValue(row.getCell(2))==null){
+//                continue;
+//            }
+
+            lotNo = Utils.getCellStringValue(row.getCell(1));
+//            lotNo = lotNo.replace("'", "");
+            sCOO = Utils.getCellStringValue(row.getCell(6));
+            lotDcc = Utils.getCellStringValue(row.getCell(2));
+            if (lotDcc == null) {
+                lotDcc = "";
+            }
+//                else {
+//                    lotDcc=String.format("%02d",Integer.parseInt(lotDcc));
+//                }
+            if (sCOO.equals("US")){
+                sCOO="A";
+            }else  if (sCOO.equals("SG")){
+                sCOO="K";
+            }
+
+
+
+
+            Connection m_conn = null;
+            PreparedStatement m_psmt = null;
+            CallableStatement m_cs = null;
+            ResultSet m_rs = null;
+
+
+
+
+
+            try {
+                Class.forName(DRIVER);
+                //getAmkor ID
+                m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
+
+
+
+                  String  query=" Update EMLIB.ADSTMP01 set DMLTCD='',DMCOO='"+sCOO+"' where DMLOT#='" + lotNo+"' AND DMDCC= '"+ lotDcc +"' " ;
+                    m_psmt = m_conn.prepareStatement(query);
+                 if(   m_psmt.executeUpdate()>1)
+                 {
+                     count ++;
+                 }
+
+
+                m_psmt.close();
+
+                m_conn.close();
+
+
+                resultReturn.append(i).append("\t");
+                resultReturn.append(lotNo).append("\t");
+                resultReturn.append(lotDcc).append("\t");
+                resultReturn.append(sCOO).append("\t");
+
+                resultReturn.append("Count:").append(count).append("\t");
+                resultReturn.append("\r\n");
+
+
+
+            } catch (Exception e) {
+                System.out.println(e);
+            }
+
+
+
+
+        }
+//        return "Read success " + count + "row";
+        return resultReturn.toString();
+    }
+
+
+    @RequestMapping(path = "/updateIFGIToSAP", method = RequestMethod.POST)
+    public String  updateIFGIToSAP(@RequestParam MultipartFile file){
+        StringBuffer resultReturn=new StringBuffer();
+        int count=0;
+        Workbook workbook = Utils.getWorkBook(file);
+        if (workbook == null) {
+            return "Fail";
+        }
+        Sheet sheet = workbook.getSheetAt(6);
+        int totalRow = Math.max(sheet.getLastRowNum(), sheet.getPhysicalNumberOfRows());
+        if (totalRow < 1) {
+            return "Fail";
+        }
+        for (int i = 2; i <= totalRow; i++) {
+            Row row = sheet.getRow(i);
+            if (row == null) {
+                continue;
+            }
+            String material="";
+            String batch="";
+            String po="";
+            String qty="";
+
+
+
+            material = Utils.getCellStringValue(row.getCell(1));
+
+            batch = Utils.getCellStringValue(row.getCell(2));
+            po = Utils.getCellStringValue(row.getCell(11));
+
+            qty = Utils.getCellStringValue(row.getCell(12));
+
+
+
+
+
+            int serialNo=getNextSerialNo("V1",po,material,batch);
+
+            PoGiStagingVO poGiStagingVO = new PoGiStagingVO();
+            poGiStagingVO.setPlant("V1");
+            poGiStagingVO.setPoNo(po);
+            poGiStagingVO.setFgMtrlNo(material);
+            poGiStagingVO.setBatchNo(batch);
+            poGiStagingVO.setSerialNo(serialNo);
+            poGiStagingVO.setPostingDate(Long.parseLong(currentDate()));
+            poGiStagingVO.setMovementType("261");
+            poGiStagingVO.setLocStorage("DRCV");
+            poGiStagingVO.setGiQty(Integer.parseInt(qty));
+            poGiStagingVO.setUom("PCS");
+            poGiStagingVO.setTransactionType("I");
+            poGiStagingVO.setIfTimeStamp(currentDate()+"0000001");
+            poGiStagingVO.setIfDate(get400CurrentDate());
+            poGiStagingVO.setIfStatus("INT");
+            poGiStagingVO.setIfErrorDesc("SYSTEM-UPDATE");
+            poGiStagingVO.setIfUser("SYSTEM");
+//            addRecords(poGiStagingVO);
+
+
+
+
+
+                resultReturn.append(i).append("\t");
+                resultReturn.append(material).append("\t");
+                resultReturn.append(batch).append("\t");
+                resultReturn.append(po).append("\t");
+                resultReturn.append(qty).append("\t");
+                resultReturn.append(serialNo).append("\t");
+
+                resultReturn.append("Count:").append(count).append("\t");
+                resultReturn.append("\r\n");
+
+
+
+
+
+
+
+        }
+//        return "Read success " + count + "row";
+        return resultReturn.toString();
+    }
+
+    public int addRecords(PoGiStagingVO poGiStagingVO) {
+
+        int nRec = 0;
+
+        Connection m_conn = null;
+        PreparedStatement m_psmt = null;
+        CallableStatement m_cs = null;
+        ResultSet m_rs = null;
+
+        try {
+
+            Class.forName(DRIVER);
+            //getAmkor ID
+            m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
+            String sQuery=
+                    " INSERT INTO EMLIB.POGIP " +
+                            " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+            m_psmt = m_conn.prepareStatement(sQuery);
+
+            int i=1;
+            m_psmt.setString(i++,poGiStagingVO.getPlant().trim());
+            m_psmt.setString(i++,poGiStagingVO.getPoNo().trim());
+            m_psmt.setString(i++,poGiStagingVO.getFgMtrlNo().trim());
+            m_psmt.setString(i++,poGiStagingVO.getBatchNo().trim());
+            m_psmt.setInt(i++,poGiStagingVO.getSerialNo());
+            m_psmt.setLong(i++,poGiStagingVO.getPostingDate());
+            m_psmt.setString(i++,poGiStagingVO.getMovementType().trim());
+            m_psmt.setString(i++,poGiStagingVO.getLocStorage().trim());
+            m_psmt.setDouble(i++,poGiStagingVO.getGiQty());
+            m_psmt.setString(i++,poGiStagingVO.getUom().trim());
+            m_psmt.setString(i++,poGiStagingVO.getSalesOrder().trim());
+            m_psmt.setInt(i++,poGiStagingVO.getSalesOrderItem());
+            m_psmt.setString(i++,poGiStagingVO.getToDocNo().trim());
+            m_psmt.setString(i++,poGiStagingVO.getRfmdDepLot().trim());
+            m_psmt.setString(i++,poGiStagingVO.getTransactionType().trim());
+            m_psmt.setString(i++,poGiStagingVO.getIfTimeStamp().trim());
+            m_psmt.setLong(i++, poGiStagingVO.getIfDate());
+            m_psmt.setString(i++,poGiStagingVO.getIfStatus().trim());
+            m_psmt.setString(i++,poGiStagingVO.getIfErrorDesc().trim());
+            m_psmt.setString(i++,poGiStagingVO.getIfUser().trim());
+
+            nRec = m_psmt.executeUpdate();
+            m_psmt.close();
+//            m_rs.close();
+            m_conn.close();
+        }
+        catch (Exception e)
+        {
+            System.out.println(e);
+        }
+
+        return nRec;
+    }
+
+    public int getNextSerialNo(String plant, String poNo, String matlNo, String batchNo) {
+
+        int retValue = 0;
+        Connection m_conn = null;
+        PreparedStatement m_pstmt = null;
+        CallableStatement m_cs = null;
+        ResultSet m_rs = null;
+
+        try {
+
+            Class.forName(DRIVER);
+            //getAmkor ID
+            m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
+            String sQuery=	" SELECT MAX(ISRLNO)+1 FROM EMLIB.POGIP " +
+                    " WHERE  IPLANT=? AND IPONO=? AND IMTLNO=? AND IBATCH=? ";
+
+            m_pstmt = m_conn.prepareStatement(sQuery);
+
+            int i=1;
+            m_pstmt.setString(i++, plant);
+            m_pstmt.setString(i++, poNo);
+            m_pstmt.setString(i++, matlNo);
+            m_pstmt.setString(i++, batchNo);
+
+            m_rs=m_pstmt.executeQuery();
+            while(m_rs.next())
+            {
+                retValue=m_rs.getInt(1);
+            }
+
+            m_pstmt.close();
+            m_rs.close();
+            m_conn.close();
+        }
+        catch (Exception e)
+        {
+            System.out.println(e);
+
+        }
+
+        return retValue;
+    }
+
+    @RequestMapping(method = RequestMethod.GET, value = "/getFileKioxiaIssueList")
+    public   String  getFileKioxiaIssueList() {
+
+        Connection m_conn = null;
+        PreparedStatement m_psmt = null;
+        CallableStatement m_cs = null;
+        ResultSet m_rs = null;
+
+        String result = "Fail";
+        List<Map<String,Object>> dataQuery = new ArrayList<>();
+        int seq = 0;
+        try {
+            Class.forName(DRIVER);
+            m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
+            String query = " SELECT DMFCID,DMASID,DMDAMK,DMSDEV,DMSTS1,DMCSCD,DMPKG,DMDMS,DMLEAD,DMLOT#,DMDCC, DMDSID, SDMDFG,  SMFCID, SMASID,SMWAMK,SMSUB#,SMLOT#,SMDCC,SDIQTY, SMDQBG, SMBUSN, DMSRPT, SMDQDT, DMRLOC, DCPLNT\n" +
+                    " FROM EMLIB.ADSTMP01, EMLIB.ASCHMP01, EMLIB.ASCHMP02 \n" +
+                    " WHERE SMFCID=SDFCID AND SMASID=SDASID AND SMWAMK=SDWAMK  AND SMSUB#=SDSUB# AND SDDAMK=DMDAMK AND SMFCID=80 AND SMASID=1 AND SDFCID=80\n" +
+                    " AND SDASID=1  AND DMFCID=80 AND DMASID=1 AND DMSTN='DIEBANK' AND DMSTS2='ACTIVE'  AND SMPLNT='V1'  AND SMSTN IN ('DIE REQUEST','TEST QUEUE') \n" +
+                    " AND SMSTS1 IN ('','DIE REQUEST') AND SMSTS2 = ('ACTIVE') AND SMCSCD =78  \n" +
+                    " ORDER BY SMCSCD,DMLOT# ";
+            m_psmt = m_conn.prepareStatement(query);
+
+            m_rs = m_psmt.executeQuery();
+            while (m_rs != null && m_rs.next()) {
+                Map<String,Object> mapData=new HashMap<>();
+                mapData.put("Cust Device",m_rs.getString("DMSDEV").trim());
+                 mapData.put("Seq",++seq);
+                 mapData.put("CustCode",m_rs.getInt("DMCSCD"));
+                 mapData.put("CustLot",m_rs.getString("DMLOT#").trim());
+                 mapData.put("CustDcc",m_rs.getString("DMDCC").trim());
+                 mapData.put("WipLot",m_rs.getString("SMLOT#").trim());
+                 mapData.put("WipDcc",m_rs.getString("SMDCC").trim());
+                 mapData.put("CustAmkorID",m_rs.getInt("DMDAMK"));
+                 mapData.put("WipAmkorID",m_rs.getInt("SMWAMK"));
+                 mapData.put("WipAmkorSubID",m_rs.getInt("SMSUB#"));
+                 mapData.put("EohQty",m_rs.getInt("SDIQTY"));
+                 mapData.put("RackLocationCode",m_rs.getString("DMRLOC").trim());
+
+
+                dataQuery.add(mapData);
+
+            }
+
+
+            m_psmt.close();
+            m_rs.close();
+
+
+            m_conn.close();
+
+            if (!dataQuery.isEmpty()) {
+
+                result = "Send Email Success";
+                String fileName = "C:\\Dao\\SendMail\\";
+                String fileNameString = "Kioxia" + get400CurrentDate() + ".xls";
+                fileName = fileName + fileNameString;
+                createWorkbookKioxiaIssue(new File(fileName), dataQuery, fileNameString );
+            } else {
+                result = "There is no data inventory";
+            }
+
+
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+        return result;
+    }
+    public void createWorkbookKioxiaIssue(File fileName, List<Map<String,Object>> lotList, String fileNameString) throws IOException {
+        try {
+
+
+            if (fileName.exists()) {
+                fileName.delete();
+            }
+
+
+            FileOutputStream fos = new FileOutputStream(fileName);
+            SXSSFWorkbook workbook = new SXSSFWorkbook();
+
+            Sheet sheet = workbook.createSheet("Kioxia List Issue");
+            CellStyle style = workbook.createCellStyle();
+
+            style.setBorderBottom(BorderStyle.THIN);
+            style.setBottomBorderColor(IndexedColors.BLACK.getIndex());
+            style.setBorderLeft(BorderStyle.THIN);
+            style.setLeftBorderColor(IndexedColors.BLACK.getIndex());
+            style.setBorderRight(BorderStyle.THIN);
+            style.setRightBorderColor(IndexedColors.BLACK.getIndex());
+            style.setBorderTop(BorderStyle.THIN);
+            style.setTopBorderColor(IndexedColors.BLACK.getIndex());
+            style.setVerticalAlignment(VerticalAlignment.CENTER);
+//            style.setWrapText(true);
+
+
+            Row row = sheet.createRow(0);
+//            row.createCell(0).setCellValue("STT");
+            row.createCell(0).setCellValue("Seq");
+            row.createCell(1).setCellValue("CustCode");
+            row.createCell(2).setCellValue("CustLot");
+            row.createCell(3).setCellValue("CustDcc");
+            row.createCell(4).setCellValue("WipLot");
+            row.createCell(5).setCellValue("WipDcc");
+            row.createCell(6).setCellValue("CustAmkorID");
+            row.createCell(7).setCellValue("WipAmkorID");
+            row.createCell(8).setCellValue("WipAmkorSubID");
+
+            row.createCell(9).setCellValue("EohQty");
+            row.createCell(10).setCellValue("RackLocationCode");
+
+
+            for (int i =0 ;i < 11; i++) {
+                row.getCell(i).setCellStyle(style);
+//                sheet.autoSizeColumn(1);
+                sheet.setColumnWidth(i, 15 * 256);
+            }
+
+            int rowCount = 1;
+
+
+            for (Map<String, Object> lot : lotList) {
+
+                Row lotRow = sheet.createRow(rowCount);
+
+
+                lotRow.createCell(0).setCellValue((Integer) lot.get("Seq"));
+                lotRow.createCell(1).setCellValue((Integer) lot.get("CustCode"));
+                lotRow.createCell(2).setCellValue((String) lot.get("CustLot"));
+                lotRow.createCell(3).setCellValue((String) lot.get("CustDcc"));
+                lotRow.createCell(4).setCellValue((String) lot.get("WipLot"));
+                lotRow.createCell(5).setCellValue((String) lot.get("WipDcc"));
+                lotRow.createCell(6).setCellValue((Integer) lot.get("CustAmkorID"));
+                lotRow.createCell(7).setCellValue((Integer) lot.get("WipAmkorID"));
+                lotRow.createCell(8).setCellValue((Integer) lot.get("WipAmkorSubID"));
+                lotRow.createCell(9).setCellValue((Integer) lot.get("EohQty"));
+                lotRow.createCell(10).setCellValue((String) lot.get("RackLocationCode"));
+
+
+
+                for (int i = 0; i < 11; i++) {
+                    lotRow.getCell(i).setCellStyle(style);
+//                    sheet.autoSizeColumn(i);
+//                    sheet.setColumnWidth(i, 30 * 256);
+                }
+
+
+                rowCount++;
+            }
+
+
+            workbook.write(fos);
+            fos.flush();
+            fos.close();
+            atvService.sendMailDaily(fileName.getPath(), fileNameString, "Kioxia List Issue");
+
+
+        } catch (FileNotFoundException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+    @RequestMapping(method = RequestMethod.GET, value = "/getListB2BQTI")
+    public   List<Map<String,Object>>  getListB2BQTI() {
+
+        Connection m_conn = null;
+        PreparedStatement m_psmt = null;
+        CallableStatement m_cs = null;
+        ResultSet m_rs = null;
+
+        String result = "Fail";
+        List<Map<String,Object>> dataQuery = new ArrayList<>();
+        int seq = 0;
+        try {
+            Class.forName(DRIVER);
+            m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
+            String query = "  SELECT * FROM EMLIB.AINTMP01 " +
+                    " LEFT OUTER JOIN DPTBLB.CSINTCP  \n" +
+                    " ON IMFCID=FACID AND INCUNU=IMCSCD AND INCLOT=IMLOT# AND IMCSS# = INTSEQ AND INMAWB = IMAWB# \n" +
+                    " WHERE IMSTS1 = 'ACTIVE' AND IMFCID=80 AND IMDSFG <>'P'  AND IMCSCD=453  " ;
+
+            m_psmt = m_conn.prepareStatement(query);
+
+            m_rs = m_psmt.executeQuery();
+            while (m_rs != null && m_rs.next()) {
+                Map<String,Object> mapData=new HashMap<>();
+                mapData.put("Cust Device",m_rs.getString("IMSDEV").trim());
+
+                mapData.put("Lot#",m_rs.getString("IMOTH#").trim());
+                mapData.put("Received Date",m_rs.getString("IMCHDT"));
+                mapData.put("Qty",m_rs.getInt("IMINVQ"));
+                mapData.put("Fab Site",m_rs.getString("CUSMS5"));
+                mapData.put("Bump Site",m_rs.getString("CUSMS3"));
+                mapData.put("Packslip",m_rs.getString("IMOTH#").trim());
+
+
+
+                dataQuery.add(mapData);
+
+            }
+
+
+            m_psmt.close();
+            m_rs.close();
+
+
+            m_conn.close();
+
+
+
+
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+        return dataQuery;
+    }
+
+
+    @RequestMapping(method = RequestMethod.GET, value = "/sendQTIReportToFTP")
+    public   String  sendQTIReportToFTP() {
+
+        Connection m_conn = null;
+        PreparedStatement m_psmt = null;
+        CallableStatement m_cs = null;
+        ResultSet m_rs = null;
+
+        String result = "Fail";
+        List<Map<String,Object>> dataQuery = new ArrayList<>();
+
+        try {
+            Class.forName(DRIVER);
+            m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
+            String query = "\n" +
+                    " SELECT   DMCSCD,DMSDEV, DMLOT#,DMDAMK ,DMDCC,DMRCVQ,DMWRCV ,DMNONQ ,DMWNON ,\"DMHSB#\",DMRVDT ,\"DMMOO#\" ,DMSTN,DMSTS2,DMEPGM \n ,CVFLDV " +
+                    " FROM  EMLIB.ADSTMP01 \n" +
+                    " LEFT JOIN EMLIB.EMESTP02 ON DMFCID =CVFCID AND DMASID =CVASID AND DMDAMK =CVAMKR AND CVMDUL='DIEBANK' AND CVFLDN='DUID' " +
+                    " WHERE DMFCID=80 AND DMASID=1 AND DCPLNT = 'V1' AND DMSTN = 'DIEBANK' AND DMSTS2 IN ( 'ACTIVE',  'HOLD')AND DMLTCD!='DD'  AND  DMCSCD IN ( 699,700 ) \n" +
+                    " ORDER  BY DMCSCD    ";
+            m_psmt = m_conn.prepareStatement(query);
+
+            m_rs = m_psmt.executeQuery();
+            while (m_rs != null && m_rs.next()) {
+                Map<String,Object> mapData=new HashMap<>();
+                mapData.put("CUST_NO",m_rs.getInt("DMCSCD"));
+                mapData.put("DIE_PART_NUMBER",m_rs.getString("DMSDEV").trim());
+                mapData.put("BROADCOM_REEL_NO",m_rs.getString("DMLOT#").trim());
+                mapData.put("DB_AMKRID",m_rs.getLong("DMDAMK"));
+                mapData.put("DB_DCC",m_rs.getString("DMDCC"));
+                mapData.put("RCV_DIE_QTY",m_rs.getInt("DMRCVQ"));
+                mapData.put("RCV_WFR_QTY",m_rs.getInt("DMRCVQ"));
+                mapData.put("Non-Sch_DIE_QTY",m_rs.getInt("DMNONQ"));
+                mapData.put("Non-Sch_WFR_QTY",m_rs.getInt("DMWNON"));
+                mapData.put("Non-House Air Bill",m_rs.getString("DMHSB#"));
+                mapData.put("RCV_DATE",m_rs.getLong("DMRVDT"));
+                mapData.put("LOT_TRAVELLER_NO","");
+                mapData.put("DUID",m_rs.getString("CVFLDV").trim());
+                mapData.put("PROJECT_NAME","");
+                mapData.put("DESIGN","");
+                mapData.put("PASS_BIN",m_rs.getString("DMMOO#"));
+                mapData.put("PURPOSE","");
+                mapData.put("TNR_EBR_NUMBER","");
+                mapData.put("DIE_LOCATION",m_rs.getString("DMSTN"));
+                mapData.put("ENTRY_PGM",m_rs.getString("DMEPGM"));
+                dataQuery.add(mapData);
+
+            }
+
+
+            m_psmt.close();
+            m_rs.close();
+
+
+            m_conn.close();
+            Map<Integer,List<Map<String,Object>>>dataConvertToMap=new HashMap<>();
+            dataConvertToMap=dataQuery.stream().collect(Collectors.groupingBy(map-> (Integer) map.get("CUST_NO")));
+
+            if (!dataQuery.isEmpty()) {
+
+
+                String fileName = "C:\\Dao\\SendMail\\";
+                String fileNameString = "AmkorDieFBARInventoryStatus_BRCM_" + currentDate() + ".xls";
+                fileName = fileName + fileNameString;
+                result=   createWorkbookQTIFTP(new File(fileName), dataConvertToMap, fileNameString );
+            } else {
+                result = "There is no data inventory";
+            }
+
+
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+        return result;
+    }
+    public String createWorkbookQTIFTP(File fileName,   Map<Integer,List<Map<String,Object>>> lotList, String fileNameString) throws IOException {
+        String result="There is no data inventory";
+        try {
+
+
+            if (fileName.exists()) {
+                fileName.delete();
+            }
+
+
+            FileOutputStream fos = new FileOutputStream(fileName);
+            SXSSFWorkbook workbook = new SXSSFWorkbook();
+
+            for (Integer key: lotList.keySet()){
+                String nameSheet="699";
+                if(key==700){
+                    nameSheet="700";
+                }
+                List<Map<String,Object>> dataCust=lotList.get(key);
+                Sheet sheet = workbook.createSheet(nameSheet);
+                CellStyle style = workbook.createCellStyle();
+                DataFormat dataFormat = workbook.createDataFormat();
+                style.setDataFormat(dataFormat.getFormat("@"));
+                style.setBorderBottom(BorderStyle.THIN);
+                style.setBottomBorderColor(IndexedColors.BLACK.getIndex());
+                style.setBorderLeft(BorderStyle.THIN);
+                style.setLeftBorderColor(IndexedColors.BLACK.getIndex());
+                style.setBorderRight(BorderStyle.THIN);
+                style.setRightBorderColor(IndexedColors.BLACK.getIndex());
+                style.setBorderTop(BorderStyle.THIN);
+                style.setTopBorderColor(IndexedColors.BLACK.getIndex());
+                style.setVerticalAlignment(VerticalAlignment.CENTER);
+//            style.setWrapText(true);
+
+
+                Row row = sheet.createRow(0);
+//            row.createCell(0).setCellValue("STT");
+                row.createCell(0).setCellValue("CUST_NO");
+                row.createCell(1).setCellValue("DIE_PART_NUMBER");
+                row.createCell(2).setCellValue("BROADCOM_REEL_NO");
+                row.createCell(3).setCellValue("DB_AMKRID");
+                row.createCell(4).setCellValue("DB_DCC");
+                row.createCell(5).setCellValue("RCV_DIE_QTY");
+                row.createCell(6).setCellValue("RCV_WFR_QTY");
+                row.createCell(7).setCellValue("Non-Sch_DIE_QTY");
+                row.createCell(8).setCellValue("Non-Sch_WFR_QTY");
+                row.createCell(9).setCellValue("Non-House Air Bill");
+                row.createCell(10).setCellValue("RCV_DATE");
+                row.createCell(11).setCellValue("LOT_TRAVELLER_NO");
+                row.createCell(12).setCellValue("DUID");
+                row.createCell(13).setCellValue("PROJECT_NAME");
+                row.createCell(14).setCellValue("DESIGN");
+                row.createCell(15).setCellValue("PASS_BIN");
+                row.createCell(16).setCellValue("PURPOSE");
+                row.createCell(17).setCellValue("TNR_EBR_NUMBER");
+                row.createCell(18).setCellValue("DIE_LOCATION");
+                row.createCell(19).setCellValue("ENTRY_PGM");
+
+                for (int i =0 ;i < 20; i++) {
+                    row.getCell(i).setCellStyle(style);
+//                sheet.autoSizeColumn(1);
+                    sheet.setColumnWidth(i, 20 * 256);
+                }
+                sheet.setColumnWidth(0, 10 * 256);
+                sheet.setColumnWidth(1, 35 * 256);
+                sheet.setColumnWidth(2, 30 * 256);
+                sheet.setColumnWidth(19, 30 * 256);
+
+                int rowCount = 1;
+
+
+                for (Map<String, Object> lot : dataCust) {
+
+                    Row lotRow = sheet.createRow(rowCount);
+                    lotRow.createCell(0).setCellValue((Integer)lot.get("CUST_NO"));
+                    lotRow.createCell(1).setCellValue((String)lot.get("DIE_PART_NUMBER"));
+                    lotRow.createCell(2).setCellValue((String)lot.get("BROADCOM_REEL_NO"));
+                    lotRow.createCell(3).setCellValue((Long)lot.get("DB_AMKRID"));
+                    lotRow.createCell(4).setCellValue((String)lot.get("DB_DCC"));
+                    lotRow.createCell(5).setCellValue((Integer)lot.get("RCV_DIE_QTY"));
+                    lotRow.createCell(6).setCellValue((Integer)lot.get("RCV_WFR_QTY"));
+                    lotRow.createCell(7).setCellValue((Integer)lot.get("Non-Sch_DIE_QTY"));
+                    lotRow.createCell(8).setCellValue((Integer)lot.get("Non-Sch_WFR_QTY"));
+                    lotRow.createCell(9).setCellValue((String) lot.get("Non-House Air Bill"));
+                    lotRow.createCell(10).setCellValue(String.valueOf((Long)lot.get("RCV_DATE")));
+                    lotRow.createCell(11).setCellValue((String)lot.get("LOT_TRAVELLER_NO"));
+                    lotRow.createCell(12).setCellValue((String)lot.get("DUID"));
+                    lotRow.createCell(13).setCellValue((String)lot.get("PROJECT_NAME"));
+                    lotRow.createCell(14).setCellValue((String)lot.get("DESIGN"));
+                    lotRow.createCell(15).setCellValue((String)lot.get("PASS_BIN"));
+                    lotRow.createCell(16).setCellValue((String)lot.get("PURPOSE"));
+                    lotRow.createCell(17).setCellValue((String)lot.get("TNR_EBR_NUMBER"));
+                    lotRow.createCell(18).setCellValue((String)lot.get("DIE_LOCATION"));
+                    lotRow.createCell(19).setCellValue((String)lot.get("ENTRY_PGM"));
+                    for (int i = 0; i < 20; i++) {
+                        lotRow.getCell(i).setCellStyle(style);
+//                    sheet.autoSizeColumn(i);
+//                    sheet.setColumnWidth(i, 30 * 256);
+                    }
+
+
+                    rowCount++;
+                }
+
+            }
+            workbook.write(fos);
+            fos.flush();
+            fos.close();
+
+
+
+            result=uploadToFTP(fileName,fileNameString);
+
+
+        } catch (FileNotFoundException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        return result;
+    }
+}
