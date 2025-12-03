@@ -13,4 +13,7 @@ public class ScheduleMasterModel {
     private int subId;
     private String lotName;
     private String lotDcc;
+    private String station;
+    private String status1;
+    private String status2;
 }
