@@ -3048,7 +3048,7 @@ public class Data400Controller {
             Class.forName(DRIVER);
             m_conn = DriverManager.getConnection(getURL("ATV"), getUserID("ATV"), getPasswd("ATV"));
             String query = "\n" +
-                    " SELECT   DMCSCD,DMSDEV, DMLOT#,DMDAMK ,DMDCC,DMRCVQ,DMWRCV ,DMNONQ ,DMWNON ,\"DMHSB#\",DMRVDT ,\"DMMOO#\" ,DMSTN,DMSTS2,DMEPGM \n ,CVFLDV " +
+                    " SELECT   DMCSCD,DMSDEV, DMLOT#,DMDAMK ,DMDCC,DMRCVQ,DMWRCV ,DMNONQ ,DMWNON,DMOTH# ,\"DMHSB#\",DMRVDT ,\"DMMOO#\" ,DMSTN,DMSTS2,DMEPGM \n ,CVFLDV " +
                     " FROM  EMLIB.ADSTMP01 \n" +
                     " LEFT JOIN EMLIB.EMESTP02 ON DMFCID =CVFCID AND DMASID =CVASID AND DMDAMK =CVAMKR AND CVMDUL='DIEBANK' AND CVFLDN='DUID' " +
                     " WHERE DMFCID=80 AND DMASID=1 AND DCPLNT = 'V1' AND DMSTN = 'DIEBANK' AND DMSTS2 IN ( 'ACTIVE',  'HOLD')AND DMLTCD!='DD'  AND  DMCSCD IN ( 699,700 ) \n" +
@@ -3064,7 +3064,7 @@ public class Data400Controller {
                 mapData.put("DB_AMKRID",m_rs.getLong("DMDAMK"));
                 mapData.put("DB_DCC",m_rs.getString("DMDCC"));
                 mapData.put("RCV_DIE_QTY",m_rs.getInt("DMRCVQ"));
-                mapData.put("RCV_WFR_QTY",m_rs.getInt("DMRCVQ"));
+                mapData.put("RCV_WFR_QTY",m_rs.getInt("DMWRCV"));
                 mapData.put("Non-Sch_DIE_QTY",m_rs.getInt("DMNONQ"));
                 mapData.put("Non-Sch_WFR_QTY",m_rs.getInt("DMWNON"));
                 mapData.put("Non-House Air Bill",m_rs.getString("DMHSB#"));
@@ -3073,8 +3073,8 @@ public class Data400Controller {
                 mapData.put("DUID",m_rs.getString("CVFLDV").trim());
                 mapData.put("PROJECT_NAME","");
                 mapData.put("DESIGN","");
-                mapData.put("PASS_BIN",m_rs.getString("DMMOO#"));
-                mapData.put("PURPOSE","");
+                mapData.put("PASS_BIN",m_rs.getString("DMMOO#").trim());
+                mapData.put("PURPOSE",m_rs.getString("DMOTH#").trim());
                 mapData.put("TNR_EBR_NUMBER","");
                 mapData.put("DIE_LOCATION",m_rs.getString("DMSTN"));
                 mapData.put("ENTRY_PGM",m_rs.getString("DMEPGM"));

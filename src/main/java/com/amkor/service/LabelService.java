@@ -45,7 +45,7 @@ public class LabelService {
     @RequestMapping(method = RequestMethod.GET, value = "/printKioxiaInternalLabel")
     public String printKioxiaInternalLabel(){
         String result="fail";
-        String ipAddress="10.201.137.173";
+        String ipAddress="10.201.137.186";
         String zCode="";
                  zCode+="^XA\n";
                  zCode+="^MCY\n";
