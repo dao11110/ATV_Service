@@ -1096,4 +1096,66 @@ public class TFAServiceImpl implements ITFAService {
             cleanUp(m_conn, m_cstmt, null);
         }
     }
+
+    public Map<String, Object> getDefectListByLotName(String lotName) {
+        Connection m_conn = null;
+        Map<String, Object> result = new HashMap<>();
+        PreparedStatement m_psmt = null;
+        ResultSet m_rs = null;
+        int totalRejectQty = 0;
+        try {
+            m_conn = getConnection();
+
+            // get defect list by lot name
+            String sQuery = "select DFFDES, SUM(W2DQTY) as TotalQty from emlib.awipmp01\n" +
+                    "join emlib.aschmp02 on wmwamk = smwamk and wmsub# = smsub#\n" +
+                    "join emlib.ewiplp02 on wmwamk = w2wamk and wmsub# = w2wsub and wmseq# = w2step\n" +
+                    "join DPTBLB.ETBDEFT on W2FCID=DFFCID AND W2DOPR=DFOPR# AND W2DCOD=DFDFT# and DFCUST=575 AND DFOPR# = 865\n" +
+                    "where smlot# = ? and wmopr# = 865 and WMOUDT != 0\n" +
+                    "group by DFFDES";
+
+            m_psmt = m_conn.prepareStatement(sQuery);
+
+            int i = 1;
+            m_psmt.setString(i, lotName);
+
+            m_rs = m_psmt.executeQuery();
+
+            while (m_rs.next()) {
+                totalRejectQty += m_rs.getInt("TotalQty");
+                result.put(m_rs.getString("DFFDES").trim(), m_rs.getInt("TotalQty"));
+            }
+
+            // get in qty
+            sQuery = "select WMINQT, SSDEVC from emlib.awipmp01\n" +
+                    "join emlib.aschmp02 on wmwamk = smwamk and wmsub# = smsub#\n" +
+                    "join emlib.aschmp03 on wmwamk = sswamk and wmsub# = sssub#\n" +
+                    "where smlot# = ? and wmopr# = 865 and WMOUDT != 0 AND WMINQT != 0";
+
+            m_psmt = m_conn.prepareStatement(sQuery);
+
+            i = 1;
+            m_psmt.setString(i, lotName);
+
+            m_rs = m_psmt.executeQuery();
+            if (m_rs.next()) {
+                String ssdevc = m_rs.getString("SSDEVC");
+                result.put("SSDEVC", ssdevc != null ? ssdevc.trim() : "");
+                result.put("WMINQT", m_rs.getInt("WMINQT"));
+            }
+
+            // set total reject qty
+            result.put("TotalRejectQty", totalRejectQty);
+
+            m_psmt.close();
+            m_conn.close();
+        } catch (Exception e) {
+            String sMsg = e.getMessage();
+            log.error(sMsg);
+            System.out.println(sMsg);
+        } finally {
+            cleanUp(m_conn, m_psmt, null);
+        }
+        return result;
+    }
 }

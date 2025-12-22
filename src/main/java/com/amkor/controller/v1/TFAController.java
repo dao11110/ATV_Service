@@ -12,6 +12,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.net.ftp.FTP;
+import org.apache.commons.net.ftp.FTPClient;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,7 +22,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.BufferedInputStream;
+import java.io.*;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -48,6 +50,24 @@ public class TFAController {
     private static final String CREATE_FAIL_MESSAGE = "FAILED TO CREATE";
     private static final String SUCCESS_MESSAGE = "SUCCESS";
     private static final String FAILED_MESSAGE = "FAILED";
+
+    private static final Map<String, List<String>> defectMap = new HashMap<>();
+
+    static {
+        defectMap.put("Die FM", Arrays.asList("OTHER REJECT MODE", "DIE CHIP OUT", "OTHER2"));
+        defectMap.put("Surface damage", Arrays.asList("SCRATCH"));
+        defectMap.put("Edge FM", Arrays.asList("EDGE FOREIGN MATERIAL"));
+        defectMap.put("Side defect", Arrays.asList("SIDE DEFECT"));
+        defectMap.put("Surface contamination", Arrays.asList("SURFACE CONTAMINATION"));
+        defectMap.put("Mark", Arrays.asList("MARKING REJECT"));
+        defectMap.put("Edge Straightness", Arrays.asList("EDGE STRAIGHTNESS/CHIP OUT"));
+        defectMap.put("Coplanarity", Arrays.asList("COPLANARITY"));
+        defectMap.put("IR inspection", Arrays.asList("CRACK"));
+        defectMap.put("Ball quality", Arrays.asList("BALL QUALITY"));
+        defectMap.put("Ball height", Arrays.asList("BALL HEIGHT"));
+        defectMap.put("Matrix quality", Arrays.asList("2D BARCODE REJECT"));
+
+    }
 
     @RequestMapping(method = RequestMethod.POST, value = "/data400/{site}/custProductionInfoFgJson")
     @CrossOrigin(origins = "*")
@@ -623,6 +643,137 @@ public class TFAController {
             );
         }
 
+    }
+
+    @RequestMapping(method = RequestMethod.GET, value = "/data400/getDefectListByLotName")
+    @CrossOrigin(origins = "*")
+    public ApiResponse<String> getDefectListByLotName(@RequestParam("lotName") String lotName) {
+        Map<String, Object> result = new HashMap<>();
+        String msg = "";
+        DecimalFormat df = new DecimalFormat("0.00");
+        try {
+            Long current = iatvService.getDateTime();
+            String trimmedCurrent = String.valueOf(current).substring(4);
+            result = ITFAService.getDefectListByLotName(lotName);
+            List<String> orderedDefect = Arrays.asList(
+                    "Coplanarity",
+                    "Edge FM",
+                    "Surface contamination",
+                    "Matrix quality",
+                    "Ball height",
+                    "Ball quality",
+                    "Side defect",
+                    "Surface damage",
+                    "Mark",
+                    "Edge Straightness",
+                    "IR inspection",
+                    "Die FM"
+            );
+
+            // write result to csv file
+            String fileName = "TNR_" + lotName + "_" + trimmedCurrent + ".csv";
+            try (FileWriter file = new FileWriter(fileName)) {
+                file.write("Lot#,Device,In,Out,Yield,Reject,Coplanarity,Edge FM,Surface contamination,Matrix quality,Ball height,Ball quality,Side defect,Surface damage,Mark,Edge Straightness,IR inspection,Die FM\n");
+                StringBuilder lineValue = new StringBuilder();
+                int totalRejectQty = Integer.parseInt(result.getOrDefault("TotalRejectQty", 0).toString());
+                int totalInQty = Integer.parseInt(result.getOrDefault("WMINQT", 0).toString());
+                String device = result.getOrDefault("SSDEVC", "").toString();
+
+                // lot name
+                lineValue.append(lotName);
+                lineValue.append(",");
+
+                // device
+                lineValue.append(device);
+                lineValue.append(",");
+
+                // in qty
+                lineValue.append(totalInQty);
+                lineValue.append(",");
+
+                // out qty
+                lineValue.append(totalInQty - totalRejectQty);
+                lineValue.append(",");
+
+                // tính yield %
+                double yieldPercent = ((double) (totalInQty - totalRejectQty) * 100.0) / totalInQty;
+                lineValue.append(String.format("%.2f%%", yieldPercent));
+
+                lineValue.append(",");
+
+                // total reject
+                lineValue.append(totalRejectQty);
+                lineValue.append(",");
+
+                // defect
+                for (int i = 0; i < orderedDefect.size(); i++) {
+                    String order = orderedDefect.get(i);
+                    List<String> defectName = defectMap.get(order);
+                    int totalRejectPerDefectQty = 0;
+
+                    for (String defect : defectName) {
+                        totalRejectPerDefectQty += Integer.parseInt(result.getOrDefault(defect, 0).toString());
+                    }
+
+                    lineValue.append(totalRejectPerDefectQty);
+                    if (i < orderedDefect.size() - 1) {
+                        lineValue.append(",");
+                    }
+                }
+                // line break
+                lineValue.append("\n");
+                file.write(lineValue.toString());
+            }
+
+            // upload to FTP
+            FTPClient ftpClient = new FTPClient();
+            try {
+                ftpClient.connect("10.201.10.165", 21);
+                ftpClient.login("V1QORVOEOL", "Matkhauftp03@");
+                ftpClient.enterLocalPassiveMode();
+                ftpClient.setFileType(FTP.BINARY_FILE_TYPE);
+
+                File csvFile = new File(fileName);
+                boolean done;
+                try (FileInputStream inputStream = new FileInputStream(csvFile)) {
+                    done = ftpClient.storeFile("/In/WIP/TNR_Data/" + fileName, inputStream);
+                }
+
+                if (done) {
+                    System.out.println("CSV file uploaded successfully!");
+                    // Xóa file local sau khi upload thành công
+                    if (csvFile.delete()) {
+                        System.out.println("Local file deleted.");
+                    } else {
+                        System.out.println("Failed to delete local file.");
+                    }
+                } else {
+                    System.out.println("Upload failed.");
+                }
+
+                ftpClient.logout();
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            } finally {
+                try {
+                    if (ftpClient.isConnected()) {
+                        ftpClient.disconnect();
+                    }
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
+            }
+
+        } catch (Exception ex) {
+            log.error(ex.getMessage());
+            msg = "exception";
+        }
+        return ApiResponse.of(
+                HttpStatus.OK,
+                ApiResponse.Code.SUCCESS,
+                SUCCESS_MESSAGE,
+                SUCCESS_MESSAGE
+        );
     }
 
 }
