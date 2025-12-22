@@ -58,7 +58,7 @@ public class ATVService implements IATVService {
     public void sendMailQTIReport(){
         data400Controller.sendAutoReportQTI();
     }
-    @Scheduled(cron = "0 0 8 * * *")
+    @Scheduled(cron = "0 0 11 * * *")
     public void sendQTIReportToFTP(){
         data400Controller.sendQTIReportToFTP();
     }
