@@ -32,4 +32,6 @@ public interface ITFAService extends IWriteService {
 
     String sendMailReportDateCodeDiscrepancyChecking(Map<String, Object> body);
 
+    Map<String, Object> getDefectListByLotName(String lotName);
+
 }
