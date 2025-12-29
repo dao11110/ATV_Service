@@ -22,6 +22,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.jcraft.jsch.ChannelSftp;
+import com.jcraft.jsch.JSch;
+import com.jcraft.jsch.Session;
+
 import java.io.*;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -647,11 +651,19 @@ public class TFAController {
 
     @RequestMapping(method = RequestMethod.GET, value = "/data400/getDefectListByLotName")
     @CrossOrigin(origins = "*")
-    public ApiResponse<String> getDefectListByLotName(@RequestParam("lotName") String lotName) {
+    public ApiResponse<String> getDefectListByLotName(@RequestParam("lotName") String lotName, @RequestParam("dcc") String dcc) {
         Map<String, Object> result = new HashMap<>();
         String msg = "";
         DecimalFormat df = new DecimalFormat("0.00");
         try {
+            if (!dcc.trim().equals("90")) {
+                return ApiResponse.of(
+                        HttpStatus.OK,
+                        ApiResponse.Code.SUCCESS,
+                        SUCCESS_MESSAGE,
+                        SUCCESS_MESSAGE
+                );
+            }
             Long current = iatvService.getDateTime();
             String trimmedCurrent = String.valueOf(current).substring(4);
             result = ITFAService.getDefectListByLotName(lotName);
@@ -768,6 +780,49 @@ public class TFAController {
             log.error(ex.getMessage());
             msg = "exception";
         }
+        return ApiResponse.of(
+                HttpStatus.OK,
+                ApiResponse.Code.SUCCESS,
+                SUCCESS_MESSAGE,
+                SUCCESS_MESSAGE
+        );
+    }
+
+    @RequestMapping(method = RequestMethod.GET, value = "/data400/testSFTP")
+    @CrossOrigin(origins = "*")
+    public ApiResponse<String> testSFTP() {
+        String host = "intl-sftp.qorvo.com";
+        int port = 22;
+        String user = "Amkor";
+        String privateKeyPath = "C:\\Users\\700781\\Downloads\\amkor_atv.pem"; // converted from .ppk
+        String passphrase = "4mk0rATV5FT9";
+
+        try {
+            JSch jsch = new JSch();
+            jsch.addIdentity(privateKeyPath, passphrase);
+
+            Session session = jsch.getSession(user, host, port);
+            session.setConfig("StrictHostKeyChecking", "no");
+            session.connect();
+
+            ChannelSftp sftpChannel = (ChannelSftp) session.openChannel("sftp");
+            sftpChannel.connect();
+
+            // Just list files in remote home directory
+            StringBuilder result = new StringBuilder("Connected! Files:\n");
+            sftpChannel.ls(".").forEach(entry -> result.append(entry.toString()).append("\n"));
+
+            sftpChannel.cd("in/wip/TNR_Data");
+
+            System.out.println(result.toString());
+            sftpChannel.disconnect();
+            session.disconnect();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+
         return ApiResponse.of(
                 HttpStatus.OK,
                 ApiResponse.Code.SUCCESS,
