@@ -3,6 +3,7 @@ package com.amkor.controller.v1;
 import com.amkor.common.utils.Utils;
 import com.amkor.models.*;
 import com.amkor.service.ATVService;
+import com.amkor.service.ReportService;
 import lombok.extern.java.Log;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.net.ftp.FTP;
@@ -34,6 +35,9 @@ public class Data400Controller {
     private static String DRIVER = "com.ibm.as400.access.AS400JDBCDriver";
     @Autowired
     private ATVService atvService;
+
+    @Autowired
+    ReportService reportService;
 
     public String getURL(String site) {
         String result = "";
@@ -1127,7 +1131,7 @@ public class Data400Controller {
 
 
             FileOutputStream fos = new FileOutputStream(fileName);
-            SXSSFWorkbook workbook = new SXSSFWorkbook();
+            SXSSFWorkbook workbook = new SXSSFWorkbook(100);
 
             Sheet sheet = workbook.createSheet("NG Inventory");
             CellStyle style = workbook.createCellStyle();
@@ -1214,11 +1218,12 @@ public class Data400Controller {
 
 
             workbook.write(fos);
+            workbook.dispose();
             fos.flush();
             fos.close();
             atvService.sendMailDaily(fileName.getPath(), fileNameString, "NG Store Inventory Daily");
 
-
+            reportService.generateReport("NG Inventory");
         } catch (FileNotFoundException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();

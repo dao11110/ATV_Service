@@ -11,10 +11,12 @@ import com.amkor.models.ProcessNoteModel;
 import com.amkor.service.iService.IATVService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import javax.activation.DataHandler;
 import javax.activation.FileDataSource;
@@ -419,5 +421,18 @@ public class ATVService implements IATVService {
         return result;
     }
 
+
+    @Bean(name="appAsyncExecutor", destroyMethod = "shutdown")
+    public ThreadPoolTaskExecutor appAsyncExecutor() {
+        ThreadPoolTaskExecutor ex = new ThreadPoolTaskExecutor();
+        ex.setCorePoolSize(8);
+        ex.setMaxPoolSize(16);
+        ex.setQueueCapacity(500);
+        ex.setThreadNamePrefix("async-");
+        ex.setWaitForTasksToCompleteOnShutdown(true);
+        ex.setAwaitTerminationSeconds(30);
+        ex.initialize();
+        return ex;
+    }
 
 }
