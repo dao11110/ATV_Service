@@ -2,6 +2,7 @@ package com.amkor.controller.v1;
 
 import com.amkor.common.response.ApiResponse;
 import com.amkor.common.utils.SharedConstValue;
+import com.amkor.common.utils.Utils;
 import com.amkor.models.*;
 import com.amkor.service.APILoggingService;
 import com.amkor.service.ATVNetMiscTableService;
@@ -32,6 +33,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.text.DecimalFormat;
+import java.time.LocalDateTime;
 import java.util.*;
 
 @Slf4j
@@ -796,30 +798,74 @@ public class TFAController {
         String user = "Amkor";
         String privateKeyPath = "C:\\Users\\700781\\Downloads\\amkor_atv.pem"; // converted from .ppk
         String passphrase = "4mk0rATV5FT9";
-
+        String localPathDownload = "C:\\Users\\700781\\Documents\\ThanhTC";
+        List<File> filesToPush = new ArrayList<>();
         try {
-            JSch jsch = new JSch();
-            jsch.addIdentity(privateKeyPath, passphrase);
+            log.info("start scanning defect list report...");
+            // --- Step 1: Connect to FTP ---
+            FTPClient ftpClient = new FTPClient();
+            try {
+                ftpClient.connect("10.201.10.165", 21);
+                ftpClient.login("V1QORVOEOL", "Matkhauftp03@");
+                ftpClient.cwd("in/wip/TNR_Data");
 
-            Session session = jsch.getSession(user, host, port);
-            session.setConfig("StrictHostKeyChecking", "no");
-            session.connect();
+                String[] files = ftpClient.listNames();
+                for (String file : files) {
+                    LocalDateTime fileTime = Utils.parseDefectReportFileName(file);
+                    if (fileTime.isBefore(LocalDateTime.now().minusHours(24))) {
+                        log.info("File older than 24h: {}", file);
+                        // --- Step 2: Download file from FTP to local temp ---
+                        File localFile = new File(localPathDownload + File.separator + file);
+                        try (OutputStream out = new FileOutputStream(localFile)) {
+                            if (ftpClient.retrieveFile(file, out)) {
+                                filesToPush.add(localFile);
+                            }
+                        }
+                    }
+                }
 
-            ChannelSftp sftpChannel = (ChannelSftp) session.openChannel("sftp");
-            sftpChannel.connect();
+                ftpClient.logout();
+                ftpClient.disconnect();
 
-            // Just list files in remote home directory
-            StringBuilder result = new StringBuilder("Connected! Files:\n");
-            sftpChannel.ls(".").forEach(entry -> result.append(entry.toString()).append("\n"));
+            } catch (IOException ex) {
+                log.error("FTP error", ex);
+            } finally {
+                try {
+                    if (ftpClient.isConnected()) {
+                        ftpClient.disconnect();
+                    }
+                } catch (IOException ex) {
+                    log.error("Error disconnecting FTP", ex);
+                }
+            }
 
-            sftpChannel.cd("in/wip/TNR_Data");
+            try {
+                JSch jsch = new JSch();
+                jsch.addIdentity(privateKeyPath, passphrase);
 
-            System.out.println(result.toString());
-            sftpChannel.disconnect();
-            session.disconnect();
+                Session session = jsch.getSession(user, host, port);
+                session.setConfig("StrictHostKeyChecking", "no");
+                session.connect();
 
-        } catch (Exception e) {
-            e.printStackTrace();
+                ChannelSftp sftpChannel = (ChannelSftp) session.openChannel("sftp");
+                sftpChannel.connect();
+                sftpChannel.cd("in/wip/TNR_Data");
+
+                // Upload all files in one session
+                for (File localFile : filesToPush) {
+                    sftpChannel.put(localFile.getAbsolutePath(), localFile.getName());
+                    log.info("Uploaded: {}", localFile.getName());
+                }
+
+                sftpChannel.disconnect();
+                session.disconnect();
+            } catch (Exception e) {
+                log.error("SFTP error", e);
+            }
+
+            log.info("end scanning defect list report..");
+        } catch (Exception ex) {
+            log.error("error scanning defect list report: {}", ex.getMessage());
         }
 
 

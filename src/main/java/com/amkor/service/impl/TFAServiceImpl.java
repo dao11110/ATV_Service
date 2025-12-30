@@ -1107,7 +1107,7 @@ public class TFAServiceImpl implements ITFAService {
             m_conn = getConnection();
 
             // get defect list by lot name
-            String sQuery = "select DFFDES, SUM(W2DQTY) as TotalQty from emlib.awipmp01\n" +
+            String sQuery = "select UPPER(DFFDES) AS DFFDES, SUM(W2DQTY) as TotalQty from emlib.awipmp01\n" +
                     "join emlib.aschmp02 on wmwamk = smwamk and wmsub# = smsub#\n" +
                     "join emlib.ewiplp02 on wmwamk = w2wamk and wmsub# = w2wsub and wmseq# = w2step\n" +
                     "join DPTBLB.ETBDEFT on W2FCID=DFFCID AND W2DOPR=DFOPR# AND W2DCOD=DFDFT# and DFCUST=575 AND DFOPR# = 865\n" +
