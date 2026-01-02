@@ -150,7 +150,7 @@ public class Data400Controller {
         CallableStatement m_cs = null;
         ResultSet m_rs = null;
         Long dateStart = Long.parseLong(currentDate() + "000000");
-        Long dateEnd = Long.parseLong(currentDate() + "230000");
+        Long dateEnd = Long.parseLong(currentDate() + "235959");
         String result = "Fail";
         List<String> locationList = new ArrayList<>();
         String customer = "( 948,575,78,504,379,734,453,699,700  )";
@@ -267,7 +267,7 @@ public class Data400Controller {
         CallableStatement m_cs = null;
         ResultSet m_rs = null;
         Long dateStart = Long.parseLong(currentDate() + "000000");
-        Long dateEnd = Long.parseLong(currentDate() + "230000");
+        Long dateEnd = Long.parseLong(currentDate() + "235959");
         String result = "Fail";
         String query = "";
         try {
@@ -390,7 +390,6 @@ public class Data400Controller {
 
             m_psmt.close();
             m_rs.close();
-
 
             m_conn.close();
             listData = getFPO(listData, "TEST");
