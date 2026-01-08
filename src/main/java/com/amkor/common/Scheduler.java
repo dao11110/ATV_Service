@@ -94,7 +94,7 @@ public class Scheduler {
         }
     }
 
-    @Scheduled(cron = "0 30 * * * *")
+    @Scheduled(cron = "0 0 * * * *")
     public void gatherTNRDefectDatafromInternalFTPtoSFTP() {
         String host = "intl-sftp.qorvo.com";
         int port = 22;
@@ -115,8 +115,8 @@ public class Scheduler {
                 String[] files = ftpClient.listNames();
                 for (String file : files) {
                     LocalDateTime fileTime = Utils.parseDefectReportFileName(file);
-                    if (fileTime.isBefore(LocalDateTime.now().minusHours(24))) {
-                        log.info("File older than 24h: {}", file);
+                    if (fileTime.isBefore(LocalDateTime.now().minusHours(72))) {
+                        log.info("File older than 72h: {}", file);
                         // --- Step 2: Download file from FTP to local temp ---
                         File localFile = new File(localPathDownload + File.separator + file);
                         try (OutputStream out = new FileOutputStream(localFile)) {
