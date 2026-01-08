@@ -87,10 +87,13 @@ public class ATVService implements IATVService {
                 listTo.add("V1Bank@amkor.com");
 
             } else if (title.equals("QTI Diebank Inventory Daily")) {
-                listTo.add("Trang.Manthu@amkor.com");
-//                listTo.add("Lien.Buithi@amkor.com");
-//                listCC.add("MaryAngelie.Erguiza@amkor.com");
-                listCC.add("ATVQTIPCS@amkor.com");
+
+                listTo.add("AKV_Planning@qti.qualcomm.com");
+                listTo.add("ATVQTIPCS@amkor.com");
+                listTo.remove("Dao.Nguyenvan@amkor.com");
+
+                listCC.add("Dao.Nguyenvan@amkor.com");
+                listCC.add("Trang.Manthu@amkor.com");
                 title="Die Bank inventory report & In-transit report";
             }else if (title.equals("Kioxia List Issue")) {
 
@@ -259,7 +262,7 @@ public class ATVService implements IATVService {
 
             String smtpServer = "v1lexim01.vn.ds.amkor.com";
 //            String fromAddress = "v1lexim01.vn.ds.amkor.com";
-            String fromAddress = "ATVService@amkor.com";
+            String fromAddress = "atv_prdrpt@amkor.com";
             //String title = "SendMail Automation";
 
             String totalMime = MIME_HTML + "; charset=" + ENCODE;
